@@ -1,0 +1,14 @@
+[project]
+name = "wxpdfreader"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "nuitka>=2.8.9",
+    "pymupdf==1.23.8",
+    "wxpython>=4.2.4",
+]
+[project.optional-dependencies]
+dev = [
+    "imageio",
+]
