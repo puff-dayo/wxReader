@@ -3,3 +3,4 @@ todo.md
 wxReader.cfg
 /.venv/
 /.idea/
+/__pycache__
