@@ -993,6 +993,9 @@ class MainFrame(wx.Frame):
         self.id_show_toc_dialog = wx.NewIdRef()
         m_view.Append(self.id_show_toc_dialog, "Show TOC Dialog...\tCtrl+T")
 
+        self.id_fullscreen = wx.NewIdRef()
+        m_view.AppendCheckItem(self.id_fullscreen, "Full &Screen\tF11")
+
         menubar.Append(m_view, "&View")
 
         # --- Process Menu ---
@@ -1076,6 +1079,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_INVERT), id=self.id_col_invert)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_GREEN), id=self.id_col_green)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_BROWN), id=self.id_col_brown)
+
+        self.Bind(wx.EVT_MENU, self.on_fullscreen, id=self.id_fullscreen)
 
         self.Bind(wx.EVT_MENU, self.on_show_toc_dialog, id=self.id_show_toc_dialog)
         self.Bind(wx.EVT_MENU, self.on_about, m_about)
@@ -1319,6 +1324,13 @@ class MainFrame(wx.Frame):
         with wx.ColourDialog(self, data) as dlg:
             if dlg.ShowModal() == wx.ID_OK:
                 self.view.set_background_color(dlg.GetColourData().GetColour())
+
+    def on_fullscreen(self, evt):
+        is_full = self.IsFullScreen()
+
+        self.ShowFullScreen(not is_full, style=wx.FULLSCREEN_ALL)
+
+        self._update_ui()
 
     def on_about(self, event):
         info = adv.AboutDialogInfo()
