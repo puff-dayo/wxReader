@@ -6,6 +6,8 @@
 
 ## Features
 
+<img height="300" src="https://github.com/puff-dayo/wxReader/blob/master/scrnsht/1_1.png?raw=true"/>
+
 | Feature                 | Description                                                                                                        |
 |-------------------------|--------------------------------------------------------------------------------------------------------------------|
 | **File format support** | PDF, EPUB, MOBI, FB2, CBZ, and TXT files. Same as `MuPDF`.                                                         |

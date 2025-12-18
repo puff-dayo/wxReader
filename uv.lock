@@ -202,6 +202,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "nuitka" },
+    { name = "numpy" },
     { name = "pymupdf" },
     { name = "wxpython" },
 ]
@@ -215,6 +216,7 @@ dev = [
 requires-dist = [
     { name = "imageio", marker = "extra == 'dev'" },
     { name = "nuitka", specifier = ">=2.8.9" },
+    { name = "numpy", specifier = ">=2.3.5" },
     { name = "pymupdf", specifier = "==1.23.8" },
     { name = "wxpython", specifier = ">=4.2.4" },
 ]
