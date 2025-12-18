@@ -1,0 +1,30 @@
+# wxReader
+
+**wxReader** is a lightweight, high-performance document reader built with wxWidgets(wxPython), MuPDF(PyMuPDF) and Python. It provides a better viewing experience for PDFs (and various e-book formats WIP).
+
+---
+
+## Features
+
+| Feature                 | Description                                                                                                        |
+|-------------------------|--------------------------------------------------------------------------------------------------------------------|
+| **File format support** | PDF, EPUB, MOBI, FB2, CBZ, and TXT files. Same as `MuPDF`.                                                         |
+| **Paging strategy**     | Single Page and Two-Page spreads (option add a blank page at start), support for Right-to-Left (RTL) page turning. |
+| **Image processing**    | Sharpen, Soften, Color Inversion, Green/Brown filters.                                                             |
+| **Zoom**                | Fit Width, Fit Page and auto/manual modes.                                                                         |
+| **Navigation & TOC**    | Integrated sidebar and search bar for document outlines.                                                           |
+| **File history**        | Automatically saved in `wxReader.cfg`.                                                                             |
+| **Interaction**         | Drag-and-drop file loading and FULL keyboard operation.                                                            |
+
+---
+
+## Getting Started
+
+Sync dependencies with uv and build with `build.bat` on Windows x64. 
+
+## TODO
+
+- [ ] add folder and files navigation panel parallel to the TOC sidebar.
+- [ ] add full screen mode.
+- [ ] add controller control.
+- [ ] fix epub page margin/padding.
