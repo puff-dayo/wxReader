@@ -11,7 +11,7 @@ from wx import adv
 from wxReaderConfigUtil import load_config, save_config, update_recent
 
 APP_NAME = "wxReader"
-APP_VERSION = "0.6.1"
+APP_VERSION = "0.6.2"
 
 
 class PDFDocument:
