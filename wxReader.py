@@ -114,6 +114,8 @@ class PDFView(wx.ScrolledWindow):
         # Render cache for current zoom: {(page_index): wx.Bitmap}
         self._bmp_cache: dict[int, wx.Bitmap] = {}
         self._last_cache_zoom = self.zoom
+        self._pre_render_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_pre_render_timer, self._pre_render_timer)
 
         # Layout
         self.margin = 6
@@ -234,11 +236,29 @@ class PDFView(wx.ScrolledWindow):
             self._bmp_cache.clear()
             self._last_cache_zoom = self.zoom
 
+    def _prune_cache(self):
+        if not self.pdf:
+            return
+
+        current_page = self.page
+        keep_range = 10
+
+        keys_to_delete = []
+        for p_idx in self._bmp_cache:
+            if abs(p_idx - current_page) > keep_range:
+                keys_to_delete.append(p_idx)
+
+        for k in keys_to_delete:
+            del self._bmp_cache[k]
+
     def _get_bitmap(self, page_index: int) -> wx.Bitmap:
         self._ensure_cache_zoom()
 
         if page_index in self._bmp_cache:
             return self._bmp_cache[page_index]
+
+        if len(self._bmp_cache) > 36:
+            self._prune_cache()
 
         # Blank page index: -1
         if page_index < 0:
@@ -469,7 +489,31 @@ class PDFView(wx.ScrolledWindow):
     def _start_pre_rendering(self):
         if not self.pdf:
             return
-        wx.CallAfter(self._pre_render_worker)
+        self._pre_render_timer.Stop()
+        self._pre_render_timer.Start(200, wx.TIMER_ONE_SHOT)
+
+    def _on_pre_render_timer(self, evt):
+        if not self or not self.pdf or not self.pdf.doc or self.pdf.doc.is_closed:
+            return
+
+        current_pages_indices = self._spread_pages()
+        if not current_pages_indices:
+            return
+
+        pages_to_prerender = set()
+        anchor = self.page
+
+        for i in range(anchor - 2, anchor + 4):
+            if 0 <= i < self.pdf.page_count:
+                pages_to_prerender.add(i)
+
+        for page_index in pages_to_prerender:
+            if not self.pdf or self.pdf.doc.is_closed:
+                return
+
+            self._ensure_cache_zoom()
+            if page_index not in self._bmp_cache:
+                self._get_bitmap(page_index)
 
     def _pre_render_worker(self):
         if not self or not self.pdf or not self.pdf.doc or self.pdf.doc.is_closed:
