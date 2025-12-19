@@ -11,7 +11,7 @@ from wx import adv
 from wxReaderConfigUtil import load_config, save_config, update_recent
 
 APP_NAME = "wxReader"
-APP_VERSION = "0.6"
+APP_VERSION = "0.6.1"
 
 
 class PDFDocument:
@@ -872,6 +872,44 @@ class FileDropTarget(wx.FileDropTarget):
         return True
 
 
+class TextExtractionDialog(wx.Dialog):
+    def __init__(self, parent, text, title="Page Text"):
+        super().__init__(parent, title=title, size=(600, 500),
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.text_ctrl = wx.TextCtrl(self, value=text,
+                                     style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL)
+
+        font = wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.text_ctrl.SetFont(font)
+
+        sizer.Add(self.text_ctrl, 1, wx.EXPAND | wx.ALL, 10)
+
+        # Buttons
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn_copy = wx.Button(self, label="Copy All")
+        btn_close = wx.Button(self, wx.ID_CANCEL, "Close")
+
+        btn_sizer.Add(btn_copy, 0, wx.RIGHT, 10)
+        btn_sizer.Add(btn_close, 0)
+
+        sizer.Add(btn_sizer, 0, wx.ALIGN_RIGHT | wx.BOTTOM | wx.RIGHT, 10)
+
+        self.SetSizer(sizer)
+
+        # Events
+        btn_copy.Bind(wx.EVT_BUTTON, self.on_copy)
+
+    def on_copy(self, evt):
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(self.text_ctrl.GetValue()))
+            wx.TheClipboard.Close()
+            wx.MessageBox("Text copied to clipboard!", "Success")
+        else:
+            wx.MessageBox("Could not open clipboard.", "Error")
+
 
 class MainFrame(wx.Frame):
     def __init__(self):
@@ -1067,6 +1105,10 @@ class MainFrame(wx.Frame):
         m_process.AppendSubMenu(m_enh, "Enhance")
         m_process.AppendSubMenu(m_col, "Color")
 
+        m_process.AppendSeparator()
+        self.id_extract_text = wx.NewIdRef()
+        m_process.Append(self.id_extract_text, "Extract Page Text...\tCtrl+E")
+
         menubar.Append(m_process, "&Process")
 
         # --- Help Menu ---
@@ -1121,6 +1163,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_GREEN), id=self.id_col_green)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_BROWN), id=self.id_col_brown)
 
+        self.Bind(wx.EVT_MENU, self.on_extract_text, id=self.id_extract_text)
         self.Bind(wx.EVT_MENU, self.on_fullscreen, id=self.id_fullscreen)
 
         self.Bind(wx.EVT_MENU, self.on_show_toc_dialog, id=self.id_show_toc_dialog)
@@ -1254,6 +1297,7 @@ class MainFrame(wx.Frame):
         if self.pdf: self.pdf.close()
         try:
             self.pdf = PDFDocument(path)
+            self._restore_epub_font()
         except Exception as e:
             wx.MessageBox(f"Error: {e}")
             return
@@ -1304,6 +1348,39 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def on_extract_text(self, evt):
+        if not self.pdf:
+            return
+
+        try:
+            visible_pages = self.view._spread_pages()
+
+            extracted_parts = []
+
+            for page_idx in visible_pages:
+                # _spread_pages might return -1 for blank padding pages (skip them)
+                if page_idx < 0 or page_idx >= self.pdf.page_count:
+                    continue
+
+                page_obj = self.pdf.doc.load_page(page_idx)
+                raw_text = page_obj.get_text()
+
+                header = f"=== Page {page_idx + 1} ==="
+                extracted_parts.append(f"{header}\n{raw_text}")
+
+            full_text = "\n\n".join(extracted_parts)
+
+            if not full_text.strip():
+                full_text = "<No text found on visible pages. They might be images without OCR.>"
+
+            # Show the dialog
+            dlg = TextExtractionDialog(self, full_text, title="Extracted Page Text")
+            dlg.ShowModal()
+            dlg.Destroy()
+
+        except Exception as e:
+            wx.MessageBox(f"Failed to extract text: {e}", "Error")
+
     def on_goto_page(self, evt):
         if not self.pdf: return
         dlg = wx.TextEntryDialog(self, f"Enter page number (1-{self.pdf.page_count}):", "Go to Page")
@@ -1332,6 +1409,16 @@ class MainFrame(wx.Frame):
         self.view._refresh_layout()
         self.view.Refresh()
         self._update_ui()
+
+    def _restore_epub_font(self):
+        if not self.pdf or not self.pdf.doc.is_reflowable:
+            return
+
+        try:
+            w_pt, h_pt = self.pdf.get_page_size(0)
+            self.pdf.doc.layout(width=w_pt, height=h_pt, fontsize=self.epub_font_size)
+        except Exception as e:
+            print(f"Warning: Failed to restore EPUB font settings: {e}")
 
     def on_change_epub_font(self, evt):
         if not self.pdf or not self.pdf.doc.is_reflowable:

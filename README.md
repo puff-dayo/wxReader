@@ -29,3 +29,4 @@ Sync dependencies with uv and build with `build.bat` on Windows x64.
 - [x] add full screen mode.
 - [ ] fix epub page margin/padding.
 - [ ] fix recent files display
+- [ ] saved font size should load on first time
