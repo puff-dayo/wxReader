@@ -956,6 +956,7 @@ class MainFrame(wx.Frame):
         self.recent_files = []
 
         cfg = load_config()
+        self.file_progress = cfg.get("file_progress", {})
 
         try:
             show_sidebar = bool(cfg.get("show_sidebar", False))
@@ -1294,7 +1295,10 @@ class MainFrame(wx.Frame):
                 self._load_pdf(dlg.GetPath())
 
     def _load_pdf(self, path):
-        if self.pdf: self.pdf.close()
+        if self.pdf and self.pdf.path:
+            self.file_progress[self.pdf.path] = self.view.page
+            self.pdf.close()
+
         try:
             self.pdf = PDFDocument(path)
             self._restore_epub_font()
@@ -1303,12 +1307,17 @@ class MainFrame(wx.Frame):
             return
 
         self.view.set_document(self.pdf)
+
+        if path in self.file_progress:
+            saved_page = self.file_progress[path]
+            if 0 <= saved_page < self.pdf.page_count:
+                self.view.go_to_page(saved_page)
+
         self.recent_files = update_recent(self.recent_files, path, limit=12)
         self.file_history.AddFileToHistory(path)
 
         self._populate_sidebar()
 
-        # auto-open sidebar if TOC exists
         if self.pdf.get_toc() and not self.splitter.IsSplit():
             self.splitter.SplitVertically(self.sidebar, self.view, 250)
 
@@ -1476,6 +1485,9 @@ class MainFrame(wx.Frame):
         wx.adv.AboutBox(info)
 
     def on_close(self, evt):
+        if self.pdf and self.view:
+            self.file_progress[self.pdf.path] = self.view.page
+
         if self.view:
             self.view.pdf = None
             self._bmp_cache = {}
@@ -1490,6 +1502,7 @@ class MainFrame(wx.Frame):
                 "epub_font_size": self.epub_font_size,
                 "recent_files": self.recent_files,
                 "last_file": (self.pdf.path if self.pdf else ""),
+                "file_progress": self.file_progress,
             }
 
             save_config(cfg)
@@ -1498,7 +1511,6 @@ class MainFrame(wx.Frame):
         except Exception as e:
             print(f"Save failed: {e}")
 
-        # CLOSE THE PDF HANDLE
         if self.pdf:
             self.pdf.close()
             self.pdf = None
