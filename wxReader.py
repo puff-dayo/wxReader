@@ -980,10 +980,9 @@ class MainFrame(wx.Frame):
         self.recent_files = cfg.get("recent_files", []) or []
         last = cfg.get("last_file", "")
 
-        for p in self.recent_files:
+        for p in reversed(self.recent_files):
             if p and os.path.isfile(p):
                 self.file_history.AddFileToHistory(p)
-        self.file_history.AddFilesToMenu(self.m_recent)
 
         if last and os.path.isfile(last):
             wx.CallAfter(self._load_pdf, last)
