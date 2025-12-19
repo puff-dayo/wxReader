@@ -24,9 +24,11 @@
 
 Sync dependencies with uv and build with `build.bat` on Windows x64. 
 
+Pre-compiled binary `.exe` will be provided on Release after the last known bug gets fixed.
+
 ## TODO
 
 - [x] add full screen mode.
 - [ ] fix epub page margin/padding.
-- [ ] fix recent files display
+- [x] fix recent files display
 - [x] saved font size should load on first time

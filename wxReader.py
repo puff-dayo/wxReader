@@ -228,6 +228,11 @@ class PDFView(wx.ScrolledWindow):
         self._refresh_layout()
         self.Refresh()
 
+    def stop_worker(self):
+        """Stops the preload timer to prevent crashes on exit."""
+        if self._pre_render_timer.IsRunning():
+            self._pre_render_timer.Stop()
+
     # --------------------------
     # Internals
     # --------------------------
@@ -1488,6 +1493,7 @@ class MainFrame(wx.Frame):
             self.file_progress[self.pdf.path] = self.view.page
 
         if self.view:
+            self.view.stop_worker()
             self.view.pdf = None
             self._bmp_cache = {}
 
