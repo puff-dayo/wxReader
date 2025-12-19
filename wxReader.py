@@ -199,6 +199,7 @@ class PDFView(wx.ScrolledWindow):
 
     def set_background_color(self, color: wx.Colour):
         self.bgColor = color
+        self.SetBackgroundColour(color)
         self.Refresh()
 
     def go_next(self):
@@ -471,7 +472,7 @@ class PDFView(wx.ScrolledWindow):
         wx.CallAfter(self._pre_render_worker)
 
     def _pre_render_worker(self):
-        if not self.pdf:
+        if not self or not self.pdf or not self.pdf.doc or self.pdf.doc.is_closed:
             return
 
         current_pages_indices = self._spread_pages()
@@ -562,8 +563,11 @@ class PDFView(wx.ScrolledWindow):
         dc = wx.AutoBufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.bgColor))
         dc.Clear()
-        if self.pdf:
-            self._draw_centered(dc)
+        if self.pdf and self.pdf.doc and not self.pdf.doc.is_closed:
+            try:
+                self._draw_centered(dc)
+            except Exception:
+                pass
 
     def on_mousewheel(self, evt: wx.MouseEvent):
         if evt.ControlDown():
@@ -868,13 +872,8 @@ class MainFrame(wx.Frame):
         self._build_menus()
 
         self.recent_files = []
-        cfg = load_config()
 
-        try:
-            w, h = cfg.get("window_size", [1200, 850])
-            self.SetSize((int(w), int(h))) # TODO: test here
-        except Exception:
-            pass
+        cfg = load_config()
 
         try:
             show_sidebar = bool(cfg.get("show_sidebar", False))
@@ -888,12 +887,10 @@ class MainFrame(wx.Frame):
             self.view.set_direction(cfg.get("direction", PDFView.DIR_LTR))
             self.view.set_pad_start(bool(cfg.get("pad_start", False)))
             self.view.set_zoom_mode(cfg.get("zoom_mode", PDFView.ZOOM_FIT_PAGE))
+        except Exception as e:
+            print(f"Error loading view modes: {e}")
 
-            rgb = cfg.get("bg_rgb", [134, 180, 118])
-            if isinstance(rgb, list) and len(rgb) == 3:
-                self.view.set_background_color(wx.Colour(*map(int, rgb)))
-        except Exception:
-            pass
+        self.view.set_background_color(wx.Colour(134, 180, 118))
 
         self.epub_font_size = int(cfg.get("epub_font_size", self.epub_font_size))
 
@@ -1348,30 +1345,33 @@ class MainFrame(wx.Frame):
         wx.adv.AboutBox(info)
 
     def on_close(self, evt):
+        if self.view:
+            self.view.pdf = None
+            self._bmp_cache = {}
+
         try:
             cfg = {
-                "window_size": list(self.GetSize()),
                 "show_sidebar": self.splitter.IsSplit(),
-
                 "view_mode": self.view.mode,
                 "direction": self.view.direction,
                 "pad_start": self.view.pad_start,
                 "zoom_mode": self.view.zoom_mode,
-
-                "bg_rgb": [self.view.bgColor.Red(), self.view.bgColor.Green(), self.view.bgColor.Blue()],
-
                 "epub_font_size": self.epub_font_size,
-
                 "recent_files": self.recent_files,
                 "last_file": (self.pdf.path if self.pdf else ""),
             }
-            ok = save_config(cfg)
-            # If ok is False, the folder likely wasn't writable
-        except Exception:
-            pass
 
+            save_config(cfg)
+            print("Configuration saved successfully.")
+
+        except Exception as e:
+            print(f"Save failed: {e}")
+
+        # CLOSE THE PDF HANDLE
         if self.pdf:
             self.pdf.close()
+            self.pdf = None
+
         evt.Skip()
 
 

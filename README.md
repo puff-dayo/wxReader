@@ -26,7 +26,6 @@ Sync dependencies with uv and build with `build.bat` on Windows x64.
 
 ## TODO
 
-- [ ] add folder and files navigation panel parallel to the TOC sidebar.
-- [ ] add full screen mode.
-- [ ] add controller control.
+- [x] add full screen mode.
 - [ ] fix epub page margin/padding.
+- [ ] fix recent files display
