@@ -201,26 +201,21 @@ name = "wxpdfreader"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "imageio" },
     { name = "nuitka" },
     { name = "numpy" },
     { name = "pymupdf" },
     { name = "wxpython" },
 ]
 
-[package.optional-dependencies]
-dev = [
-    { name = "imageio" },
-]
-
 [package.metadata]
 requires-dist = [
-    { name = "imageio", marker = "extra == 'dev'" },
+    { name = "imageio", specifier = ">=2.37.2" },
     { name = "nuitka", specifier = ">=2.8.9" },
     { name = "numpy", specifier = ">=2.3.5" },
     { name = "pymupdf", specifier = "==1.23.8" },
     { name = "wxpython", specifier = ">=4.2.4" },
 ]
-provides-extras = ["dev"]
 
 [[package]]
 name = "wxpython"

@@ -1495,7 +1495,7 @@ class MainFrame(wx.Frame):
         if self.view:
             self.view.stop_worker()
             self.view.pdf = None
-            self._bmp_cache = {}
+            self.view._bmp_cache.clear()
 
         try:
             cfg = {
