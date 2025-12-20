@@ -786,20 +786,56 @@ class MainFrame(wx.Frame):
         self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3D)
         self.splitter.SetMinimumPaneSize(50)
 
-        # 1. Sidebar (Inline TOC)
+        # 1. Sidebar
         self.sidebar = wx.Panel(self.splitter)
-        self.sidebar_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sidebar_main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.sidebar_search = wx.SearchCtrl(self.sidebar, style=wx.TE_PROCESS_ENTER)
+        self.sidebar_nb = wx.Notebook(self.sidebar)
+
+        # Tab 1: TOC (Outline)
+        self.toc_panel = wx.Panel(self.sidebar_nb)
+        toc_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.sidebar_search = wx.SearchCtrl(self.toc_panel, style=wx.TE_PROCESS_ENTER)
         self.sidebar_search.SetDescriptiveText("Search Outline")
 
-        self.sidebar_tree = wx.TreeCtrl(self.sidebar, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT |
-                                                            wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_NO_LINES | wx.TR_TWIST_BUTTONS)
+        self.sidebar_tree = wx.TreeCtrl(self.toc_panel, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT |
+                                                              wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_NO_LINES | wx.TR_TWIST_BUTTONS)
         self.sidebar_tree.SetBackgroundColour(wx.Colour(245, 245, 245))
 
-        self.sidebar_sizer.Add(self.sidebar_search, 0, wx.EXPAND | wx.ALL, 5)
-        self.sidebar_sizer.Add(self.sidebar_tree, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 0)
-        self.sidebar.SetSizer(self.sidebar_sizer)
+        toc_sizer.Add(self.sidebar_search, 0, wx.EXPAND | wx.ALL, 5)
+        toc_sizer.Add(self.sidebar_tree, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 0)
+        self.toc_panel.SetSizer(toc_sizer)
+
+        self.sidebar_nb.AddPage(self.toc_panel, "Outline")
+
+        # Tab 2: File Browser
+        self.files_panel = wx.Panel(self.sidebar_nb)
+        files_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Buttons
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.btn_go_up = wx.Button(self.files_panel, label="Go Up", size=(-1, 26))
+        self.btn_sync_file = wx.Button(self.files_panel, label="Current File", size=(-1, 26))
+
+        btn_sizer.Add(self.btn_go_up, 1, wx.RIGHT, 2)
+        btn_sizer.Add(self.btn_sync_file, 1, wx.LEFT, 2)
+
+        files_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+        # Directory
+        wildcard = "Supported|*.pdf;*.epub;*.mobi;*.fb2;*.cbz;*.txt|All files|*.*"
+        self.dir_ctrl = wx.GenericDirCtrl(self.files_panel, dir=os.getcwd(), filter=wildcard,
+                                          style=wx.DIRCTRL_SHOW_FILTERS | wx.DIRCTRL_3D_INTERNAL)
+
+        files_sizer.Add(self.dir_ctrl, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 0)
+        self.files_panel.SetSizer(files_sizer)
+
+        self.sidebar_nb.AddPage(self.files_panel, "Files")
+
+        self.sidebar_main_sizer.Add(self.sidebar_nb, 1, wx.EXPAND)
+        self.sidebar.SetSizer(self.sidebar_main_sizer)
 
         # 2. Main Content
         self.view = PDFView(self.splitter)
@@ -851,6 +887,10 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self.on_close)
         self.sidebar_tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_sidebar_click)
         self.sidebar_search.Bind(wx.EVT_TEXT, self.on_sidebar_search)
+        self.Bind(wx.EVT_BUTTON, self.on_nav_go_up, self.btn_go_up)
+        self.Bind(wx.EVT_BUTTON, self.on_nav_current, self.btn_sync_file)
+        self.Bind(wx.EVT_DIRCTRL_FILEACTIVATED, self.on_file_browser_activated, self.dir_ctrl)
+
         self.SetDropTarget(FileDropTarget(self))
 
         self._update_ui()
@@ -1183,6 +1223,8 @@ class MainFrame(wx.Frame):
         self._update_ui()
         self.view.SetFocus()
 
+        self.on_nav_current(None)
+
     def on_close_pdf(self, evt):
         if self.pdf: self.pdf.close()
         self.pdf = None
@@ -1215,6 +1257,40 @@ class MainFrame(wx.Frame):
         dlg = TOCDialog(self, toc, self.view.page, lambda p: (self.view.go_to_page(p), self._update_ui()))
         dlg.ShowModal()
         dlg.Destroy()
+
+    def on_nav_go_up(self, evt):
+        current_path = self.dir_ctrl.GetPath()
+        if not current_path:
+            return
+
+        # idk...
+        if os.path.isfile(current_path):
+            parent = os.path.dirname(os.path.dirname(current_path))
+        else:
+            parent = os.path.dirname(current_path)
+
+        if os.path.exists(parent):
+            self.dir_ctrl.SetPath(parent)
+
+    def on_nav_current(self, evt):
+        if self.pdf and self.pdf.path:
+            folder = os.path.dirname(self.pdf.path)
+            if os.path.exists(folder):
+                self.dir_ctrl.SetPath(folder)
+                self.dir_ctrl.SetPath(self.pdf.path)
+
+                tree = self.dir_ctrl.GetTreeCtrl()
+
+                if tree:
+                    def _do_scroll_left():
+                        tree.SetScrollPos(wx.HORIZONTAL, 0)
+
+                    wx.CallAfter(_do_scroll_left)
+
+    def on_file_browser_activated(self, evt):
+        filepath = self.dir_ctrl.GetFilePath()
+        if filepath and os.path.isfile(filepath):
+            self._load_pdf(filepath)
 
     def on_extract_text(self, evt):
         if not self.pdf:
