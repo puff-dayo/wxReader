@@ -890,6 +890,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.on_nav_go_up, self.btn_go_up)
         self.Bind(wx.EVT_BUTTON, self.on_nav_current, self.btn_sync_file)
         self.Bind(wx.EVT_DIRCTRL_FILEACTIVATED, self.on_file_browser_activated, self.dir_ctrl)
+        self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
 
         self.SetDropTarget(FileDropTarget(self))
 
@@ -920,6 +921,8 @@ class MainFrame(wx.Frame):
 
         self.id_sidebar_toggle = wx.NewIdRef()
         m_view.AppendCheckItem(self.id_sidebar_toggle, "Show &Sidebar\tF9")
+        self.id_switch_tab = wx.NewIdRef()
+        m_view.Append(self.id_switch_tab, "Switch Sidebar Tab\tF8")
         m_view.AppendSeparator()
 
         self.id_single_page = wx.NewIdRef()
@@ -1297,6 +1300,16 @@ class MainFrame(wx.Frame):
         filepath = self.dir_ctrl.GetFilePath()
         if filepath and os.path.isfile(filepath):
             self._load_pdf(filepath)
+
+    def on_switch_sidebar_tab(self, evt):
+        if not self.splitter.IsSplit():
+            return
+
+        count = self.sidebar_nb.GetPageCount()
+        if count > 1:
+            current = self.sidebar_nb.GetSelection()
+            next_page = (current + 1) % count
+            self.sidebar_nb.SetSelection(next_page)
 
     def on_extract_text(self, evt):
         if not self.pdf:
