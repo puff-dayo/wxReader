@@ -12,7 +12,7 @@ from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog
 
 APP_NAME = "wxReader"
-APP_VERSION = "0.6.2"
+APP_VERSION = "0.7"
 
 
 class PDFDocument:
@@ -1284,6 +1284,12 @@ class MainFrame(wx.Frame):
                 if tree:
                     def _do_scroll_left():
                         tree.SetScrollPos(wx.HORIZONTAL, 0)
+
+                    if wx.Platform == '__WXMSW__':
+                        import ctypes
+                        # WM_HSCROLL = 0x114 (276), SB_LEFT = 6
+                        hwnd = tree.GetHandle()
+                        ctypes.windll.user32.SendMessageW(hwnd, 276, 6, 0)
 
                     wx.CallAfter(_do_scroll_left)
 
