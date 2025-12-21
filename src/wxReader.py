@@ -1377,46 +1377,58 @@ class MainFrame(wx.Frame):
 
         wx.BeginBusyCursor()
         try:
+            import io
+
             for page_idx in visible_pages:
                 if page_idx < 0 or page_idx >= self.pdf.page_count:
                     continue
 
                 page = self.pdf.doc.load_page(page_idx)
 
-                img_info_list = page.get_images(full=True)
+                # Reflowable Documents
+                if self.pdf.doc.is_reflowable:
+                    blocks = page.get_text("dict")["blocks"]
+                    image_blocks = [b for b in blocks if b["type"] == 1]
 
-                for idx, img_info in enumerate(img_info_list):
-                    xref = img_info[0]
+                    for idx, block in enumerate(image_blocks):
+                        image_bytes = block["image"]
+                        ext = block["ext"]
+                        w_orig = block["width"]
+                        h_orig = block["height"]
 
-                    base_image = self.pdf.doc.extract_image(xref)
-                    image_bytes = base_image["image"]
-                    ext = base_image["ext"]
-                    w, h = base_image["width"], base_image["height"]
+                        desc = f"Pg {page_idx + 1} - Img {idx + 1} ({w_orig}x{h_orig}, {ext})"
 
-                    # convert to wx.Bitmap for preview
-                    # using wx.Image from stream/bytes
-                    import io
-                    stream = io.BytesIO(image_bytes)
-                    wx_img = wx.Image(stream)
+                        bmp = self._generate_preview(None, image_bytes, w_orig, h_orig)
 
-                    preview_w, preview_h = w, h
-                    if w > 800 or h > 800:
-                        scale = 800 / max(w, h)
-                        preview_w = int(w * scale)
-                        preview_h = int(h * scale)
-                        wx_img_preview = wx_img.Scale(preview_w, preview_h, wx.IMAGE_QUALITY_HIGH)
-                        bmp = wx.Bitmap(wx_img_preview)
-                    else:
-                        bmp = wx.Bitmap(wx_img)
+                        found_images.append({
+                            "desc": desc,
+                            "bitmap": bmp,
+                            "bytes": image_bytes,
+                            "ext": ext
+                        })
 
-                    desc = f"Pg {page_idx + 1} - Img {idx + 1} ({w}x{h}, {ext})"
+                # Fixed Layout Documents
+                else:
+                    img_info_list = page.get_images(full=True)
 
-                    found_images.append({
-                        "desc": desc,
-                        "bitmap": bmp,
-                        "bytes": image_bytes,
-                        "ext": ext
-                    })
+                    for idx, img_info in enumerate(img_info_list):
+                        xref = img_info[0]
+
+                        base_image = self.pdf.doc.extract_image(xref)
+                        image_bytes = base_image["image"]
+                        ext = base_image["ext"]
+                        w_orig, h_orig = base_image["width"], base_image["height"]
+
+                        desc = f"Pg {page_idx + 1} - Img {idx + 1} ({w_orig}x{h_orig}, {ext})"
+
+                        bmp = self._generate_preview(xref, None, w_orig, h_orig)
+
+                        found_images.append({
+                            "desc": desc,
+                            "bitmap": bmp,
+                            "bytes": image_bytes,
+                            "ext": ext
+                        })
 
         except Exception as e:
             wx.EndBusyCursor()
@@ -1432,6 +1444,42 @@ class MainFrame(wx.Frame):
         dlg = ImageExtractionDialog(self, found_images)
         dlg.ShowModal()
         dlg.Destroy()
+
+    def _generate_preview(self, xref, data, w_orig, h_orig):
+        try:
+            if xref is not None:
+                # PDF Path: Load from XREF
+                pix = fitz.Pixmap(self.pdf.doc, xref)
+            else:
+                # EPUB Path: Load from raw bytes
+                pix = fitz.Pixmap(data)
+
+            if pix.n - pix.alpha > 3:
+                pix = fitz.Pixmap(fitz.csRGB, pix)
+
+            png_data = pix.tobytes()
+
+            import io
+            stream = io.BytesIO(png_data)
+            wx_img = wx.Image(stream)
+
+            if not wx_img.IsOk():
+                raise ValueError("Converted image data is invalid.")
+
+            if w_orig > 800 or h_orig > 800:
+                scale = 800 / max(w_orig, h_orig)
+                preview_w = int(w_orig * scale)
+                preview_h = int(h_orig * scale)
+                wx_img = wx_img.Scale(preview_w, preview_h, wx.IMAGE_QUALITY_HIGH)
+
+            return wx.Bitmap(wx_img)
+
+        except Exception as e:
+            print(f"Preview generation warning: {e}")
+            # a grey placeholder
+            ph = wx.Image(100, 100)
+            ph.SetRGB(wx.Rect(0, 0, 100, 100), 200, 200, 200)
+            return wx.Bitmap(ph)
 
     def on_goto_page(self, evt):
         if not self.pdf: return
