@@ -9,7 +9,7 @@ import wx
 from wx import adv
 
 from wxReaderConfigUtil import load_config, save_config, update_recent
-from wxReaderDialog import TOCDialog, TextExtractionDialog
+from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog
 
 APP_NAME = "wxReader"
 APP_VERSION = "0.7"
@@ -919,6 +919,10 @@ class MainFrame(wx.Frame):
         # --- View Menu ---
         m_view = wx.Menu()
 
+        self.id_search = wx.NewIdRef()
+        m_view.Append(self.id_search, "&Find...\tCtrl+F")
+        m_view.AppendSeparator()
+
         self.id_sidebar_toggle = wx.NewIdRef()
         m_view.AppendCheckItem(self.id_sidebar_toggle, "Show &Sidebar\tF9")
         self.id_switch_tab = wx.NewIdRef()
@@ -1029,6 +1033,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU_RANGE, self.on_open_recent, id=wx.ID_FILE1, id2=wx.ID_FILE9)  # wx uses ID_FILE1.. for history
         self.Bind(wx.EVT_MENU, self.on_clear_history, id=self.id_clear_history)
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), m_exit)
+
+        self.Bind(wx.EVT_MENU, self.on_show_search, id=self.id_search)
 
         self.Bind(wx.EVT_MENU, self.on_toggle_sidebar, id=self.id_sidebar_toggle)
 
@@ -1260,6 +1266,19 @@ class MainFrame(wx.Frame):
         dlg = TOCDialog(self, toc, self.view.page, lambda p: (self.view.go_to_page(p), self._update_ui()))
         dlg.ShowModal()
         dlg.Destroy()
+
+    def on_show_search(self, evt):
+        if not self.pdf:
+            wx.MessageBox("Please open a document first.", "No Document")
+            return
+
+        def navigate_to_page(page_index):
+            self.view.go_to_page(page_index)
+            self._update_ui()
+            # self.Raise()
+
+        dlg = SearchDialog(self, self.pdf, navigate_to_page)
+        dlg.Show()
 
     def on_nav_go_up(self, evt):
         current_path = self.dir_ctrl.GetPath()

@@ -147,3 +147,114 @@ class TextExtractionDialog(wx.Dialog):
             wx.MessageBox("Text copied to clipboard!", "Success")
         else:
             wx.MessageBox("Could not open clipboard.", "Error")
+
+
+class SearchDialog(wx.Dialog):
+    def __init__(self, parent, pdf_doc, navigation_callback):
+        super().__init__(parent, title="Search Document", size=(600, 450),
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+
+        self.pdf_doc = pdf_doc
+        self.nav_cb = navigation_callback
+
+        panel = wx.Panel(self)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # top bar
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.search_input = wx.SearchCtrl(panel, style=wx.TE_PROCESS_ENTER)
+        self.search_input.SetDescriptiveText("Type text to search...")
+
+        self.btn_find = wx.Button(panel, label="Find")
+
+        top_sizer.Add(self.search_input, 1, wx.EXPAND | wx.RIGHT, 5)
+        top_sizer.Add(self.btn_find, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        main_sizer.Add(top_sizer, 0, wx.EXPAND | wx.ALL, 10)
+
+        # results list
+        self.result_list = wx.ListCtrl(panel, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.LC_VRULES | wx.LC_HRULES)
+        self.result_list.InsertColumn(0, "Page", width=60)
+        self.result_list.InsertColumn(1, "Context Snippet", width=480)
+
+        main_sizer.Add(self.result_list, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
+
+        # status bar
+        self.lbl_status = wx.StaticText(panel, label="Ready")
+        main_sizer.Add(self.lbl_status, 0, wx.EXPAND | wx.ALL, 10)
+
+        panel.SetSizer(main_sizer)
+
+        # --- Events ---
+        self.Bind(wx.EVT_BUTTON, self.on_search, self.btn_find)
+        self.search_input.Bind(wx.EVT_TEXT_ENTER, self.on_search)
+        self.search_input.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.on_search)
+        self.result_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_item_activated)
+
+        self.CenterOnParent()
+        wx.CallAfter(self.search_input.SetFocus)
+
+    def on_search(self, evt):
+        query = self.search_input.GetValue().strip()
+        if not query:
+            return
+
+        self.result_list.DeleteAllItems()
+        self.lbl_status.SetLabel("Searching...")
+        self.btn_find.Disable()
+
+        wx.Yield()
+
+        results_count = 0
+        query_lower = query.lower()
+
+        # todo: move it to run in a separate thread.
+        for i in range(self.pdf_doc.page_count):
+
+            # temp workaround
+            if i % 10 == 0:
+                wx.Yield()
+
+            try:
+                page = self.pdf_doc.doc.load_page(i)
+                text = page.get_text("text")
+
+                if not text:
+                    continue
+
+                text_lower = text.lower()
+                start_idx = 0
+
+                while True:
+                    idx = text_lower.find(query_lower, start_idx)
+                    if idx == -1:
+                        break
+
+                    ctx_start = max(0, idx - 30)
+                    ctx_end = min(len(text), idx + len(query) + 30)
+
+                    raw_snippet = text[ctx_start:ctx_end]
+                    clean_snippet = raw_snippet.replace('\n', ' ').replace('\r', '')
+                    display_snippet = f"...{clean_snippet}..."
+
+                    list_idx = self.result_list.InsertItem(self.result_list.GetItemCount(), str(i + 1))
+                    self.result_list.SetItem(list_idx, 1, display_snippet)
+                    self.result_list.SetItemData(list_idx, i)
+
+                    results_count += 1
+                    start_idx = idx + len(query)
+
+            except Exception as e:
+                print(f"Search error on page {i}: {e}")
+
+        self.lbl_status.SetLabel(f"Search complete. Found {results_count} matches.")
+        self.btn_find.Enable()
+        self.search_input.SetFocus()
+
+    def on_item_activated(self, evt):
+        list_idx = evt.GetIndex()
+        page_index = self.result_list.GetItemData(list_idx)
+
+        if self.nav_cb:
+            self.nav_cb(page_index)

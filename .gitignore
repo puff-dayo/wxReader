@@ -4,4 +4,5 @@ wxReader.cfg
 /.venv/
 /.idea/
 /__pycache__
-scrnsht/1.png
+screenshot/1.png
+*.pyc
