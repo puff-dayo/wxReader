@@ -1,8 +1,8 @@
-# wxReader v1.0
+# wxReader
 
-**wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), and Python. It provides a superior viewing experience for PDFs and various e-book formats.
+**wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), and Python.
 
-We are proud to announce the release of **Version 1.0**, featuring a refined UI, full-screen support, and new content extraction tools.
+> Happy to announce the release of **Version 1.0**!
 
 ---
 
