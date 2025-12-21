@@ -149,6 +149,119 @@ class TextExtractionDialog(wx.Dialog):
             wx.MessageBox("Could not open clipboard.", "Error")
 
 
+class ImageExtractionDialog(wx.Dialog):
+    def __init__(self, parent, image_list):
+        """
+          {
+            "desc": str (listbox label),
+            "bitmap": wx.Bitmap (for preview),
+            "bytes": bytes (raw data),
+            "ext": str (e.g. 'jpeg', 'png')
+          }
+        """
+        super().__init__(parent, title="Extract Images", size=(700, 500),
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+
+        self.image_list = image_list
+        self.current_sel = 0
+
+        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # Left: ListBox
+        left_sizer = wx.BoxSizer(wx.VERTICAL)
+        choices = [img['desc'] for img in self.image_list]
+        self.list_box = wx.ListBox(self, choices=choices, style=wx.LB_SINGLE)
+        if choices:
+            self.list_box.SetSelection(0)
+
+        left_sizer.Add(wx.StaticText(self, label="Detected Images:"), 0, wx.ALL, 5)
+        left_sizer.Add(self.list_box, 1, wx.EXPAND | wx.ALL, 5)
+
+        # Right: Preview
+        right_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.scroll_win = wx.ScrolledWindow(self, style=wx.BORDER_SUNKEN)
+        self.scroll_win.SetScrollRate(10, 10)
+        self.preview_bmp = wx.StaticBitmap(self.scroll_win, wx.ID_ANY, wx.NullBitmap)
+
+        scroll_sizer = wx.BoxSizer(wx.VERTICAL)
+        scroll_sizer.Add(self.preview_bmp, 0, wx.ALL, 10)
+        self.scroll_win.SetSizer(scroll_sizer)
+
+        right_sizer.Add(wx.StaticText(self, label="Preview:"), 0, wx.ALL, 5)
+        right_sizer.Add(self.scroll_win, 1, wx.EXPAND | wx.ALL, 5)
+
+        # Buttons
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.btn_copy = wx.Button(self, label="Copy")
+        self.btn_save = wx.Button(self, label="Save to...")
+        btn_close = wx.Button(self, wx.ID_CANCEL, "Close")
+
+        btn_sizer.Add(self.btn_copy, 0, wx.RIGHT, 10)
+        btn_sizer.Add(self.btn_save, 0, wx.RIGHT, 10)
+        btn_sizer.Add(btn_close, 0)
+
+        right_sizer.Add(btn_sizer, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+
+        main_sizer.Add(left_sizer, 1, wx.EXPAND | wx.ALL, 5)
+        main_sizer.Add(right_sizer, 2, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(main_sizer)
+
+        # --- Bindings ---
+        self.list_box.Bind(wx.EVT_LISTBOX, self.on_select)
+        self.btn_copy.Bind(wx.EVT_BUTTON, self.on_copy)
+        self.btn_save.Bind(wx.EVT_BUTTON, self.on_save)
+
+        self.update_preview()
+
+    def update_preview(self):
+        sel = self.list_box.GetSelection()
+        if sel != wx.NOT_FOUND and sel < len(self.image_list):
+            self.current_sel = sel
+            bmp = self.image_list[sel]['bitmap']
+            self.preview_bmp.SetBitmap(bmp)
+
+            self.scroll_win.SetVirtualSize(bmp.GetSize())
+            self.scroll_win.Refresh()
+        else:
+            self.preview_bmp.SetBitmap(wx.NullBitmap)
+
+    def on_select(self, evt):
+        self.update_preview()
+
+    def on_copy(self, evt):
+        if self.current_sel < 0 or self.current_sel >= len(self.image_list):
+            return
+
+        bmp_obj = wx.BitmapDataObject(self.image_list[self.current_sel]['bitmap'])
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(bmp_obj)
+            wx.TheClipboard.Close()
+        else:
+            wx.MessageBox("Could not access clipboard.", "Error")
+
+    def on_save(self, evt):
+        if self.current_sel < 0 or self.current_sel >= len(self.image_list):
+            return
+
+        img_data = self.image_list[self.current_sel]
+        ext = img_data['ext']
+        default_name = f"extracted_image_{self.current_sel + 1}.{ext}"
+        wildcard = f"{ext.upper()} files (*.{ext})|*.{ext}|All files (*.*)|*.*"
+
+        with wx.FileDialog(self, "Save Image", defaultFile=default_name,
+                           wildcard=wildcard, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as dlg:
+            if dlg.ShowModal() == wx.ID_OK:
+                path = dlg.GetPath()
+                try:
+                    with open(path, "wb") as f:
+                        f.write(img_data['bytes'])
+                    wx.MessageBox(f"Saved to {path}", "Success")
+                except Exception as e:
+                    wx.MessageBox(f"Failed to save file:\n{e}", "Error")
+
+
 class SearchDialog(wx.Dialog):
     def __init__(self, parent, pdf_doc, navigation_callback):
         super().__init__(parent, title="Search Document", size=(600, 450),

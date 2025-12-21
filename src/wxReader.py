@@ -9,7 +9,7 @@ import wx
 from wx import adv
 
 from wxReaderConfigUtil import load_config, save_config, update_recent
-from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog
+from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog
 
 APP_NAME = "wxReader"
 APP_VERSION = "0.7"
@@ -1022,6 +1022,9 @@ class MainFrame(wx.Frame):
         self.id_extract_text = wx.NewIdRef()
         m_process.Append(self.id_extract_text, "Extract Page Text...\tCtrl+E")
 
+        self.id_extract_images = wx.NewIdRef()
+        m_process.Append(self.id_extract_images, "Extract Page Images...")
+
         menubar.Append(m_process, "&Process")
 
         # --- Help ---
@@ -1076,6 +1079,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_GREEN), id=self.id_col_green)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_BROWN), id=self.id_col_brown)
         self.Bind(wx.EVT_MENU, self.on_extract_text, id=self.id_extract_text)
+        self.Bind(wx.EVT_MENU, self.on_extract_images, id=self.id_extract_images)
 
         self.Bind(wx.EVT_MENU, self.on_about, m_about)
 
@@ -1363,6 +1367,71 @@ class MainFrame(wx.Frame):
 
         except Exception as e:
             wx.MessageBox(f"Failed to extract text: {e}", "Error")
+
+    def on_extract_images(self, evt):
+        if not self.pdf:
+            return
+
+        visible_pages = self.view._spread_pages()
+        found_images = []
+
+        wx.BeginBusyCursor()
+        try:
+            for page_idx in visible_pages:
+                if page_idx < 0 or page_idx >= self.pdf.page_count:
+                    continue
+
+                page = self.pdf.doc.load_page(page_idx)
+
+                img_info_list = page.get_images(full=True)
+
+                for idx, img_info in enumerate(img_info_list):
+                    xref = img_info[0]
+
+                    base_image = self.pdf.doc.extract_image(xref)
+                    image_bytes = base_image["image"]
+                    ext = base_image["ext"]
+                    w, h = base_image["width"], base_image["height"]
+
+                    # convert to wx.Bitmap for preview
+                    # using wx.Image from stream/bytes
+                    import io
+                    stream = io.BytesIO(image_bytes)
+                    wx_img = wx.Image(stream)
+
+                    preview_w, preview_h = w, h
+                    if w > 800 or h > 800:
+                        scale = 800 / max(w, h)
+                        preview_w = int(w * scale)
+                        preview_h = int(h * scale)
+                        wx_img_preview = wx_img.Scale(preview_w, preview_h, wx.IMAGE_QUALITY_HIGH)
+                        bmp = wx.Bitmap(wx_img_preview)
+                    else:
+                        bmp = wx.Bitmap(wx_img)
+
+                    desc = f"Pg {page_idx + 1} - Img {idx + 1} ({w}x{h}, {ext})"
+
+                    found_images.append({
+                        "desc": desc,
+                        "bitmap": bmp,
+                        "bytes": image_bytes,
+                        "ext": ext
+                    })
+
+        except Exception as e:
+            wx.EndBusyCursor()
+            wx.MessageBox(f"Error extracting images: {e}", "Error")
+            return
+
+        wx.EndBusyCursor()
+
+        if not found_images:
+            wx.MessageBox("No images found on the visible page(s).", "Info")
+            return
+
+        dlg = ImageExtractionDialog(self, found_images)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def on_goto_page(self, evt):
         if not self.pdf: return
