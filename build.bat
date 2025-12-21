@@ -1,4 +1,5 @@
 @echo off
+echo run this inside the src folder
 
 python -m nuitka ^
   --mode=standalone ^
@@ -13,7 +14,6 @@ python -m nuitka ^
 echo.
 echo ================================
 echo              DONE
-echo Remember to
 echo delete unnecessary dlls manually.
 echo ================================
 pause

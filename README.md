@@ -1,34 +1,36 @@
-# wxReader
+# wxReader v1.0
 
-**wxReader** is a lightweight, high-performance document reader built with wxWidgets(wxPython), MuPDF(PyMuPDF) and Python. It provides a better viewing experience for PDFs (and various e-book formats WIP).
+**wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), and Python. It provides a superior viewing experience for PDFs and various e-book formats.
+
+We are proud to announce the release of **Version 1.0**, featuring a refined UI, full-screen support, and new content extraction tools.
 
 ---
 
 ## Features
 
-<img height="300" src="https://github.com/puff-dayo/wxReader/blob/master/scrnsht/1_1.png?raw=true"/>
+<img height="300" src="https://github.com/puff-dayo/wxReader/blob/master/screenshot/1_1.png?raw=true"/>
 
-| Feature                 | Description                                                                                                        |
-|-------------------------|--------------------------------------------------------------------------------------------------------------------|
-| **File format support** | PDF, EPUB, MOBI, FB2, CBZ, and TXT files. Same as `MuPDF`.                                                         |
-| **Paging strategy**     | Single Page and Two-Page spreads (option add a blank page at start), support for Right-to-Left (RTL) page turning. |
-| **Image processing**    | Sharpen, Soften, Color Inversion, Green/Brown filters.                                                             |
-| **Zoom**                | Fit Width, Fit Page and auto/manual modes.                                                                         |
-| **Navigation & TOC**    | Integrated sidebar and search bar for document outlines.                                                           |
-| **File history**        | Automatically saved in `wxReader.cfg`.                                                                             |
-| **Interaction**         | Drag-and-drop file loading and FULL keyboard operation.                                                            |
+| Feature                 | Description                                                                                              |
+|-------------------------|----------------------------------------------------------------------------------------------------------|
+| **File Format Support** | PDF, EPUB, MOBI, FB2, CBZ, and TXT files. Supported by `MuPDF`.                                          |
+| **Paging Strategy**     | Single Page and Two-Page spreads (with optional blank start page). Supports Right-to-Left (RTL) reading. |
+| **Content Extraction**  | Extract text and images directly from specific pages to the clipboard or disk.                           |
+| **Image Processing**    | Real-time enhancement (Sharpen, Soften) and Color filters (Invert, Green/Brown).                         |
+| **Zoom & View**         | Fit Width, Fit Page, Fullscreen Mode (F11), and customizable background color.                           |
+| **Navigation**          | Sidebar with Outline (TOC) and File Browser tabs. Text search dialog, and a standalone TOC dialog.       |
+| **Reflowable Text**     | Adjustable font sizes for EPUB and other reflowable formats.                                             |
+| **File History**        | Automatically saves recent files and reading progress on close.                                          |
+| **Interaction**         | Drag-and-drop file loading and full keyboard operation support.                                          |
 
 ---
 
-## Getting Started
+## Installation
 
-Sync dependencies with uv and build with `build.bat` on Windows x64. 
+1. From sauce: Sync dependencies with `uv` and build with `cd ./src` and `../build.bat` on Windows x64. Run the build script inside /src folder.
 
-Pre-compiled binary `.exe` will be provided on Release after the last known bug gets fixed.
+2. Pre-compiled binary: portable `.exe` files is provided on the **Releases** page.
 
 ## TODO
 
-- [x] add full screen mode.
 - [ ] fix epub page margin/padding.
-- [x] fix recent files display
-- [x] saved font size should load on first time
+- [ ] support custom filters (or even shaders?)

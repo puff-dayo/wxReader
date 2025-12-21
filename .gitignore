@@ -6,3 +6,4 @@ wxReader.cfg
 /__pycache__
 screenshot/1.png
 *.pyc
+/src/build/
