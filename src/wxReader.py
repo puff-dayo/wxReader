@@ -773,7 +773,7 @@ class FileDropTarget(wx.FileDropTarget):
 
 class MainFrame(wx.Frame):
     def __init__(self):
-        super().__init__(None, title=APP_NAME, size=(1200, 850))
+        super().__init__(None, title=APP_NAME, size=(1280, 800))
         self.SetMinSize((600, 400))
 
         # Initialize state
@@ -899,7 +899,7 @@ class MainFrame(wx.Frame):
     def _build_menus(self):
         menubar = wx.MenuBar()
 
-        # --- File Menu ---
+        # --- File ---
         m_file = wx.Menu()
         m_open = m_file.Append(wx.ID_OPEN, "&Open...\tCtrl+O")
         m_close = m_file.Append(wx.ID_CLOSE, "&Close\tCtrl+W")
@@ -916,12 +916,8 @@ class MainFrame(wx.Frame):
         m_exit = m_file.Append(wx.ID_EXIT, "E&xit")
         menubar.Append(m_file, "&File")
 
-        # --- View Menu ---
+        # --- View ---
         m_view = wx.Menu()
-
-        self.id_search = wx.NewIdRef()
-        m_view.Append(self.id_search, "&Find...\tCtrl+F")
-        m_view.AppendSeparator()
 
         self.id_sidebar_toggle = wx.NewIdRef()
         m_view.AppendCheckItem(self.id_sidebar_toggle, "Show &Sidebar\tF9")
@@ -947,14 +943,6 @@ class MainFrame(wx.Frame):
         m_view.AppendSubMenu(m_dir, "Page &Direction")
         m_view.AppendSeparator()
 
-        self.id_prev = wx.NewIdRef()
-        self.id_next = wx.NewIdRef()
-        self.id_goto = wx.NewIdRef()
-        m_view.Append(self.id_prev, "Previous Page\tLeft")
-        m_view.Append(self.id_next, "Next Page\tRight")
-        m_view.Append(self.id_goto, "&Go to Page...\tCtrl+G")
-        m_view.AppendSeparator()
-
         self.id_zoom_in = wx.NewIdRef()
         self.id_zoom_out = wx.NewIdRef()
         self.id_fit_width = wx.NewIdRef()
@@ -966,6 +954,7 @@ class MainFrame(wx.Frame):
         m_view.AppendRadioItem(self.id_fit_width, "Fit &Width\tCtrl+1")
         m_view.AppendRadioItem(self.id_fit_page, "Fit &Page\tCtrl+0")
 
+        m_view.AppendSeparator()
         self.id_bg = wx.NewIdRef()
         m_view.Append(self.id_bg, "Background Color…")
 
@@ -976,15 +965,32 @@ class MainFrame(wx.Frame):
         m_view.Append(self.id_font_decrease, "Smaller Font\tCtrl+Shift+-")
 
         m_view.AppendSeparator()
-        self.id_show_toc_dialog = wx.NewIdRef()
-        m_view.Append(self.id_show_toc_dialog, "Show TOC Dialog...\tCtrl+T")
-
         self.id_fullscreen = wx.NewIdRef()
         m_view.AppendCheckItem(self.id_fullscreen, "Full &Screen\tF11")
 
         menubar.Append(m_view, "&View")
 
-        # --- Process Menu ---
+        # --- Navigate ---
+        m_nav = wx.Menu()
+
+        self.id_prev = wx.NewIdRef()
+        self.id_next = wx.NewIdRef()
+        self.id_goto = wx.NewIdRef()
+        m_nav.Append(self.id_prev, "Previous Page\tLeft")
+        m_nav.Append(self.id_next, "Next Page\tRight")
+        m_nav.Append(self.id_goto, "&Go to Page...\tCtrl+G")
+
+        m_nav.AppendSeparator()
+
+        self.id_search = wx.NewIdRef()
+        m_nav.Append(self.id_search, "&Find...\tCtrl+F")
+
+        self.id_show_toc_dialog = wx.NewIdRef()
+        m_nav.Append(self.id_show_toc_dialog, "Show TOC Dialog...\tCtrl+T")
+
+        menubar.Append(m_nav, "&Navigate")
+
+        # --- Process ---
         m_process = wx.Menu()
 
         m_enh = wx.Menu()
@@ -1018,7 +1024,7 @@ class MainFrame(wx.Frame):
 
         menubar.Append(m_process, "&Process")
 
-        # --- Help Menu ---
+        # --- Help ---
         m_help = wx.Menu()
         m_about = m_help.Append(wx.ID_ABOUT, "&About")
         menubar.Append(m_help, "&Help")
@@ -1030,52 +1036,47 @@ class MainFrame(wx.Frame):
         # --- Bindings ---
         self.Bind(wx.EVT_MENU, self.on_open, m_open)
         self.Bind(wx.EVT_MENU, self.on_close_pdf, m_close)
-        self.Bind(wx.EVT_MENU_RANGE, self.on_open_recent, id=wx.ID_FILE1, id2=wx.ID_FILE9)  # wx uses ID_FILE1.. for history
+        self.Bind(wx.EVT_MENU_RANGE, self.on_open_recent, id=wx.ID_FILE1, id2=wx.ID_FILE9)
         self.Bind(wx.EVT_MENU, self.on_clear_history, id=self.id_clear_history)
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), m_exit)
 
-        self.Bind(wx.EVT_MENU, self.on_show_search, id=self.id_search)
-
+        # View Bindings
         self.Bind(wx.EVT_MENU, self.on_toggle_sidebar, id=self.id_sidebar_toggle)
-
+        self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_mode(PDFView.MODE_SINGLE), self._update_ui()),
                   id=self.id_single_page)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_mode(PDFView.MODE_TWO), self._update_ui()), id=self.id_two_page)
-
         self.Bind(wx.EVT_MENU, self.on_toggle_pad_start, id=self.id_pad_start)
-
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_direction(PDFView.DIR_LTR), self._update_ui()), id=self.id_ltr)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_direction(PDFView.DIR_RTL), self._update_ui()), id=self.id_rtl)
-
-        self.Bind(wx.EVT_MENU, lambda e: self.view.go_prev(), id=self.id_prev)
-        self.Bind(wx.EVT_MENU, lambda e: self.view.go_next(), id=self.id_next)
-        self.Bind(wx.EVT_MENU, self.on_goto_page, id=self.id_goto)
-
         self.Bind(wx.EVT_MENU, self.on_zoom_in, id=self.id_zoom_in)
         self.Bind(wx.EVT_MENU, self.on_zoom_out, id=self.id_zoom_out)
         self.Bind(wx.EVT_MENU, self.on_fit_width, id=self.id_fit_width)
         self.Bind(wx.EVT_MENU, self.on_fit_page, id=self.id_fit_page)
-
         self.Bind(wx.EVT_MENU, self.on_background_color, id=int(self.id_bg))
-
         self.Bind(wx.EVT_MENU, self.on_change_epub_font, id=self.id_font_increase)
         self.Bind(wx.EVT_MENU, self.on_change_epub_font, id=self.id_font_decrease)
+        self.Bind(wx.EVT_MENU, self.on_fullscreen, id=self.id_fullscreen)
 
+        # Navigate Bindings
+        self.Bind(wx.EVT_MENU, lambda e: self.view.go_prev(), id=self.id_prev)
+        self.Bind(wx.EVT_MENU, lambda e: self.view.go_next(), id=self.id_next)
+        self.Bind(wx.EVT_MENU, self.on_goto_page, id=self.id_goto)
+        self.Bind(wx.EVT_MENU, self.on_show_search, id=self.id_search)
+        self.Bind(wx.EVT_MENU, self.on_show_toc_dialog, id=self.id_show_toc_dialog)
+
+        # Process Bindings
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_enhance_mode(PDFView.ENH_NONE), id=self.id_enh_none)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_enhance_mode(PDFView.ENH_SHARPEN), id=self.id_enh_sharpen)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_enhance_mode(PDFView.ENH_SOFTEN), id=self.id_enh_soften)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_enhance_mode(PDFView.ENH_SOFTEN_SHARPEN),
                   id=self.id_enh_soften_sharpen)
-
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_NONE), id=self.id_col_none)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_INVERT), id=self.id_col_invert)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_GREEN), id=self.id_col_green)
         self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_BROWN), id=self.id_col_brown)
-
         self.Bind(wx.EVT_MENU, self.on_extract_text, id=self.id_extract_text)
-        self.Bind(wx.EVT_MENU, self.on_fullscreen, id=self.id_fullscreen)
 
-        self.Bind(wx.EVT_MENU, self.on_show_toc_dialog, id=self.id_show_toc_dialog)
         self.Bind(wx.EVT_MENU, self.on_about, m_about)
 
     def _populate_sidebar(self, filter_text=None):
