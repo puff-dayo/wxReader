@@ -11,9 +11,7 @@ from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageE
 from wxReaderView import PDFView, PDFDocument
 
 APP_NAME = "wxReader"
-APP_VERSION = "0.7"
-
-
+APP_VERSION = "1.0"
 
 
 class FileDropTarget(wx.FileDropTarget):
@@ -835,15 +833,19 @@ class MainFrame(wx.Frame):
     def on_about(self, event):
         info = adv.AboutDialogInfo()
 
+        try:
+            APP_ICON = wx.Icon('icon.png', wx.BITMAP_TYPE_ANY)
+            info.SetIcon(icon=APP_ICON)
+        except Exception:
+            print(Exception)
         info.SetName(APP_NAME)
         info.SetVersion(APP_VERSION)
         info.SetDescription(
-            f"wxPython v{wx.version()}\n"
-            "PyMuPDF v1.23.8 with MuPDF v1.23.7\n"
+            f"wxPython v{wx.version()} (LGPL)\n"
+            "PyMuPDF v1.23.8 with MuPDF v1.23.7 (AGPL)\n"
             "Python 3.12.9"
         )
-
-        info.AddDeveloper("Setsuna")
+        info.SetWebSite(url=r"https://github.com/puff-dayo/wxReader/")
 
         wx.adv.AboutBox(info)
 
@@ -886,9 +888,9 @@ class WxPDFReaderApp(wx.App):
     def OnInit(self):
         frame = MainFrame()
 
-        app_icon = wx.Icon('icon.png', wx.BITMAP_TYPE_ANY)
-        if app_icon.IsOk():
-            frame.SetIcon(app_icon)
+        APP_ICON = wx.Icon('icon.png', wx.BITMAP_TYPE_ANY)
+        if APP_ICON.IsOk():
+            frame.SetIcon(APP_ICON)
         frame.Show()
 
         return True
