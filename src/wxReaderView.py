@@ -91,6 +91,7 @@ class PDFView(wx.ScrolledWindow):
         self.bgColor = wx.Colour(134, 180, 118)
         self.enhance_mode = self.ENH_NONE
         self.color_mode = self.COL_NONE
+        self.custom_filter: str | None = None
 
         self.main_frame = None
 
@@ -152,6 +153,13 @@ class PDFView(wx.ScrolledWindow):
         self.mode = mode
         self._refresh_layout()
         self.Refresh()
+
+    def set_custom_filter(self, name: str | None):
+        if self.custom_filter != name:
+            self.custom_filter = name
+            self._bmp_cache.clear()
+            self._refresh_layout()
+            self.Refresh()
 
     def set_enhance_mode(self, mode: str):
         if mode not in (self.ENH_NONE, self.ENH_SHARPEN, self.ENH_SOFTEN, self.ENH_SOFTEN_SHARPEN):
@@ -384,7 +392,7 @@ class PDFView(wx.ScrolledWindow):
             self._ensure_cache_zoom()
 
     def _apply_processing(self, bmp: wx.Bitmap) -> wx.Bitmap:
-        if self.enhance_mode == self.ENH_NONE and self.color_mode == self.COL_NONE:
+        if self.enhance_mode == self.ENH_NONE and self.color_mode == self.COL_NONE and self.custom_filter is None:
             return bmp
 
         img = bmp.ConvertToImage()
@@ -483,6 +491,13 @@ class PDFView(wx.ScrolledWindow):
             arr[..., 0] = np.minimum(255, final_r).astype(np.uint8)
             arr[..., 1] = np.minimum(255, final_g).astype(np.uint8)
             arr[..., 2] = np.minimum(255, final_b).astype(np.uint8)
+
+        if self.custom_filter and self.main_frame and hasattr(self.main_frame, "gl_filters"):
+            try:
+                out = self.main_frame.gl_filters.apply(self.custom_filter, arr)
+                arr[:] = out
+            except Exception as e:
+                print(f"GLSL filter failed: {e}")
 
         if not hasattr(img, "GetDataBuffer"):
             img.SetData(arr.tobytes())

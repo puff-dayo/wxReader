@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import functools
 import os
 
 import fitz  # PyMuPDF
 import wx
 from wx import adv
 
+from wxReaderGlUtil import GLFilterTool
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog
 from wxReaderView import PDFView, PDFDocument
@@ -116,6 +118,15 @@ class MainFrame(wx.Frame):
         self.splitter.Unsplit(self.sidebar)
 
         self.CreateStatusBar(1)
+
+        filters_dir = os.path.join(os.path.dirname(__file__), "filters")
+        self.gl_filters = GLFilterTool(self, filters_dir)
+        self.gl_filters.load_filters()
+        root = wx.BoxSizer(wx.VERTICAL)
+        root.Add(self.splitter, 1, wx.EXPAND)
+        root.Add(self.gl_filters.canvas, 0)
+        self.SetSizer(root)
+        self.Layout()
 
         self._build_menus()
 
@@ -289,8 +300,12 @@ class MainFrame(wx.Frame):
         m_col.AppendRadioItem(self.id_col_green, "Green Filter")
         m_col.AppendRadioItem(self.id_col_brown, "Brown Filter")
 
-        m_process.AppendSubMenu(m_enh, "Enhance")
-        m_process.AppendSubMenu(m_col, "Color")
+        m_process.AppendSubMenu(m_enh, "Enhance (CPU)")
+        m_process.AppendSubMenu(m_col, "Color (CPU)")
+
+        m_process.AppendSeparator()
+        self.m_custom = wx.Menu()
+        m_process.AppendSubMenu(self.m_custom, "Shader (GPU)")
 
         m_process.AppendSeparator()
         self.id_extract_text = wx.NewIdRef()
@@ -357,6 +372,22 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_extract_images, id=self.id_extract_images)
 
         self.Bind(wx.EVT_MENU, self.on_about, m_about)
+
+        def _populate_custom_filters_menu():
+            self.id_custom_none = wx.NewIdRef()
+            self.m_custom.AppendRadioItem(self.id_custom_none, "None")
+            self.Bind(wx.EVT_MENU, lambda e: self._select_custom_filter(None), id=self.id_custom_none)
+
+            names = sorted(self.gl_filters.filters.keys())
+            for name in names:
+                mid = wx.NewIdRef()
+                self.m_custom.AppendRadioItem(mid, name)
+                self.Bind(wx.EVT_MENU, functools.partial(self._on_custom_filter_menu, name=name), id=mid)
+
+            self.GetMenuBar().Check(self.id_custom_none, True)
+
+        self._populate_custom_filters_menu = _populate_custom_filters_menu
+        self._populate_custom_filters_menu()
 
     def _populate_sidebar(self, filter_text=None):
         if not self.pdf: return
@@ -853,6 +884,14 @@ class MainFrame(wx.Frame):
 
         self.ShowFullScreen(not is_full, style=wx.FULLSCREEN_ALL)
 
+        self._update_ui()
+
+    def _on_custom_filter_menu(self, evt, name: str):
+        self._select_custom_filter(name)
+
+    def _select_custom_filter(self, name: str | None):
+        if self.view:
+            self.view.set_custom_filter(name)
         self._update_ui()
 
     def on_about(self, event):

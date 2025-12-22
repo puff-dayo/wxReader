@@ -9,6 +9,7 @@ python -m nuitka ^
   --windows-console-mode=attach ^
   --windows-icon-from-ico=icon.png ^
   --include-data-file=icon.png=icon.png ^
+  --include-data-dir=filters=filters ^
   wxReader.py
 
 echo.

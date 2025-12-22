@@ -33,4 +33,5 @@
 ## TODO
 
 - [ ] fix epub page margin/padding.
-- [ ] support custom filters (or even shaders?)
+- [x] support custom filters (or even shaders?) woooooooah! we have shaders
+- [ ] file panel support sort by date
