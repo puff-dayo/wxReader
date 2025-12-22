@@ -1,8 +1,9 @@
 # wxReader
 
-**wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), and Python.
+**wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), and
+Python.
 
-> Happy to announce the release of **Version 1.0**!
+> Happy to announce the release of **Version 1.1**!<br>What's new: OpenGL shaders with some built-in options, and you can add your own custom shaders.
 
 ---
 
@@ -15,7 +16,7 @@
 | **File Format Support** | PDF, EPUB, MOBI, FB2, CBZ, and TXT files. Supported by `MuPDF`.                                          |
 | **Paging Strategy**     | Single Page and Two-Page spreads (with optional blank start page). Supports Right-to-Left (RTL) reading. |
 | **Content Extraction**  | Extract text and images directly from specific pages to the clipboard or disk.                           |
-| **Image Processing**    | Real-time enhancement (Sharpen, Soften) and Color filters (Invert, Green/Brown).                         |
+| **Image Processing**    | Real-time built-in filters and enhancements. Support custom OpenGL frag shaders.                         |
 | **Zoom & View**         | Fit Width, Fit Page, Fullscreen Mode (F11), and customizable background color.                           |
 | **Navigation**          | Sidebar with Outline (TOC) and File Browser tabs. Text search dialog, and a standalone TOC dialog.       |
 | **Reflowable Text**     | Adjustable font sizes for EPUB and other reflowable formats.                                             |
@@ -26,7 +27,8 @@
 
 ## Installation
 
-1. From sauce: Sync dependencies with `uv` and build with `cd ./src` and `../build.bat` on Windows x64. Run the build script inside /src folder.
+1. From sauce: Sync dependencies with `uv` and build with `cd ./src` and `../build.bat` on Windows x64. Run the build
+   script inside /src folder.
 
 2. Pre-compiled binary: portable `.exe` files is provided on the **Releases** page.
 
