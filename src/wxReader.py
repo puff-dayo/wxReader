@@ -13,7 +13,7 @@ from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageE
 from wxReaderView import PDFView, PDFDocument
 
 APP_NAME = "wxReader"
-APP_VERSION = "1.0"
+APP_VERSION = "1.1"
 
 
 class FileDropTarget(wx.FileDropTarget):
