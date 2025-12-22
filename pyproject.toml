@@ -9,5 +9,6 @@ dependencies = [
     "numpy>=2.3.5",
     "pymupdf==1.23.8",
     "pyopengl>=3.1.10",
+    "pyopengl-accelerate>=3.1.10",
     "wxpython>=4.2.4",
 ]
