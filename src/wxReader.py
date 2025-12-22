@@ -907,6 +907,7 @@ class MainFrame(wx.Frame):
         info.SetDescription(
             f"wxPython v{wx.version()} (LGPL)\n"
             "PyMuPDF v1.23.8 with MuPDF v1.23.7 (AGPL)\n"
+            "OpenGL (PyOpenGL, BSD)\n"
             "Python 3.12.9"
         )
         info.SetWebSite(url=r"https://github.com/puff-dayo/wxReader/")
