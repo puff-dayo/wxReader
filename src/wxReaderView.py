@@ -197,6 +197,12 @@ class PDFView(wx.ScrolledWindow):
         self.SetBackgroundColour(color)
         self.Refresh()
 
+    def set_margin_gap(self, m: int, g: int):
+        self.margin = m
+        self.gap = g
+        self._refresh_layout()
+        self.Refresh()
+
     def go_next(self):
         if not self.pdf:
             return

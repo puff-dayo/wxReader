@@ -7,7 +7,7 @@ import wx
 from wx import adv
 
 from wxReaderConfigUtil import load_config, save_config, update_recent
-from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog
+from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog
 from wxReaderView import PDFView, PDFDocument
 
 APP_NAME = "wxReader"
@@ -223,6 +223,10 @@ class MainFrame(wx.Frame):
         m_view.AppendSeparator()
         m_view.AppendRadioItem(self.id_fit_width, "Fit &Width\tCtrl+1")
         m_view.AppendRadioItem(self.id_fit_page, "Fit &Page\tCtrl+0")
+        m_view.AppendSeparator()
+
+        self.id_setmg = wx.NewIdRef()
+        m_view.Append(self.id_setmg, "Set Margin and Gap")
 
         m_view.AppendSeparator()
         self.id_bg = wx.NewIdRef()
@@ -326,6 +330,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_zoom_out, id=self.id_zoom_out)
         self.Bind(wx.EVT_MENU, self.on_fit_width, id=self.id_fit_width)
         self.Bind(wx.EVT_MENU, self.on_fit_page, id=self.id_fit_page)
+        self.Bind(wx.EVT_MENU, self.on_setmg, id=self.id_setmg)
         self.Bind(wx.EVT_MENU, self.on_background_color, id=int(self.id_bg))
         self.Bind(wx.EVT_MENU, self.on_change_epub_font, id=self.id_font_increase)
         self.Bind(wx.EVT_MENU, self.on_change_epub_font, id=self.id_font_decrease)
@@ -764,6 +769,26 @@ class MainFrame(wx.Frame):
                     wx.MessageBox("Page number out of range.")
             except ValueError:
                 wx.MessageBox("Invalid number.")
+        dlg.Destroy()
+
+    def on_setmg(self, evt):
+        dlg = SetMarginGapDialog(self, title="Set Margin and Gap")
+
+        if dlg.ShowModal() == wx.ID_OK:
+            margin_str, gap_str = dlg.GetValues()
+            try:
+                m_val = int(margin_str)
+                g_val = int(gap_str)
+
+                if 0 <= m_val <= 999 and 0 <= g_val <= 999:
+                    self.view.set_margin_gap(m=m_val, g=g_val)
+                    self._update_ui()
+                else:
+                    wx.MessageBox("Numbers must be between 0 and 999.", "Range Error", wx.OK | wx.ICON_ERROR)
+            except ValueError:
+                wx.MessageBox("Please enter integers only.", "Input Error",
+                              wx.OK | wx.ICON_ERROR)
+
         dlg.Destroy()
 
     def on_zoom_out(self, evt):

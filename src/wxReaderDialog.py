@@ -371,3 +371,38 @@ class SearchDialog(wx.Dialog):
 
         if self.nav_cb:
             self.nav_cb(page_index)
+
+
+class SetMarginGapDialog(wx.Dialog):
+    def __init__(self, parent, title, default_margin="6", default_gap="6"):
+        super(SetMarginGapDialog, self).__init__(parent, title=title)
+
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # Margin
+        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
+        label1 = wx.StaticText(self, label="Margin:")
+        hbox1.Add(label1, flag=wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, border=8)
+        self.margin_ctrl = wx.TextCtrl(self, value=default_margin)
+        hbox1.Add(self.margin_ctrl, proportion=1)
+        vbox.Add(hbox1, flag=wx.EXPAND | wx.ALL, border=10)
+
+        # Gap
+        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
+        label2 = wx.StaticText(self, label="Gap:")
+        hbox2.Add(label2, flag=wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, border=8)
+        self.gap_ctrl = wx.TextCtrl(self, value=default_gap)
+        hbox2.Add(self.gap_ctrl, proportion=1)
+        vbox.Add(hbox2, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
+
+        sdb = self.CreateStdDialogButtonSizer(wx.OK | wx.CANCEL)
+        vbox.Add(sdb, flag=wx.ALIGN_CENTER | wx.ALL, border=10)
+
+        self.SetSizer(vbox)
+        self.Fit()
+
+    def GetValues(self):
+        """Returns the entered margin and gap values."""
+        return self.margin_ctrl.GetValue(), self.gap_ctrl.GetValue()
+
+
