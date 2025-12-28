@@ -9,7 +9,8 @@ from wx import adv
 
 from wxReaderGlUtil import GLFilterTool
 from wxReaderConfigUtil import load_config, save_config, update_recent
-from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog
+from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
+    ModernColorDialog
 from wxReaderView import PDFView, PDFDocument
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
@@ -1013,11 +1014,16 @@ class MainFrame(wx.Frame):
         self._update_ui()
 
     def on_background_color(self, evt):
-        data = wx.ColourData()
-        data.SetColour(self.view.GetBackgroundColour())
-        with wx.ColourDialog(self, data) as dlg:
-            if dlg.ShowModal() == wx.ID_OK:
-                self.view.set_background_color(dlg.GetColourData().GetColour())
+        current_color = self.view.GetBackgroundColour()
+
+        dlg = ModernColorDialog(self, initial_color=current_color, title="Change background color")
+
+        if dlg.ShowModal() == wx.ID_OK:
+            new_color = dlg.GetColorData().GetColour()
+            self.view.set_background_color(new_color)
+            self._update_ui()
+
+        dlg.Destroy()
 
     def on_fullscreen(self, evt):
         is_full = self.IsFullScreen()

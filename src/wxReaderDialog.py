@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import wx
+import colorsys
 
 
 class TOCDialog(wx.Dialog):
@@ -405,4 +406,190 @@ class SetMarginGapDialog(wx.Dialog):
         """Returns the entered margin and gap values."""
         return self.margin_ctrl.GetValue(), self.gap_ctrl.GetValue()
 
+
+class ColorPreviewPanel(wx.Panel):
+    def __init__(self, parent, old_color, new_color):
+        super().__init__(parent, size=(100, 100))
+        self.old_color = old_color
+        self.new_color = new_color
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+
+    def UpdateNewColor(self, color):
+        self.new_color = color
+        self.Refresh()
+
+    def OnPaint(self, evt):
+        dc = wx.AutoBufferedPaintDC(self)
+        w, h = self.GetSize()
+
+        dc.SetPen(wx.Pen(self.old_color))
+        dc.SetBrush(wx.Brush(self.old_color))
+        dc.DrawRectangle(0, 0, w, h // 2)
+
+        dc.SetPen(wx.Pen(self.new_color))
+        dc.SetBrush(wx.Brush(self.new_color))
+        dc.DrawRectangle(0, h // 2, w, h - (h // 2))
+
+        dc.SetPen(wx.Pen(wx.Colour(100, 100, 100)))
+        dc.SetBrush(wx.Brush(wx.Colour(0, 0, 0), wx.TRANSPARENT))
+        dc.DrawRectangle(0, 0, w, h)
+
+        dc.SetTextForeground(wx.WHITE if sum(self.old_color[:3]) < 382 else wx.BLACK)
+        dc.DrawText("Current", 5, 5)
+
+        dc.SetTextForeground(wx.WHITE if sum(self.new_color[:3]) < 382 else wx.BLACK)
+        dc.DrawText("New", 5, h // 2 + 5)
+
+
+class ModernColorDialog(wx.Dialog):
+    def __init__(self, parent, initial_color=wx.BLACK, title="Select Color"):
+        super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+
+        self.color = wx.Colour(initial_color)
+        self.initial_color = self.color
+        self._updating = False
+
+        # Layout
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        content_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.preview = ColorPreviewPanel(self, self.initial_color, self.color)
+        content_sizer.Add(self.preview, 0, wx.ALL | wx.EXPAND, 10)
+
+        controls_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        sb_rgb = wx.StaticBoxSizer(wx.VERTICAL, self, "RGB")
+        self.sl_r, self.sp_r = self._create_slider_row(sb_rgb, "R", 0, 255, self.OnRGBChanged)
+        self.sl_g, self.sp_g = self._create_slider_row(sb_rgb, "G", 0, 255, self.OnRGBChanged)
+        self.sl_b, self.sp_b = self._create_slider_row(sb_rgb, "B", 0, 255, self.OnRGBChanged)
+        controls_sizer.Add(sb_rgb, 0, wx.EXPAND | wx.BOTTOM, 5)
+
+        sb_hsb = wx.StaticBoxSizer(wx.VERTICAL, self, "HSB (HSV)")
+        self.sl_h, self.sp_h = self._create_slider_row(sb_hsb, "H", 0, 360, self.OnHSBChanged)
+        self.sl_s, self.sp_s = self._create_slider_row(sb_hsb, "S", 0, 100, self.OnHSBChanged)
+        self.sl_v, self.sp_v = self._create_slider_row(sb_hsb, "B", 0, 100, self.OnHSBChanged)
+        controls_sizer.Add(sb_hsb, 0, wx.EXPAND | wx.BOTTOM, 5)
+
+        content_sizer.Add(controls_sizer, 1, wx.EXPAND | wx.ALL, 5)
+        main_sizer.Add(content_sizer, 1, wx.EXPAND | wx.ALL, 5)
+
+        hex_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        hex_sizer.Add(wx.StaticText(self, label="Hex Code: #"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        self.hex_ctrl = wx.TextCtrl(self, size=(80, -1))
+        self.hex_ctrl.Bind(wx.EVT_TEXT, self.OnHexChanged)
+        hex_sizer.Add(self.hex_ctrl, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        main_sizer.Add(hex_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        btn_sizer.AddButton(wx.Button(self, wx.ID_OK))
+        btn_sizer.AddButton(wx.Button(self, wx.ID_CANCEL))
+        btn_sizer.Realize()
+        main_sizer.Add(btn_sizer, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+
+        self.SetSizer(main_sizer)
+        self.Fit()
+
+        self._sync_ui_from_color(self.color)
+        self.CenterOnParent()
+
+    def _create_slider_row(self, sizer, label, min_val, max_val, handler):
+        row = wx.BoxSizer(wx.HORIZONTAL)
+        row.Add(wx.StaticText(self, label=label, size=(15, -1)), 0, wx.ALIGN_CENTER_VERTICAL)
+
+        slider = wx.Slider(self, minValue=min_val, maxValue=max_val, size=(150, -1))
+        slider.Bind(wx.EVT_SLIDER, handler)
+        row.Add(slider, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
+
+        spin = wx.SpinCtrl(self, min=min_val, max=max_val, size=(60, -1))
+        spin.Bind(wx.EVT_SPINCTRL, handler)
+        row.Add(spin, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        sizer.Add(row, 0, wx.EXPAND | wx.ALL, 2)
+        return slider, spin
+
+    def GetColorData(self):
+        class Data:
+            def __init__(self, c): self.c = c
+
+            def GetColour(self): return self.c
+
+        return Data(self.color)
+
+    def _sync_ui_from_color(self, color):
+        self._updating = True
+
+        r, g, b = color.Red(), color.Green(), color.Blue()
+
+        for ctrl in [self.sl_r, self.sp_r]: ctrl.SetValue(r)
+        for ctrl in [self.sl_g, self.sp_g]: ctrl.SetValue(g)
+        for ctrl in [self.sl_b, self.sp_b]: ctrl.SetValue(b)
+
+        h, s, v = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
+        h_deg = int(h * 360)
+        s_per = int(s * 100)
+        v_per = int(v * 100)
+
+        for ctrl in [self.sl_h, self.sp_h]: ctrl.SetValue(h_deg)
+        for ctrl in [self.sl_s, self.sp_s]: ctrl.SetValue(s_per)
+        for ctrl in [self.sl_v, self.sp_v]: ctrl.SetValue(v_per)
+
+        if self.FindFocus() != self.hex_ctrl:
+            self.hex_ctrl.SetValue(f"{r:02X}{g:02X}{b:02X}")
+
+        self.preview.UpdateNewColor(color)
+
+        self._updating = False
+
+    def OnRGBChanged(self, evt):
+        if self._updating: return
+        r = self.sl_r.GetValue() if isinstance(evt.GetEventObject(), wx.Slider) else self.sp_r.GetValue()
+        g = self.sl_g.GetValue() if isinstance(evt.GetEventObject(), wx.Slider) else self.sp_g.GetValue()
+        b = self.sl_b.GetValue() if isinstance(evt.GetEventObject(), wx.Slider) else self.sp_b.GetValue()
+
+        self.color = wx.Colour(r, g, b)
+        self._sync_ui_from_color(self.color)
+
+    def OnHSBChanged(self, evt):
+        if self._updating: return
+
+        h_deg = self.sl_h.GetValue() if isinstance(evt.GetEventObject(), wx.Slider) else self.sp_h.GetValue()
+        s_per = self.sl_s.GetValue() if isinstance(evt.GetEventObject(), wx.Slider) else self.sp_s.GetValue()
+        v_per = self.sl_v.GetValue() if isinstance(evt.GetEventObject(), wx.Slider) else self.sp_v.GetValue()
+
+        r_f, g_f, b_f = colorsys.hsv_to_rgb(h_deg / 360.0, s_per / 100.0, v_per / 100.0)
+
+        self.color = wx.Colour(int(r_f * 255), int(g_f * 255), int(b_f * 255))
+        self._sync_ui_from_color(self.color)
+
+    def OnHexChanged(self, evt):
+        if self._updating: return
+
+        hex_val = self.hex_ctrl.GetValue().strip().lstrip('#')
+        if len(hex_val) == 6:
+            try:
+                r = int(hex_val[0:2], 16)
+                g = int(hex_val[2:4], 16)
+                b = int(hex_val[4:6], 16)
+                self.color = wx.Colour(r, g, b)
+
+                self._updating = True
+
+                # RGB
+                for ctrl in [self.sl_r, self.sp_r]: ctrl.SetValue(r)
+                for ctrl in [self.sl_g, self.sp_g]: ctrl.SetValue(g)
+                for ctrl in [self.sl_b, self.sp_b]: ctrl.SetValue(b)
+
+                # HSB
+                h, s, v = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
+                for ctrl in [self.sl_h, self.sp_h]: ctrl.SetValue(int(h * 360))
+                for ctrl in [self.sl_s, self.sp_s]: ctrl.SetValue(int(s * 100))
+                for ctrl in [self.sl_v, self.sp_v]: ctrl.SetValue(int(v * 100))
+
+                self.preview.UpdateNewColor(self.color)
+                self._updating = False
+
+            except ValueError:
+                pass
 
