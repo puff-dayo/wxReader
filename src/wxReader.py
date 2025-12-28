@@ -17,7 +17,7 @@ from wxReaderManual import ManualDialog
 
 
 APP_NAME = "wxReader"
-APP_VERSION = "1.2"
+APP_VERSION = "1.2.1"
 
 
 class FileDropTarget(wx.FileDropTarget):
