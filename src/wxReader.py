@@ -274,8 +274,8 @@ class MainFrame(wx.Frame):
 
         self.id_single_page = wx.NewIdRef()
         self.id_two_page = wx.NewIdRef()
-        m_view.AppendRadioItem(self.id_single_page, "Single Page View")
-        m_view.AppendRadioItem(self.id_two_page, "Two Page View")
+        m_view.AppendRadioItem(self.id_single_page, "Single Page View\tCtrl+1")
+        m_view.AppendRadioItem(self.id_two_page, "Two Page View\tCtrl+2")
         m_view.AppendSeparator()
 
         self.id_pad_start = wx.NewIdRef()
@@ -299,8 +299,8 @@ class MainFrame(wx.Frame):
         _add_item(m_view, self.id_zoom_out, "Zoom &Out\tCtrl+-")
 
         m_view.AppendSeparator()
-        m_view.AppendRadioItem(self.id_fit_width, "Fit &Width\tCtrl+1")
-        m_view.AppendRadioItem(self.id_fit_page, "Fit &Page\tCtrl+0")
+        m_view.AppendRadioItem(self.id_fit_width, "Fit &Width\tCtrl+3")
+        m_view.AppendRadioItem(self.id_fit_page, "Fit &Page\tCtrl+4")
         m_view.AppendSeparator()
 
         self.id_setmg = wx.NewIdRef()
@@ -347,10 +347,10 @@ class MainFrame(wx.Frame):
         m_process = wx.Menu()
 
         self.id_extract_text = wx.NewIdRef()
-        _add_item(m_process, self.id_extract_text, "Extract Page Text...\tCtrl+E")
+        _add_item(m_process, self.id_extract_text, "Extract Page Text\tCtrl+E")
 
         self.id_extract_images = wx.NewIdRef()
-        _add_item(m_process, self.id_extract_images, "Extract Page Images...")
+        _add_item(m_process, self.id_extract_images, "Extract Page Images\tCtrl+I")
 
         m_process.AppendSeparator()
 
@@ -376,8 +376,8 @@ class MainFrame(wx.Frame):
         m_col.AppendRadioItem(self.id_col_green, "Green Filter")
         m_col.AppendRadioItem(self.id_col_brown, "Brown Filter")
 
-        m_process.AppendSubMenu(m_enh, "Filter 1 (CPU, slow)")
-        m_process.AppendSubMenu(m_col, "Filter 2 (CPU, slow)")
+        m_process.AppendSubMenu(m_enh, "CPU Filter 1 (slow)")
+        m_process.AppendSubMenu(m_col, "CPU Filter 2 (slow)")
 
         m_process.AppendSeparator()
 
@@ -385,7 +385,7 @@ class MainFrame(wx.Frame):
         header_item.Enable(False)
 
         self.id_custom_none = wx.NewIdRef()
-        m_process.AppendCheckItem(self.id_custom_none, "None (Turn Off)")
+        m_process.AppendCheckItem(self.id_custom_none, "None / Turn Off")
         self.Bind(wx.EVT_MENU, lambda e: self._select_custom_filter(None), id=self.id_custom_none)
 
         self.filter_menu_map = {}

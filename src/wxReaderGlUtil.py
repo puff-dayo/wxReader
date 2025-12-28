@@ -20,7 +20,7 @@ void main(){
 }
 """
 
-now = time.time()
+start_time = time.time()
 seed = random.random()
 
 
@@ -198,7 +198,9 @@ class GLFilterTool:
             glUniform1i(loc, 0)
         loc = glGetUniformLocation(prog, b"uTime")
         if loc >= 0:
-            glUniform1f(loc, float(now))
+            elapsed = time.time() - start_time
+            looped_time = elapsed % 1000.0
+            glUniform1f(loc, float(looped_time))
         loc = glGetUniformLocation(prog, b"uSeed")
         if loc >= 0:
             glUniform1f(loc, float(seed))
