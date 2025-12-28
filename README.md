@@ -9,7 +9,7 @@ Python.
 
 ## Features
 
-<img height="300" src="https://github.com/puff-dayo/wxReader/blob/master/screenshot/1_1.png?raw=true"/>
+<img height="300" src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_1.png?raw=true"/>
 
 | Feature                 | Description                                                                                              |
 |-------------------------|----------------------------------------------------------------------------------------------------------|

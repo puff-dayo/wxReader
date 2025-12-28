@@ -368,12 +368,12 @@ class MainFrame(wx.Frame):
         m_col.AppendRadioItem(self.id_col_green, "Green Filter")
         m_col.AppendRadioItem(self.id_col_brown, "Brown Filter")
 
-        m_process.AppendSubMenu(m_enh, "Enhance (CPU)")
-        m_process.AppendSubMenu(m_col, "Color (CPU)")
+        m_process.AppendSubMenu(m_enh, "Filter 1 (CPU, slow)")
+        m_process.AppendSubMenu(m_col, "Filter 2 (CPU, slow)")
 
         m_process.AppendSeparator()
         self.m_custom = wx.Menu()
-        m_process.AppendSubMenu(self.m_custom, "Shader (GPU)")
+        m_process.AppendSubMenu(self.m_custom, "Shader (GPU, fast)")
 
         m_process.AppendSeparator()
         self.id_extract_text = wx.NewIdRef()
