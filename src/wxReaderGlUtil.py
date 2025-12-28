@@ -85,16 +85,20 @@ class GLFilterTool:
         if not os.path.isdir(self.filters_dir):
             return
 
-        for fn in os.listdir(self.filters_dir):
-            if not fn.lower().endswith(".frag"):
-                continue
-            path = os.path.join(self.filters_dir, fn)
-            name = os.path.splitext(fn)[0]
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    self.filters[name] = f.read()
-            except Exception:
-                continue
+        for root, dirs, files in os.walk(self.filters_dir):
+            for fn in files:
+                if not fn.lower().endswith(".frag"):
+                    continue
+
+                path = os.path.join(root, fn)
+                name = os.path.splitext(fn)[0]
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        self.filters[name] = f.read()
+                        print(f"[DEBUG] Loaded filter: {name}")
+                except Exception as e:
+                    print(f"[ERROR] Failed to load {fn}: {e}")
+                    continue
 
     def _set_current(self):
         if not self.canvas.IsShown():

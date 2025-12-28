@@ -346,6 +346,14 @@ class MainFrame(wx.Frame):
         # --- Process ---
         m_process = wx.Menu()
 
+        self.id_extract_text = wx.NewIdRef()
+        _add_item(m_process, self.id_extract_text, "Extract Page Text...\tCtrl+E")
+
+        self.id_extract_images = wx.NewIdRef()
+        _add_item(m_process, self.id_extract_images, "Extract Page Images...")
+
+        m_process.AppendSeparator()
+
         m_enh = wx.Menu()
         self.id_enh_none = wx.NewIdRef()
         self.id_enh_sharpen = wx.NewIdRef()
@@ -372,15 +380,55 @@ class MainFrame(wx.Frame):
         m_process.AppendSubMenu(m_col, "Filter 2 (CPU, slow)")
 
         m_process.AppendSeparator()
-        self.m_custom = wx.Menu()
-        m_process.AppendSubMenu(self.m_custom, "Shader (GPU, fast)")
 
-        m_process.AppendSeparator()
-        self.id_extract_text = wx.NewIdRef()
-        _add_item(m_process, self.id_extract_text, "Extract Page Text...\tCtrl+E")
+        header_item = m_process.Append(wx.ID_ANY, "Shaders (GPU)")
+        header_item.Enable(False)
 
-        self.id_extract_images = wx.NewIdRef()
-        _add_item(m_process, self.id_extract_images, "Extract Page Images...")
+        self.id_custom_none = wx.NewIdRef()
+        m_process.AppendCheckItem(self.id_custom_none, "None (Turn Off)")
+        self.Bind(wx.EVT_MENU, lambda e: self._select_custom_filter(None), id=self.id_custom_none)
+
+        self.filter_menu_map = {}
+
+        def _populate_custom_filters_menu():
+            filters_dir = os.path.join(os.path.dirname(__file__), "filters")
+            print(f"[INFO] Loading filters from: {filters_dir}")
+            if not os.path.exists(filters_dir):
+                print("[ERROR] The filters folder was not found.")
+                return
+
+            loaded_filters = set(self.gl_filters.filters.keys())
+
+            try:
+                entries = sorted(os.listdir(filters_dir))
+            except OSError:
+                entries = []
+
+            for entry in entries:
+                print(f"[INFO] Loading filters from list: {entry}")
+                full_path = os.path.join(filters_dir, entry)
+
+                if os.path.isdir(full_path):
+                    submenu = wx.Menu()
+                    has_items = False
+
+                    sub_files = sorted(os.listdir(full_path))
+                    for f in sub_files:
+                        name, ext = os.path.splitext(f)
+                        if name in loaded_filters:
+                            mid = wx.NewIdRef()
+                            submenu.AppendCheckItem(mid, name)
+                            self.Bind(wx.EVT_MENU, functools.partial(self._on_custom_filter_menu, name=name), id=mid)
+
+                            self.filter_menu_map[name] = mid
+                            has_items = True
+
+                    if has_items:
+                        m_process.AppendSubMenu(submenu, entry)
+
+            self.GetMenuBar().Check(self.id_custom_none, True)
+
+        self._populate_custom_filters_menu = _populate_custom_filters_menu
 
         menubar.Append(m_process, "&Process")
 
@@ -392,12 +440,13 @@ class MainFrame(wx.Frame):
         m_help.AppendSeparator()
 
         self.id_manual = wx.NewIdRef()
-        _add_item(m_help, self.id_manual, "&Help Topics\tF1", wx.ART_HELP_BOOK)
-
+        _add_item(m_help, self.id_manual, "&Help Topics\tF1")
 
         self.SetMenuBar(menubar)
         self.file_history.UseMenu(self.m_recent)
         self.file_history.AddFilesToMenu(self.m_recent)
+
+        self._populate_custom_filters_menu()
 
         # --- Bindings ---
         self.Bind(wx.EVT_MENU, self.on_open, m_open)
@@ -448,23 +497,6 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.on_about, m_about)
         self.Bind(wx.EVT_MENU, self.on_manual, id=self.id_manual)
-
-
-        def _populate_custom_filters_menu():
-            self.id_custom_none = wx.NewIdRef()
-            self.m_custom.AppendRadioItem(self.id_custom_none, "None")
-            self.Bind(wx.EVT_MENU, lambda e: self._select_custom_filter(None), id=self.id_custom_none)
-
-            names = sorted(self.gl_filters.filters.keys())
-            for name in names:
-                mid = wx.NewIdRef()
-                self.m_custom.AppendRadioItem(mid, name)
-                self.Bind(wx.EVT_MENU, functools.partial(self._on_custom_filter_menu, name=name), id=mid)
-
-            self.GetMenuBar().Check(self.id_custom_none, True)
-
-        self._populate_custom_filters_menu = _populate_custom_filters_menu
-        self._populate_custom_filters_menu()
 
     def _populate_sidebar(self, filter_text=None):
         if not self.pdf: return
@@ -1000,6 +1032,21 @@ class MainFrame(wx.Frame):
     def _select_custom_filter(self, name: str | None):
         if self.view:
             self.view.set_custom_filter(name)
+
+        mb = self.GetMenuBar()
+        if not mb: return
+
+        if name is None:
+            mb.Check(self.id_custom_none, True)
+            for fid in self.filter_menu_map.values():
+                mb.Check(fid, False)
+        else:
+            mb.Check(self.id_custom_none, False)
+
+            for fname, fid in self.filter_menu_map.items():
+                should_check = (fname == name)
+                mb.Check(fid, should_check)
+
         self._update_ui()
 
     def on_about(self, event):
