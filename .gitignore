@@ -7,3 +7,5 @@ wxReader.cfg
 screenshot/1.png
 *.pyc
 /src/build/
+.env
+test.py
