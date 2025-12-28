@@ -1,0 +1,20 @@
+@echo off
+echo run this inside the src folder
+
+python -m nuitka ^
+  --mode=standalone ^
+  --output-dir=build ^
+  --remove-output ^
+  --follow-imports ^
+  --windows-console-mode=attach ^
+  --windows-icon-from-ico=icon.png ^
+  --include-data-file=icon.png=icon.png ^
+  --include-data-dir=filters=filters ^
+  wxReader.py
+
+echo.
+echo ================================
+echo              DONE
+echo delete unnecessary dlls manually.
+echo ================================
+pause
