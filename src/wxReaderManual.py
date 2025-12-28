@@ -29,6 +29,32 @@ MANUAL_TREE = [
             <p><b>Outline:</b> If the document contains a Table of Contents, it will be displayed in the 'Outline' tab. Click an entry to jump to that section.</p>
             <p><b>Search:</b> Press <b>Ctrl+F</b> to open the Find dialog. Search results will list page numbers and context; clicking a result navigates directly to that location.</p>
         """, []),
+        ("Keyboard Shortcuts", """
+            <h3>Keyboard Shortcuts</h3>
+            <p>The following shortcuts are available to streamline navigation and view management:</p>
+            <table border="1" cellpadding="5" cellspacing="0" width="100%">
+                <tr style="background-color: #f0f0f0;"><th><b>Action</b></th><th><b>Shortcut</b></th></tr>
+                <tr><td>Open File</td><td>Ctrl + O</td></tr>
+                <tr><td>Close File</td><td>Ctrl + W</td></tr>
+                <tr><td>Toggle Sidebar</td><td>F9</td></tr>
+                <tr><td>Switch Sidebar Tab</td><td>F8</td></tr>
+                <tr><td>Full Screen</td><td>F11</td></tr>
+                <tr><td colspan="2"><b>View Modes</b></td></tr>
+                <tr><td>Single Page View</td><td>Ctrl + 1</td></tr>
+                <tr><td>Two Page View</td><td>Ctrl + 2</td></tr>
+                <tr><td>Fit Width</td><td>Ctrl + 3</td></tr>
+                <tr><td>Fit Page</td><td>Ctrl + 4</td></tr>
+                <tr><td>Zoom In / Out</td><td>Ctrl + (+) / (-)</td></tr>
+                <tr><td colspan="2"><b>Navigation</b></td></tr>
+                <tr><td>Next / Previous Page</td><td>Right / Left Arrow</td></tr>
+                <tr><td>Go to Page...</td><td>Ctrl + G</td></tr>
+                <tr><td>Find...</td><td>Ctrl + F</td></tr>
+                <tr><td>Show TOC Dialog</td><td>Ctrl + T</td></tr>
+                <tr><td colspan="2"><b>Tools</b></td></tr>
+                <tr><td>Extract Text</td><td>Ctrl + E</td></tr>
+                <tr><td>Extract Images</td><td>Ctrl + I</td></tr>
+            </table>
+        """, [])
     ]),
 
     ("Reading Experience", """
@@ -39,8 +65,8 @@ MANUAL_TREE = [
             <h3>Page Layout Modes</h3>
             <p>Access these settings under the <b>View</b> menu:</p>
             <ul>
-                <li><b>Single Page View:</b> Standard vertical scrolling.</li>
-                <li><b>Two Page View:</b> Simulates a physical book spread.</li>
+                <li><b>Single Page View (Ctrl+1):</b> Standard vertical scrolling.</li>
+                <li><b>Two Page View (Ctrl+2):</b> Simulates a physical book spread.</li>
             </ul>
             <p><b>Page Direction:</b> Toggle between <b>Left-to-Right (LTR)</b> and <b>Right-to-Left (RTL)</b> to accommodate different languages.</p>
         """, []),
@@ -57,15 +83,22 @@ MANUAL_TREE = [
             <p>wxReader allows you to extract raw data from the document.</p>
             <h4>Extract Page Text (Ctrl+E)</h4>
             <p>Parses the currently visible pages and displays the raw text in a dialog window, ready for copying to the clipboard.</p>
-            <h4>Extract Page Images</h4>
+            <h4>Extract Page Images (Ctrl+I)</h4>
             <p>Scans the visible pages for embedded image resources. A dialog will present the found images, allowing you to view their native resolution and format.</p>
         """, []),
         ("Filters (CPU)", """
             <h3>Enhancement Filters (CPU)</h3>
-            <p>Located under the <b>Process</b> menu, these filters modify the rendered bitmap before display.</p>
+            <p>Located under the <b>Process</b> menu, CPU-based filters provide software-level image processing to improve legibility.</p>
+            <h4>Enhancement Modes</h4>
             <ul>
-                <li><b>Enhance:</b> Apply <i>Sharpen</i> to clarify blurred text or <i>Soften</i> to reduce noise.</li>
-                <li><b>Color:</b> Apply <i>Invert</i> for high-contrast night reading, or <i>Green/Brown</i> tints to reduce eye strain.</li>
+                <li><b>Sharpen:</b> Increases edge contrast to clarify blurred text.</li>
+                <li><b>Soften:</b> Applies a blur to reduce noise or scanning artifacts.</li>
+                <li><b>Soften + Sharpen:</b> A combined pass that reduces noise before sharpening edges for balanced clarity.</li>
+            </ul>
+            <h4>Color Modes</h4>
+            <ul>
+                <li><b>Invert Colors:</b> Reverses the color palette (e.g., white text on black background) for low-light reading.</li>
+                <li><b>Green/Brown Filter:</b> Applies a tinted overlay to reduce eye strain during prolonged reading sessions.</li>
             </ul>
         """, []),
     ]),
@@ -74,16 +107,18 @@ MANUAL_TREE = [
         ("Custom GPU Shaders", """
             <h3>Custom GPU Shaders</h3>
             <p>wxReader supports custom GLSL fragment shaders for advanced visual post-processing.</p>
-            <h4>How to Add a Custom Shader</h4>
-            <ol>
-                <li>Navigate to the application's installation directory.</li>
-                <li>Open the <b>filters</b> subdirectory.</li>
-                <li>Create a new text file with the <code>.frag</code> extension (e.g., <code>my_filter.frag</code>).</li>
-                <li>Write your GLSL code in this file.</li>
-            </ol>
-            <p><b>Usage:</b> Restart wxReader. Your new filter will appear under the <b>Process &gt; Shader (GPU)</b> menu.</p>
-            <h4>Shader Requirements</h4>
-            <p>The shader must accept standard texture coordinates. The application passes the document page as a generic 2D texture.</p>
+            <h4>Shader Organization</h4>
+            <p>Shaders are loaded from the <code>filters</code> directory in the application root. You may organize shaders into subdirectories (e.g., <code>filters/Retro/crt.frag</code>). The application will automatically create corresponding submenus under <b>Process &gt; Shaders (GPU)</b> based on the folder structure.</p>
+            <h4>Shader Development Guide</h4>
+            <p>To create a filter, add a text file with the <code>.frag</code> extension. The application exposes the following uniforms to the shader program:</p>
+            <table border="1" cellpadding="5" cellspacing="0" width="100%">
+                <tr style="background-color: #f0f0f0;"><th><b>Uniform Type</b></th><th><b>Name</b></th><th><b>Description</b></th></tr>
+                <tr><td><code>sampler2D</code></td><td><b>uTex</b></td><td>The texture containing the rendered page content.</td></tr>
+                <tr><td><code>float</code></td><td><b>uTime</b></td><td>Elapsed time in seconds. Loops from 0.0 to 1000.0. Use this for animated effects.</td></tr>
+                <tr><td><code>float</code></td><td><b>uSeed</b></td><td>A random float value generated at initialization.</td></tr>
+                <tr><td><code>float</code></td><td><b>uStrength</b></td><td>Effect intensity value (currently fixed at 0.8).</td></tr>
+            </table>
+            <p><b>Note:</b> Standard texture coordinates should be used to sample <code>uTex</code>.</p>
         """, []),
     ]),
 
@@ -102,6 +137,7 @@ MANUAL_TREE = [
         """, []),
     ])
 ]
+
 
 
 class ManualDialog(wx.Frame):
