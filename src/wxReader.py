@@ -377,14 +377,14 @@ class MainFrame(wx.Frame):
         m_col.AppendRadioItem(self.id_col_green, "Green Filter")
         m_col.AppendRadioItem(self.id_col_brown, "Brown Filter")
 
-        header_item = m_process.Append(wx.ID_ANY, "----- Filters (CPU) -----")
+        m_process.Append(wx.ID_ANY, "----- Filters (CPU) -----")
 
         m_process.AppendSubMenu(m_enh, "Group 1")
         m_process.AppendSubMenu(m_col, "Group 2")
 
         m_process.AppendSeparator()
 
-        headerr_item = m_process.Append(wx.ID_ANY, "----- Shaders (GPU) -----")
+        m_process.Append(wx.ID_ANY, "----- Shaders (GPU) -----")
 
         self.id_custom_none = wx.NewIdRef()
         m_process.AppendCheckItem(self.id_custom_none, "None / Turn Off")
