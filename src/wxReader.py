@@ -4,18 +4,17 @@ import functools
 import io
 import os
 
-import fitz  # PyMuPDF
 import wx
 from wx import adv
 
-from wxReaderGlUtil import GLFilterTool
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
     ModernColorDialog
-from wxReaderView import PDFView
+from wxReaderGlUtil import GLFilterTool
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
 from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContentProvider
+from wxReaderView import PDFView
 
 APP_NAME = "wxReader"
 APP_VERSION = "1.3"
@@ -48,7 +47,6 @@ class FileDropTarget(wx.FileDropTarget):
             return False
         wx.CallAfter(self.frame._load_file, filenames[0])
         return True
-
 
 
 def get_icon(art_id):
@@ -618,7 +616,7 @@ class MainFrame(wx.Frame):
             if 0 <= saved_page < self.content_provider.page_count:
                 self.view.go_to_page(saved_page)
 
-        self.recent_files = update_recent(self.recent_files, path, limit=12)
+        self.recent_files = update_recent(self.recent_files, path, limit=24)
 
         if not self.splitter.IsSplit():
             self.splitter.SplitVertically(self.sidebar, self.view, 250)
