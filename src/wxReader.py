@@ -17,7 +17,7 @@ from wxReaderManual import ManualDialog
 
 
 APP_NAME = "wxReader"
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.3"
 
 
 class FileDropTarget(wx.FileDropTarget):
@@ -355,37 +355,6 @@ class MainFrame(wx.Frame):
 
         m_process.AppendSeparator()
 
-        m_enh = wx.Menu()
-        self.id_enh_none = wx.NewIdRef()
-        self.id_enh_sharpen = wx.NewIdRef()
-        self.id_enh_soften = wx.NewIdRef()
-        self.id_enh_soften_sharpen = wx.NewIdRef()
-
-        m_enh.AppendRadioItem(self.id_enh_none, "None")
-        m_enh.AppendRadioItem(self.id_enh_sharpen, "Sharpen")
-        m_enh.AppendRadioItem(self.id_enh_soften, "Soften")
-        m_enh.AppendRadioItem(self.id_enh_soften_sharpen, "Soften + Sharpen")
-
-        m_col = wx.Menu()
-        self.id_col_none = wx.NewIdRef()
-        self.id_col_invert = wx.NewIdRef()
-        self.id_col_green = wx.NewIdRef()
-        self.id_col_brown = wx.NewIdRef()
-
-        m_col.AppendRadioItem(self.id_col_none, "None")
-        m_col.AppendRadioItem(self.id_col_invert, "Invert Colors")
-        m_col.AppendRadioItem(self.id_col_green, "Green Filter")
-        m_col.AppendRadioItem(self.id_col_brown, "Brown Filter")
-
-        m_process.Append(wx.ID_ANY, "----- Filters (CPU) -----")
-
-        m_process.AppendSubMenu(m_enh, "Group 1")
-        m_process.AppendSubMenu(m_col, "Group 2")
-
-        m_process.AppendSeparator()
-
-        m_process.Append(wx.ID_ANY, "----- Shaders (GPU) -----")
-
         self.id_custom_none = wx.NewIdRef()
         m_process.AppendCheckItem(self.id_custom_none, "None / Turn Off")
         self.Bind(wx.EVT_MENU, lambda e: self._select_custom_filter(None), id=self.id_custom_none)
@@ -485,15 +454,6 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_show_toc_dialog, id=self.id_show_toc_dialog)
 
         # Process
-        self.Bind(wx.EVT_MENU, lambda e: self.view.set_enhance_mode(PDFView.ENH_NONE), id=self.id_enh_none)
-        self.Bind(wx.EVT_MENU, lambda e: self.view.set_enhance_mode(PDFView.ENH_SHARPEN), id=self.id_enh_sharpen)
-        self.Bind(wx.EVT_MENU, lambda e: self.view.set_enhance_mode(PDFView.ENH_SOFTEN), id=self.id_enh_soften)
-        self.Bind(wx.EVT_MENU, lambda e: self.view.set_enhance_mode(PDFView.ENH_SOFTEN_SHARPEN),
-                  id=self.id_enh_soften_sharpen)
-        self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_NONE), id=self.id_col_none)
-        self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_INVERT), id=self.id_col_invert)
-        self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_GREEN), id=self.id_col_green)
-        self.Bind(wx.EVT_MENU, lambda e: self.view.set_color_mode(PDFView.COL_BROWN), id=self.id_col_brown)
         self.Bind(wx.EVT_MENU, self.on_extract_text, id=self.id_extract_text)
         self.Bind(wx.EVT_MENU, self.on_extract_images, id=self.id_extract_images)
 
@@ -588,12 +548,6 @@ class MainFrame(wx.Frame):
 
         mb.Check(self.id_fit_width, self.view.zoom_mode == PDFView.ZOOM_FIT_WIDTH)
         mb.Check(self.id_fit_page, self.view.zoom_mode == PDFView.ZOOM_FIT_PAGE)
-
-        for item_id in [
-            self.id_enh_none, self.id_enh_sharpen, self.id_enh_soften, self.id_enh_soften_sharpen,
-            self.id_col_none, self.id_col_invert, self.id_col_green, self.id_col_brown
-        ]:
-            mb.Enable(item_id, has_pdf)
 
         if has_pdf:
             shown = self.view._spread_pages()

@@ -73,24 +73,10 @@ class PDFView(wx.ScrolledWindow):
     ZOOM_FIT_WIDTH = "fit_width"
     ZOOM_FIT_PAGE = "fit_page"
 
-    # enhance group
-    ENH_NONE = "enh_none"
-    ENH_SHARPEN = "enh_sharpen"
-    ENH_SOFTEN = "enh_soften"
-    ENH_SOFTEN_SHARPEN = "enh_soften_sharpen"
-
-    # color group
-    COL_NONE = "col_none"
-    COL_INVERT = "col_invert"
-    COL_GREEN = "col_green"
-    COL_BROWN = "col_brown"
-
     def __init__(self, parent):
         super().__init__(parent, style=wx.HSCROLL | wx.VSCROLL | wx.WANTS_CHARS)
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.bgColor = wx.Colour(134, 180, 118)
-        self.enhance_mode = self.ENH_NONE
-        self.color_mode = self.COL_NONE
         self.custom_filter: str | None = None
 
         self.main_frame = None
@@ -157,24 +143,6 @@ class PDFView(wx.ScrolledWindow):
     def set_custom_filter(self, name: str | None):
         if self.custom_filter != name:
             self.custom_filter = name
-            self._bmp_cache.clear()
-            self._refresh_layout()
-            self.Refresh()
-
-    def set_enhance_mode(self, mode: str):
-        if mode not in (self.ENH_NONE, self.ENH_SHARPEN, self.ENH_SOFTEN, self.ENH_SOFTEN_SHARPEN):
-            return
-        if self.enhance_mode != mode:
-            self.enhance_mode = mode
-            self._bmp_cache.clear()
-            self._refresh_layout()
-            self.Refresh()
-
-    def set_color_mode(self, mode: str):
-        if mode not in (self.COL_NONE, self.COL_INVERT, self.COL_GREEN, self.COL_BROWN):
-            return
-        if self.color_mode != mode:
-            self.color_mode = mode
             self._bmp_cache.clear()
             self._refresh_layout()
             self.Refresh()
@@ -392,7 +360,7 @@ class PDFView(wx.ScrolledWindow):
             self._ensure_cache_zoom()
 
     def _apply_processing(self, bmp: wx.Bitmap) -> wx.Bitmap:
-        if self.enhance_mode == self.ENH_NONE and self.color_mode == self.COL_NONE and self.custom_filter is None:
+        if self.custom_filter is None:
             return bmp
 
         img = bmp.ConvertToImage()
@@ -407,90 +375,6 @@ class PDFView(wx.ScrolledWindow):
             # Fallback
             print("WARNING: Fallback to slow processing.")
             arr = np.frombuffer(img.GetData(), dtype=np.uint8).reshape((h, w, 3)).copy()
-
-        def box_blur_u8(a: np.ndarray, r: int = 1, intensity: float = 1.0) -> np.ndarray:
-            if r <= 0 or intensity <= 0:
-                return a.copy()
-
-            intensity = min(intensity, 1.0)
-
-            k = 2 * r + 1
-            pad = np.pad(a, ((r, r), (r, r), (0, 0)), mode="edge").astype(np.uint32)
-
-            integ = pad.cumsum(axis=0).cumsum(axis=1)
-            integ = np.pad(integ, ((1, 0), (1, 0), (0, 0)), mode="constant", constant_values=0)
-
-            blurred_out = (integ[k:, k:] - integ[:-k, k:] - integ[k:, :-k] + integ[:-k, :-k]) // (k * k)
-
-            if intensity == 1.0:
-                return blurred_out.astype(np.uint8)
-
-            intensity_factor = int(intensity * 100)
-            inv_intensity_factor = 100 - intensity_factor
-
-            original_u32 = a.astype(np.uint32)
-
-            blended_res = (original_u32 * inv_intensity_factor + blurred_out * intensity_factor) // 100
-
-            return blended_res.astype(np.uint8)
-
-        # Enhance group
-        if self.enhance_mode != self.ENH_NONE:
-            if self.enhance_mode == self.ENH_SOFTEN:
-                arr[:] = box_blur_u8(arr, r=1, intensity=0.5)
-
-            elif self.enhance_mode == self.ENH_SHARPEN:
-                blur = box_blur_u8(arr, r=1)
-                a = arr.astype(np.int16)
-                b = blur.astype(np.int16)
-                # Unsharp mask (amount=1.0)
-                res = a + (a - b)
-                arr[:] = np.clip(res, 0, 255).astype(np.uint8)
-
-            elif self.enhance_mode == self.ENH_SOFTEN_SHARPEN:
-                blur = box_blur_u8(arr, r=1)
-                a = arr.astype(np.int16)
-                b = blur.astype(np.int16)
-
-                sharpened_res = a + (a - b)
-                sharpened_arr = np.clip(sharpened_res, 0, 255).astype(np.uint8)
-                final_arr = box_blur_u8(sharpened_arr, r=1, intensity=0.3)
-
-                arr[:] = final_arr
-
-        # color group
-        if self.color_mode == self.COL_INVERT:
-            arr[:] = 255 - arr
-
-
-        elif self.color_mode == self.COL_GREEN:
-            arr[..., 0] = (arr[..., 0].astype(np.uint16) * 89 // 100).astype(np.uint8)
-            arr[..., 1] = np.minimum(255, (arr[..., 1].astype(np.uint16) * 120 // 100)).astype(np.uint8)
-            arr[..., 2] = (arr[..., 2].astype(np.uint16) * 79 // 100).astype(np.uint8)
-
-
-        elif self.color_mode == self.COL_BROWN:
-            intensity = 0.65
-
-            r = arr[..., 0].astype(np.uint32)
-            g = arr[..., 1].astype(np.uint32)
-            b = arr[..., 2].astype(np.uint32)
-
-            tr = (393 * r + 769 * g + 189 * b) // 1000
-            tg = (349 * r + 686 * g + 168 * b) // 1000
-            tb = (272 * r + 534 * g + 131 * b) // 1000
-
-            intensity_factor = int(intensity * 100)
-
-            inv_intensity_factor = 100 - intensity_factor
-
-            final_r = (r * inv_intensity_factor + tr * intensity_factor) // 100
-            final_g = (g * inv_intensity_factor + tg * intensity_factor) // 100
-            final_b = (b * inv_intensity_factor + tb * intensity_factor) // 100
-
-            arr[..., 0] = np.minimum(255, final_r).astype(np.uint8)
-            arr[..., 1] = np.minimum(255, final_g).astype(np.uint8)
-            arr[..., 2] = np.minimum(255, final_b).astype(np.uint8)
 
         if self.custom_filter and self.main_frame and hasattr(self.main_frame, "gl_filters"):
             try:
