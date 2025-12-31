@@ -193,6 +193,10 @@ class GLFilterTool:
         glClear(GL_COLOR_BUFFER_BIT)
 
         glUseProgram(prog)
+
+        loc = glGetUniformLocation(prog, b"uResolution")
+        if loc >= 0:
+            glUniform2f(loc, float(w), float(h))
         loc = glGetUniformLocation(prog, b"uTex")
         if loc >= 0:
             glUniform1i(loc, 0)

@@ -175,11 +175,36 @@ class ArchiveContentProvider(ContentProvider):
 
         self._size_cache = {}
 
+        self._img_cache: dict[int, wx.Image] = {}
+        self._img_cache_limit = 32
+
+    def _load_original_image(self, page_index: int) -> wx.Image | None:
+        if page_index in self._img_cache:
+            return self._img_cache[page_index]
+
+        if not (0 <= page_index < self.page_count):
+            return None
+
+        image_name = self.image_list[page_index]
+        image_data = self.zip_file.read(image_name)
+        img = wx.Image(io.BytesIO(image_data))
+        if not img.IsOk():
+            return None
+
+        if len(self._img_cache) >= self._img_cache_limit:
+            first_key = next(iter(self._img_cache.keys()))
+            del self._img_cache[first_key]
+
+        self._img_cache[page_index] = img
+        return img
+
     @property
     def is_valid(self) -> bool:
         return self.zip_file is not None
 
     def close(self):
+        self._img_cache.clear()
+        self._size_cache.clear()
         if self.zip_file:
             self.zip_file.close()
         self.zip_file = None
@@ -232,22 +257,18 @@ class ArchiveContentProvider(ContentProvider):
             return []
 
     def render_page_to_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
-        if not (0 <= page_index < self.page_count):
+        src = self._load_original_image(page_index)
+        if not src:
             return wx.Bitmap(1, 1)
 
-        image_name = self.image_list[page_index]
-        image_data = self.zip_file.read(image_name)
-        stream = io.BytesIO(image_data)
+        w, h = src.GetWidth(), src.GetHeight()
+        new_w = max(1, int(round(w * zoom)))
+        new_h = max(1, int(round(h * zoom)))
 
-        img = wx.Image(stream)
-        if not img.IsOk():
-            return wx.Bitmap(100, 100)
-
-        w, h = img.GetWidth(), img.GetHeight()
-        new_w, new_h = int(w * zoom), int(h * zoom)
-
-        if new_w > 0 and new_h > 0:
-            img.Rescale(new_w, new_h, wx.IMAGE_QUALITY_HIGH)
+        if new_w == w and new_h == h:
+            img = src.Copy()
+        else:
+            img = src.Copy().Scale(new_w, new_h, wx.IMAGE_QUALITY_HIGH)
 
         return wx.Bitmap(img)
 
