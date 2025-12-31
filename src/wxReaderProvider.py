@@ -334,10 +334,9 @@ class ArchiveContentProvider(ContentProvider):
 
         try:
             image_name = self.image_list[page_index]
-            image_data = self.zip_file.read(image_name)
-
-            with Image.open(io.BytesIO(image_data)) as pil_img:
-                size = pil_img.size
+            with self.zip_file.open(image_name) as f:
+                with Image.open(f) as pil_img:
+                    size = pil_img.size
 
             self._size_cache[page_index] = size
             return size
@@ -398,9 +397,14 @@ class ArchiveContentProvider(ContentProvider):
                 print("[Error] illegal quality level.")
 
         try:
-            image_bytes = final_pil.tobytes()
-            wx_img = wx.Image(final_pil.width, final_pil.height, image_bytes)
-            return wx.Bitmap(wx_img)
+            if final_pil.mode == 'RGBA':
+                return wx.Bitmap.FromBufferRGBA(final_pil.width, final_pil.height, final_pil.tobytes())
+            elif final_pil.mode == 'RGB':
+                return wx.Bitmap.FromBuffer(final_pil.width, final_pil.height, final_pil.tobytes())
+            else:
+                converted = final_pil.convert("RGB")
+                return wx.Bitmap.FromBuffer(converted.width, converted.height, converted.tobytes())
+
         except Exception as e:
             print(f"Conversion error: {e}")
             return wx.Bitmap(1, 1)
