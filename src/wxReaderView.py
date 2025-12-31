@@ -6,6 +6,8 @@ import fitz  # PyMuPDF
 import numpy as np
 import wx
 
+from wxReaderProvider import ContentProvider
+
 
 class PDFDocument:
     def __init__(self, path: str):
@@ -82,7 +84,7 @@ class PDFView(wx.ScrolledWindow):
         self.main_frame = None
 
         # State
-        self.pdf: PDFDocument | None = None
+        self.content_provider: ContentProvider | None = None
         self.page = 0  # current page (0-based)
         self.zoom = 1.0
         self.zoom_mode = self.ZOOM_FIT_PAGE
@@ -122,10 +124,10 @@ class PDFView(wx.ScrolledWindow):
     # --------------------------
     # public api
     # --------------------------
-    def set_document(self, pdf: PDFDocument | None):
+    def set_content_provider(self, provider: ContentProvider | None):
         self._bmp_cache.clear()
         self._current_bitmaps.clear()
-        self.pdf = pdf
+        self.content_provider = provider
         self.page = 0
         self.zoom = 1.0
         self.zoom_mode = self.ZOOM_FIT_PAGE
@@ -180,15 +182,15 @@ class PDFView(wx.ScrolledWindow):
         self.Refresh()
 
     def go_next(self):
-        if not self.pdf:
+        if not self.content_provider:
             return
         step = 1 if self.mode == self.MODE_SINGLE else 2
-        self.page = min(self.page + step, self.pdf.page_count - 1)
+        self.page = min(self.page + step, self.content_provider.page_count - 1)
         self._refresh_layout()
         self.Refresh()
 
     def go_prev(self):
-        if not self.pdf:
+        if not self.content_provider:
             return
         step = 1 if self.mode == self.MODE_SINGLE else 2
         self.page = max(self.page - step, 0)
@@ -197,9 +199,9 @@ class PDFView(wx.ScrolledWindow):
 
     def go_to_page(self, page_index: int):
         """Direct jump to a page index."""
-        if not self.pdf:
+        if not self.content_provider:
             return
-        self.page = max(0, min(page_index, self.pdf.page_count - 1))
+        self.page = max(0, min(page_index, self.content_provider.page_count - 1))
         self._refresh_layout()
         self.Refresh()
 
@@ -217,7 +219,7 @@ class PDFView(wx.ScrolledWindow):
             self._last_cache_zoom = self.zoom
 
     def _prune_cache(self):
-        if not self.pdf:
+        if not self.content_provider:
             return
 
         current_page = self.page
@@ -242,8 +244,8 @@ class PDFView(wx.ScrolledWindow):
 
         # Blank page index: -1
         if page_index < 0:
-            ref_idx = max(0, min(self.page, self.pdf.page_count - 1))
-            w_pt, h_pt = self.pdf.get_page_size(ref_idx)
+            ref_idx = max(0, min(self.page, self.content_provider.page_count - 1))
+            w_pt, h_pt = self.content_provider.get_page_size(ref_idx)
             w_px = int(w_pt * self.zoom)
             h_px = int(h_pt * self.zoom)
 
@@ -255,17 +257,17 @@ class PDFView(wx.ScrolledWindow):
             self._bmp_cache[page_index] = bmp
             return bmp
 
-        bmp = self.pdf.render_page_to_bitmap(page_index, self.zoom)
+        bmp = self.content_provider.render_page_to_bitmap(page_index, self.zoom)
         bmp = self._apply_processing(bmp)
 
         self._bmp_cache[page_index] = bmp
         return bmp
 
     def _spread_pages(self) -> list[int]:
-        if not self.pdf:
+        if not self.content_provider:
             return []
 
-        n = self.pdf.page_count
+        n = self.content_provider.page_count
         p = max(0, min(self.page, n - 1))
 
         if self.mode == self.MODE_SINGLE:
@@ -302,12 +304,12 @@ class PDFView(wx.ScrolledWindow):
 
     def _page_size_points(self, page_index: int) -> tuple[float, float]:
         if page_index < 0:
-            ref_idx = max(0, min(self.page, self.pdf.page_count - 1))
-            return self.pdf.get_page_size(ref_idx)
-        return self.pdf.get_page_size(page_index)
+            ref_idx = max(0, min(self.page, self.content_provider.page_count - 1))
+            return self.content_provider.get_page_size(ref_idx)
+        return self.content_provider.get_page_size(page_index)
 
     def _compute_auto_zoom(self) -> float | None:
-        if not self.pdf:
+        if not self.content_provider:
             return None
 
         cw, ch = self.GetClientSize()
@@ -373,7 +375,7 @@ class PDFView(wx.ScrolledWindow):
             arr = np.frombuffer(memoryview(buf), dtype=np.uint8).reshape((h, w, 3))
         except Exception:
             # Fallback
-            print("WARNING: Fallback to slow processing.")
+            print(f"WARNING: Fallback to slow processing. {Exception}")
             arr = np.frombuffer(img.GetData(), dtype=np.uint8).reshape((h, w, 3)).copy()
 
         if self.custom_filter and self.main_frame and hasattr(self.main_frame, "gl_filters"):
@@ -389,13 +391,13 @@ class PDFView(wx.ScrolledWindow):
         return wx.Bitmap(img)
 
     def _start_pre_rendering(self):
-        if not self.pdf:
+        if not self.content_provider:
             return
         self._pre_render_timer.Stop()
         self._pre_render_timer.Start(200, wx.TIMER_ONE_SHOT)
 
     def _on_pre_render_timer(self, evt):
-        if not self or not self.pdf or not self.pdf.doc or self.pdf.doc.is_closed:
+        if not self or not self.content_provider or not self.content_provider.is_valid:
             return
 
         current_pages_indices = self._spread_pages()
@@ -406,11 +408,11 @@ class PDFView(wx.ScrolledWindow):
         anchor = self.page
 
         for i in range(anchor - 2, anchor + 4):
-            if 0 <= i < self.pdf.page_count:
+            if 0 <= i < self.content_provider.page_count:
                 pages_to_prerender.add(i)
 
         for page_index in pages_to_prerender:
-            if not self.pdf or self.pdf.doc.is_closed:
+            if not self.content_provider or self.content_provider.is_valid:
                 return
 
             self._ensure_cache_zoom()
@@ -418,7 +420,7 @@ class PDFView(wx.ScrolledWindow):
                 self._get_bitmap(page_index)
 
     def _pre_render_worker(self):
-        if not self or not self.pdf or not self.pdf.doc or self.pdf.doc.is_closed:
+        if not self or not self.content_provider or not self.content_provider.is_valid:
             return
 
         current_pages_indices = self._spread_pages()
@@ -429,7 +431,7 @@ class PDFView(wx.ScrolledWindow):
 
         anchor = self.page
         for i in range(anchor - 2, anchor + 4):
-            if 0 <= i < self.pdf.page_count:
+            if 0 <= i < self.content_provider.page_count:
                 pages_to_prerender.add(i)
 
         for page_index in pages_to_prerender:
@@ -438,7 +440,7 @@ class PDFView(wx.ScrolledWindow):
                 self._get_bitmap(page_index)
 
     def _refresh_layout(self):
-        if not self.pdf:
+        if not self.content_provider:
             self.SetVirtualSize((0, 0))
             return
 
@@ -509,7 +511,7 @@ class PDFView(wx.ScrolledWindow):
         dc = wx.AutoBufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.bgColor))
         dc.Clear()
-        if self.pdf and self.pdf.doc and not self.pdf.doc.is_closed:
+        if self.content_provider and self.content_provider.is_valid:
             try:
                 self._draw_centered(dc)
             except Exception:
@@ -517,7 +519,7 @@ class PDFView(wx.ScrolledWindow):
 
     def on_mousewheel(self, evt: wx.MouseEvent):
         if evt.ControlDown():
-            if not self.pdf or evt.GetWheelRotation() == 0:
+            if not self.content_provider or evt.GetWheelRotation() == 0:
                 return
 
             steps = evt.GetWheelRotation() / evt.GetWheelDelta()
@@ -544,7 +546,7 @@ class PDFView(wx.ScrolledWindow):
             evt.Skip()
 
     def on_right_down(self, evt: wx.MouseEvent):
-        if not self.pdf: return
+        if not self.content_provider: return
         self._panning = True
         self._pan_start_mouse = evt.GetPosition()
         self._pan_start_view = self.GetViewStart()
@@ -566,8 +568,8 @@ class PDFView(wx.ScrolledWindow):
         self.Refresh(False)
 
     def on_char_hook(self, evt: wx.KeyEvent):
-        if not self.pdf:
-            evt.Skip();
+        if not self.content_provider:
+            evt.Skip()
             return
 
         key = evt.GetKeyCode()
@@ -589,22 +591,22 @@ class PDFView(wx.ScrolledWindow):
         kind = link.get("kind")
         if kind == fitz.LINK_GOTO:
             dest_page = link.get("page", 0)
-            if 0 <= dest_page < self.pdf.page_count:
+            if 0 <= dest_page < self.content_provider.page_count:
                 self.go_to_page(dest_page)
         elif kind == fitz.LINK_URI:
             uri = link.get("uri", "")
             if uri: webbrowser.open(uri)
 
     def on_left_down(self, evt: wx.MouseEvent):
-        if not self.pdf:
-            evt.Skip();
+        if not self.content_provider:
+            evt.Skip()
             return
 
         click_pos = self.CalcUnscrolledPosition(evt.GetPosition())
         cw, ch = self.GetClientSize()
         widths = [bmp.GetWidth() for _, bmp in self._current_bitmaps]
         if not widths:
-            evt.Skip();
+            evt.Skip()
             return
 
         content_w = widths[0] if self.mode == self.MODE_SINGLE or len(widths) == 1 else widths[0] + self.gap + widths[1]
@@ -617,7 +619,7 @@ class PDFView(wx.ScrolledWindow):
         for page_index, bmp in self._current_bitmaps:
             page_rect = wx.Rect(current_x, base_y, bmp.GetWidth(), bmp.GetHeight())
             if page_rect.Contains(click_pos) and page_index >= 0:
-                links = self.pdf.doc.load_page(page_index).get_links()
+                links = self.content_provider.get_links(page_index)
                 for link in links:
                     link_rect_pdf = link['from']
                     link_wx_rect = wx.Rect(
@@ -628,7 +630,7 @@ class PDFView(wx.ScrolledWindow):
                     )
                     if link_wx_rect.Contains(click_pos):
                         self.handle_link_click(link)
-                        evt.Skip();
+                        evt.Skip()
                         return
             current_x += bmp.GetWidth() + self.gap
         evt.Skip()
