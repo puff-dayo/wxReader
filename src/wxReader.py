@@ -648,8 +648,10 @@ class MainFrame(wx.Frame):
 
         self._populate_sidebar()
 
-        if self.pdf.get_toc() and not self.splitter.IsSplit():
+        if not self.splitter.IsSplit():
             self.splitter.SplitVertically(self.sidebar, self.view, 250)
+            if not self.pdf.get_toc():
+                self.on_switch_sidebar_tab(None)
 
         self._update_ui()
         self.view.SetFocus()
