@@ -99,7 +99,26 @@ class PdfContentProvider(ContentProvider):
         return wx.Bitmap(img)
 
     def get_toc(self) -> list:
-        return self.doc.get_toc(simple=True)
+        if not self.is_valid:
+            return []
+
+        existing_toc = self.doc.get_toc(simple=True)
+
+        if existing_toc:
+            return existing_toc
+
+        fake_toc = []
+        total_pages = self.page_count
+
+        step = 10 if total_pages > 500 else 1
+
+        for i in range(0, total_pages, step):
+            page_num = i + 1
+
+            entry = [1, f"Page {page_num}", page_num]
+            fake_toc.append(entry)
+
+        return fake_toc
 
     def get_links(self, page_index: int) -> list:
         if 0 <= page_index < self.page_count:
@@ -203,6 +222,17 @@ class ArchiveContentProvider(ContentProvider):
         self._size_cache = {}
         self._img_cache: dict[int, wx.Image] = {}
         self._img_cache_limit = 32
+
+    def get_toc(self) -> list:
+        if not self.is_valid:
+            return []
+
+        toc = []
+        for i, filepath in enumerate(self.image_list):
+            title = filepath.replace("\\", "/").split("/")[-1]
+
+            toc.append([1, title, i + 1])
+        return toc
 
     def _data_to_wx_image(self, data: bytes) -> wx.Image | None:
         try:
