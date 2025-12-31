@@ -6,6 +6,8 @@ Python.
 > **Version 1.1** Supports OpenGL shaders with some built-in options, and you can add your own custom shaders. (22-12-2025)
 >
 > **Version 1.2.1** Bug fix and UI/UX enhancements. New Gallery mode, built-in help manual.  More built-in shader to simulate reading papers. (31-12-2025)
+> 
+> **Version 1.3** Refactor to add support for zip and cbz files. Add passwordbook support. (WIP)
 
 ---
 
@@ -41,4 +43,5 @@ Python.
 
 - [x] fix epub page margin/padding.
 - [x] support custom filters (or even shaders?) woooooooah! we have shaders
-- [ ] add support for zip and cbz format manga/comic files...
+- [ ] add support for zip and cbz format manga/comic files <- that's a hard refactor (v1.3)
+- [ ] add support for encrypted zip and cbz files... (v1.3)
