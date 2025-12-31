@@ -6,12 +6,42 @@ import concurrent.futures
 import queue
 import time
 
+from wxReaderProvider import PdfContentProvider, ArchiveContentProvider
+
 THUMB_WIDTH = 140
 THUMB_HEIGHT = 200
 PANEL_HEIGHT = THUMB_HEIGHT + 55
 BG_COLOR = wx.Colour(240, 240, 240)
 TEXT_COLOR = wx.Colour(40, 40, 40)
 MAX_WORKERS = max(1, (os.cpu_count() or 2) - 1)
+
+
+def process_cover_with_provider(file_path, thumb_width, thumb_height):
+    provider = None
+    ext = os.path.splitext(file_path)[1].lower()
+
+    try:
+        if ext in {".pdf", ".epub", ".mobi", ".fb2"}:
+            provider = PdfContentProvider(file_path)
+        elif ext in {".zip", ".cbz"}:
+            provider = ArchiveContentProvider(file_path)
+        else:
+            return file_path, 0, 0, None  # Unsupported
+
+        raw_bytes = provider.get_thumbnail(thumb_width, thumb_height)
+
+        if raw_bytes:
+            img = wx.Image(thumb_width, thumb_height, raw_bytes)
+            if img.IsOk():
+                return file_path, img.GetWidth(), img.GetHeight(), raw_bytes
+
+    except Exception:
+        pass
+    finally:
+        if provider:
+            provider.close()
+
+    return file_path, 0, 0, None
 
 
 class ThumbnailPanel(wx.Panel):
@@ -70,24 +100,6 @@ class ThumbnailPanel(wx.Panel):
         self.Refresh()
 
 
-def process_cover(file_path):
-    try:
-        with fitz.open(file_path) as doc:
-            if doc.page_count > 0:
-                page = doc.load_page(0)
-                rect = page.rect
-                scale = min(THUMB_WIDTH / rect.width, THUMB_HEIGHT / rect.height)
-                mat = fitz.Matrix(scale, scale)
-
-                pix = page.get_pixmap(matrix=mat, alpha=False)
-
-                if pix.n == 3:
-                    return file_path, pix.width, pix.height, bytes(pix.samples)
-    except Exception:
-        pass
-    return file_path, 0, 0, None
-
-
 class LibraryManagerThread(threading.Thread):
     def __init__(self, files, result_queue):
         super().__init__()
@@ -101,7 +113,10 @@ class LibraryManagerThread(threading.Thread):
 
     def run(self):
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            future_to_file = {executor.submit(process_cover, f): f for f in self.files}
+            future_to_file = {
+                executor.submit(process_cover_with_provider, f, THUMB_WIDTH, THUMB_HEIGHT): f
+                for f in self.files
+            }
 
             for future in concurrent.futures.as_completed(future_to_file):
                 if not self.running:
@@ -122,7 +137,7 @@ class LibraryFrame(wx.Frame):
 
         self.manager_thread = None
         self.result_queue = queue.Queue()
-        self.supported_exts = {".pdf", ".epub", ".mobi", ".fb2"}
+        self.supported_exts = {".pdf", ".epub", ".mobi", ".fb2", ".zip", ".cbz"}
 
         self.thumb_panels = []
         self.item_map = {}

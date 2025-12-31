@@ -185,7 +185,7 @@ class MainFrame(wx.Frame):
             show_sidebar = bool(cfg.get("show_sidebar", False))
             if show_sidebar and not self.splitter.IsSplit():
                 self.splitter.SplitVertically(self.sidebar, self.view, 250)
-        except Exception:
+        except Exception as e:
             print(f"[ERROR] wxReader Failed to restore sidebar state: {e}")
 
         try:

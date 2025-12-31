@@ -50,6 +50,10 @@ class ContentProvider(abc.ABC):
     def is_valid(self) -> bool:
         pass
 
+    @abc.abstractmethod
+    def get_thumbnail(self, thumb_width: int, thumb_height: int) -> bytes | None:
+        pass
+
 
 class PdfContentProvider(ContentProvider):
     def __init__(self, path: str):
@@ -136,6 +140,25 @@ class PdfContentProvider(ContentProvider):
                         "height": base_image.get("height", 0)
                     })
         return found_images
+
+    def get_thumbnail(self, thumb_width: int, thumb_height: int) -> bytes | None:
+        if not self.is_valid or self.page_count == 0:
+            return None
+
+        try:
+            page = self.doc.load_page(0)
+            rect = page.rect
+            scale = min(thumb_width / rect.width, thumb_height / rect.height)
+            mat = fitz.Matrix(scale, scale)
+
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+
+            if pix.n == 3:  # RGB
+                return bytes(pix.samples)
+        except Exception as e:
+            print(f"[ERROR] wxReader failed to get thumbnail for {self.path}: {e}")
+
+        return None
 
 
 class ArchiveContentProvider(ContentProvider):
@@ -227,3 +250,25 @@ class ArchiveContentProvider(ContentProvider):
             img.Rescale(new_w, new_h, wx.IMAGE_QUALITY_HIGH)
 
         return wx.Bitmap(img)
+
+    def get_thumbnail(self, thumb_width: int, thumb_height: int) -> bytes | None:
+        if not self.is_valid or self.page_count == 0:
+            return None
+
+        try:
+            first_image_name = self.image_list[0]
+            image_data = self.zip_file.read(first_image_name)
+            stream = io.BytesIO(image_data)
+
+            img = wx.Image(stream)
+            if not img.IsOk():
+                return None
+
+            img.Rescale(thumb_width, thumb_height, wx.IMAGE_QUALITY_HIGH)
+
+            return img.GetData()
+
+        except Exception as e:
+            print(f"[ERROR] wxReader failed to get thumbnail for {self.path}: {e}")
+
+        return None

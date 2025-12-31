@@ -9,61 +9,6 @@ import wx
 from wxReaderProvider import ContentProvider
 
 
-class PDFDocument:
-    def __init__(self, path: str):
-        self.path = path
-        self.doc = fitz.open(path)
-
-    @property
-    def page_count(self) -> int:
-        return self.doc.page_count
-
-    def get_toc(self) -> list:
-        """
-        Format: [[lvl, title, page, ...], ...]
-        Note: page numbers from PyMuPDF are 1-based.
-        """
-        try:
-            return self.doc.get_toc(simple=True)
-        except Exception:
-            return []
-
-    def close(self):
-        try:
-            self.doc.close()
-        except Exception:
-            pass
-
-    def render_page_to_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
-        """
-        Render a page (0-based index) at 'zoom' scale into a wx.Bitmap.
-        page point * zoom => pixels
-        """
-        # Safety check
-        if page_index < 0 or page_index >= self.page_count:
-            return wx.Bitmap(1, 1)
-
-        page = self.doc.load_page(page_index)
-
-        mat = fitz.Matrix(zoom, zoom)
-        pix = page.get_pixmap(matrix=mat, alpha=False)
-
-        w, h = pix.width, pix.height
-        img = wx.Image(w, h)
-        img.SetData(pix.samples)  # RGB bytes
-        return wx.Bitmap(img)
-
-    def get_page_size(self, page_index: int) -> tuple[float, float]:
-        """Get logical size of a page in points."""
-        try:
-            p_idx = max(0, min(page_index, self.page_count - 1))
-            page = self.doc.load_page(p_idx)
-            r = page.rect
-            return r.width, r.height
-        except Exception:
-            return 595.0, 842.0  # Fallback A4
-
-
 class PDFView(wx.ScrolledWindow):
     MODE_SINGLE = "single"
     MODE_TWO = "two"
