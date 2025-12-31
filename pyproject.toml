@@ -12,3 +12,10 @@ dependencies = [
     "pyzipper>=0.3.6",
     "wxpython>=4.2.4",
 ]
+
+[project.optional-dependencies]
+analysis = [
+    "jinja2>=3.1.6",
+    "lizard>=1.19.0",
+    "radon>=6.0.1",
+]

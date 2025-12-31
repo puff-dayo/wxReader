@@ -41,7 +41,7 @@ Python.
 
 ## TODO
 
-- [x] fix epub page margin/padding.
-- [x] support custom filters (or even shaders?) woooooooah! we have shaders
 - [ ] add support for zip and cbz format manga/comic files <- that's a hard refactor (v1.3)
 - [ ] add support for encrypted zip and cbz files... (v1.3)
+- [ ] fix page/width fit not auto updating when a book is made of pages of different sizes (v1.3.1)
+- [ ] add manual detect new version and open browser in the menu

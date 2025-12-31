@@ -10,3 +10,4 @@ screenshot/1.png
 .env
 test.py
 /src/pswd.txt
+/analysis/
