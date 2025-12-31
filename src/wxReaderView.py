@@ -357,7 +357,7 @@ class PDFView(wx.ScrolledWindow):
                 pages_to_prerender.add(i)
 
         for page_index in pages_to_prerender:
-            if not self.content_provider or self.content_provider.is_valid:
+            if not self.content_provider or not self.content_provider.is_valid:
                 return
 
             self._ensure_cache_zoom()
