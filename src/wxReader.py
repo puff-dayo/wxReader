@@ -65,6 +65,7 @@ class MainFrame(wx.Frame):
         # Initialize state
         self.content_provider: ContentProvider | None = None
         self.file_history = wx.FileHistory(12)
+        self.quality_preference = 1
 
         self.epub_font_size = 12
 
@@ -299,10 +300,24 @@ class MainFrame(wx.Frame):
 
         _add_item(m_view, self.id_zoom_in, "Zoom &In\tCtrl++")
         _add_item(m_view, self.id_zoom_out, "Zoom &Out\tCtrl+-")
-
         m_view.AppendSeparator()
+
         m_view.AppendRadioItem(self.id_fit_width, "Fit &Width\tCtrl+3")
         m_view.AppendRadioItem(self.id_fit_page, "Fit &Page\tCtrl+4")
+        m_view.AppendSeparator()
+
+        m_quality = wx.Menu()
+
+        self.id_quality_hq = wx.NewIdRef()
+        self.id_quality_mq = wx.NewIdRef()
+        self.id_quality_lq = wx.NewIdRef()
+        item_hq = m_quality.AppendRadioItem(self.id_quality_hq, "Box+DeMoiré")
+        item_mq = m_quality.AppendRadioItem(self.id_quality_mq, "Lanczos")
+        item_lq = m_quality.AppendRadioItem(self.id_quality_lq, "Bilinear")
+
+        item_lq.Check(True)
+
+        m_view.AppendSubMenu(m_quality, "Render Quality")
         m_view.AppendSeparator()
 
         self.id_setmg = wx.NewIdRef()
@@ -446,6 +461,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_change_epub_font, id=self.id_font_increase)
         self.Bind(wx.EVT_MENU, self.on_change_epub_font, id=self.id_font_decrease)
         self.Bind(wx.EVT_MENU, self.on_fullscreen, id=self.id_fullscreen)
+        self.Bind(wx.EVT_MENU, self.on_quality_change, id=self.id_quality_hq)
+        self.Bind(wx.EVT_MENU, self.on_quality_change, id=self.id_quality_mq)
+        self.Bind(wx.EVT_MENU, self.on_quality_change, id=self.id_quality_lq)
 
         # Navigate
         self.Bind(wx.EVT_MENU, lambda e: self.view.go_prev(), id=self.id_prev)
@@ -947,6 +965,33 @@ class MainFrame(wx.Frame):
         self.view.set_zoom_mode(PDFView.ZOOM_FIT_PAGE)
         self._update_ui()
 
+    def on_quality_change(self, event):
+        event_id = event.GetId()
+        quality_map = {
+            self.id_quality_hq: 2,
+            self.id_quality_mq: 1,
+            self.id_quality_lq: 0
+        }
+        self.quality_preference = quality_map.get(event_id, 1)
+
+        if not self.content_provider:
+            return
+
+        current_page = self.view.page
+
+        self.content_provider.set_render_quality(self.quality_preference)
+
+        if hasattr(self.view, '_bmp_cache'):
+            self.view._bmp_cache.clear()
+            print("[INFO] View cache cleared.")
+
+        self.view.Refresh()
+        self.view.Update()
+
+        self.view.go_to_page(current_page)
+
+        print(f"[INFO] Render quality set to: {self.quality_preference}.")
+
     def on_background_color(self, evt):
         current_color = self.view.GetBackgroundColour()
 
@@ -1003,6 +1048,7 @@ class MainFrame(wx.Frame):
             f"wxPython v{wx.version()} (LGPL)\n"
             "PyMuPDF v1.23.8 with MuPDF v1.23.7 (AGPL)\n"
             "OpenGL (PyOpenGL, BSD)\n"
+            "Pillow (MIT-CMU)\n"
             "Python 3.12.9"
         )
         info.SetWebSite(url=r"https://github.com/puff-dayo/wxReader/")

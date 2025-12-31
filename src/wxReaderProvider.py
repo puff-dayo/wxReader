@@ -5,12 +5,13 @@ import os
 import fitz  # PyMuPDF
 import pyzipper
 import wx
-from PIL import Image
+from PIL import Image, ImageFilter
 
 
 class ContentProvider(abc.ABC):
     def __init__(self, path: str):
         self.path = path
+        self.high_quality_render = 0
 
     @abc.abstractmethod
     def close(self):
@@ -54,6 +55,9 @@ class ContentProvider(abc.ABC):
     @abc.abstractmethod
     def get_thumbnail(self, thumb_width: int, thumb_height: int) -> bytes | None:
         pass
+
+    def set_render_quality(self, high_quality: int):
+        self.high_quality_render = high_quality
 
 
 class PdfContentProvider(ContentProvider):
@@ -220,8 +224,8 @@ class ArchiveContentProvider(ContentProvider):
                         print(f"[ERROR] pyzipper failed to process password file: {e}")
 
         self._size_cache = {}
-        self._img_cache: dict[int, wx.Image] = {}
-        self._img_cache_limit = 32
+        self._img_cache: dict[int, Image.Image] = {}
+        self._img_cache_limit = 8
 
     def get_toc(self) -> list:
         if not self.is_valid:
@@ -233,6 +237,25 @@ class ArchiveContentProvider(ContentProvider):
 
             toc.append([1, title, i + 1])
         return toc
+
+    def _data_to_pil_image(self, data: bytes) -> Image.Image | None:
+        try:
+            pil_img = Image.open(io.BytesIO(data))
+
+            if pil_img.mode == 'P' and 'transparency' in pil_img.info:
+                pil_img = pil_img.convert('RGBA')
+
+            if pil_img.mode == 'RGBA':
+                background = Image.new('RGB', pil_img.size, (255, 255, 255))
+                background.paste(pil_img, mask=pil_img.split()[3])
+                pil_img = background
+            elif pil_img.mode != 'RGB':
+                pil_img = pil_img.convert('RGB')
+
+            return pil_img
+        except Exception as e:
+            print(f"[ERROR] PIL decode failed: {e}")
+            return None
 
     def _data_to_wx_image(self, data: bytes) -> wx.Image | None:
         try:
@@ -258,7 +281,7 @@ class ArchiveContentProvider(ContentProvider):
             print(f"[ERROR] PIL transcode failed: {e}")
             return None
 
-    def _load_original_image(self, page_index: int) -> wx.Image | None:
+    def _load_original_image(self, page_index: int) -> Image.Image | None:
         if page_index in self._img_cache:
             return self._img_cache[page_index]
 
@@ -268,10 +291,9 @@ class ArchiveContentProvider(ContentProvider):
         image_name = self.image_list[page_index]
         try:
             image_data = self.zip_file.read(image_name)
+            img = self._data_to_pil_image(image_data)
 
-            img = self._data_to_wx_image(image_data)
-
-            if img is None or not img.IsOk():
+            if img is None:
                 return None
 
             if len(self._img_cache) >= self._img_cache_limit:
@@ -281,7 +303,7 @@ class ArchiveContentProvider(ContentProvider):
             self._img_cache[page_index] = img
             return img
         except Exception as e:
-            print(f"[ERROR] wxReader Failed to load image {image_name}: {e}")
+            print(f"[ERROR] Failed to load image {image_name}: {e}")
             return None
 
     @property
@@ -348,20 +370,40 @@ class ArchiveContentProvider(ContentProvider):
             return []
 
     def render_page_to_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
-        src = self._load_original_image(page_index)
-        if not src:
+        src_pil = self._load_original_image(page_index)
+        if not src_pil:
             return wx.Bitmap(1, 1)
 
-        w, h = src.GetWidth(), src.GetHeight()
-        new_w = max(1, int(round(w * zoom)))
-        new_h = max(1, int(round(h * zoom)))
+        w, h = src_pil.size
+        target_w = max(1, int(round(w * zoom)))
+        target_h = max(1, int(round(h * zoom)))
 
-        if new_w == w and new_h == h:
-            img = src.Copy()
+        if target_w == w and target_h == h:
+            final_pil = src_pil
         else:
-            img = src.Copy().Scale(new_w, new_h, wx.IMAGE_QUALITY_HIGH)
+            if self.high_quality_render == 2:
+                if zoom < 1.0:
+                    blur_radius = (1.0 / zoom) * 0.5
+                    blurred = src_pil.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+                    final_pil = blurred.resize((target_w, target_h), resample=Image.Resampling.BOX)
+                    print(f"[DEBUG] demoire trigger, radius: {blur_radius}")
+                else:
+                    final_pil = src_pil.resize((target_w, target_h), resample=Image.Resampling.LANCZOS)
+            elif self.high_quality_render == 1:
+                final_pil = src_pil.resize((target_w, target_h), resample=Image.Resampling.LANCZOS)
+            elif self.high_quality_render == 0:
+                final_pil = src_pil.resize((target_w, target_h), resample=Image.Resampling.BILINEAR)
+            else:
+                final_pil = src_pil.resize((target_w, target_h), resample=Image.Resampling.BILINEAR)
+                print("[Error] illegal quality level.")
 
-        return wx.Bitmap(img)
+        try:
+            image_bytes = final_pil.tobytes()
+            wx_img = wx.Image(final_pil.width, final_pil.height, image_bytes)
+            return wx.Bitmap(wx_img)
+        except Exception as e:
+            print(f"Conversion error: {e}")
+            return wx.Bitmap(1, 1)
 
     def get_thumbnail(self, thumb_width: int, thumb_height: int) -> bytes | None:
         if not self.is_valid or self.page_count == 0:
