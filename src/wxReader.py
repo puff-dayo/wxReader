@@ -900,14 +900,14 @@ class MainFrame(wx.Frame):
 
     def on_zoom_out(self, evt):
         self.view.set_zoom_mode(PDFView.ZOOM_MANUAL)
-        self.view.zoom = max(0.2, self.view.zoom / 1.2)
+        self.view.zoom = max(PDFView.MIN_ZOOM, self.view.zoom / 1.2)
         self.view._refresh_layout()
         self.view.Refresh()
         self._update_ui()
 
     def on_zoom_in(self, evt):
         self.view.set_zoom_mode(PDFView.ZOOM_MANUAL)
-        self.view.zoom = min(6.0, self.view.zoom * 1.2)
+        self.view.zoom = min(PDFView.MAX_ZOOM, self.view.zoom * 1.2)
         self.view._refresh_layout()
         self.view.Refresh()
         self._update_ui()

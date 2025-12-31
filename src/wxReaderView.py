@@ -20,6 +20,9 @@ class PDFView(wx.ScrolledWindow):
     ZOOM_FIT_WIDTH = "fit_width"
     ZOOM_FIT_PAGE = "fit_page"
 
+    MIN_ZOOM = 0.01
+    MAX_ZOOM = 10.0
+
     def __init__(self, parent):
         super().__init__(parent, style=wx.HSCROLL | wx.VSCROLL | wx.WANTS_CHARS)
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
@@ -301,7 +304,8 @@ class PDFView(wx.ScrolledWindow):
         z = self._compute_auto_zoom()
         if z is None:
             return
-        z = max(0.2, min(z, 6.0))
+        z = max(self.MIN_ZOOM, min(z, self.MAX_ZOOM))
+
         if abs(z - self.zoom) > 1e-9:
             self.zoom = z
             self._ensure_cache_zoom()
@@ -469,7 +473,10 @@ class PDFView(wx.ScrolledWindow):
 
             steps = evt.GetWheelRotation() / evt.GetWheelDelta()
             factor = 1.1 ** steps
-            old_zoom, self.zoom = self.zoom, max(0.2, min(self.zoom * factor, 6.0))
+
+            old_zoom = self.zoom
+            self.zoom = max(self.MIN_ZOOM, min(self.zoom * factor, self.MAX_ZOOM))
+
             if abs(self.zoom - old_zoom) < 1e-9:
                 return
 

@@ -9,3 +9,4 @@ screenshot/1.png
 /src/build/
 .env
 test.py
+/src/pswd.txt

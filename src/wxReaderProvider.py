@@ -5,6 +5,7 @@ import os
 import fitz  # PyMuPDF
 import pyzipper
 import wx
+from PIL import Image
 
 
 class ContentProvider(abc.ABC):
@@ -164,19 +165,68 @@ class PdfContentProvider(ContentProvider):
 class ArchiveContentProvider(ContentProvider):
     def __init__(self, path: str):
         super().__init__(path)
-        # todo: handle encrypted files
-        self.zip_file = pyzipper.ZipFile(self.path, 'r')
+
+        self.zip_file = pyzipper.AESZipFile(self.path, 'r')
+
+        try:
+            all_files = self.zip_file.namelist()
+        except Exception:
+            all_files = []
 
         image_extensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
         self.image_list = sorted([
-            f for f in self.zip_file.namelist()
+            f for f in all_files
             if not f.startswith('__MACOSX') and os.path.splitext(f)[1].lower() in image_extensions
         ])
 
-        self._size_cache = {}
+        if self.image_list:
+            test_file = self.image_list[0]
+            try:
+                self.zip_file.read(test_file)
+            except (RuntimeError, pyzipper.BadZipFile):
+                if os.path.exists('./pswd.txt'):
+                    try:
+                        with open('./pswd.txt', 'r', encoding='utf-8') as f:
+                            for line in f:
+                                pwd = line.strip().encode('utf-8')
+                                if not pwd:
+                                    continue
+                                try:
+                                    self.zip_file.setpassword(pwd)
+                                    self.zip_file.read(test_file)
+                                    break
+                                except (RuntimeError, pyzipper.BadZipFile):
+                                    continue
+                    except Exception as e:
+                        print(f"[ERROR] pyzipper failed to process password file: {e}")
 
+        self._size_cache = {}
         self._img_cache: dict[int, wx.Image] = {}
         self._img_cache_limit = 32
+
+    def _data_to_wx_image(self, data: bytes) -> wx.Image | None:
+        try:
+            pil_img = Image.open(io.BytesIO(data))
+
+            if pil_img.mode == 'P' and 'transparency' in pil_img.info:
+                pil_img = pil_img.convert('RGBA')
+
+            if pil_img.mode == 'RGBA':
+                background = Image.new('RGB', pil_img.size, (255, 255, 255))
+                background.paste(pil_img, mask=pil_img.split()[3])
+                pil_img = background
+
+            elif pil_img.mode != 'RGB':
+                pil_img = pil_img.convert('RGB')
+
+            width, height = pil_img.size
+
+            img = wx.Image(width, height, pil_img.tobytes())
+            return img
+
+        except Exception as e:
+            print(f"[ERROR] PIL transcode failed: {e}")
+            return None
 
     def _load_original_image(self, page_index: int) -> wx.Image | None:
         if page_index in self._img_cache:
@@ -186,17 +236,23 @@ class ArchiveContentProvider(ContentProvider):
             return None
 
         image_name = self.image_list[page_index]
-        image_data = self.zip_file.read(image_name)
-        img = wx.Image(io.BytesIO(image_data))
-        if not img.IsOk():
+        try:
+            image_data = self.zip_file.read(image_name)
+
+            img = self._data_to_wx_image(image_data)
+
+            if img is None or not img.IsOk():
+                return None
+
+            if len(self._img_cache) >= self._img_cache_limit:
+                first_key = next(iter(self._img_cache.keys()))
+                del self._img_cache[first_key]
+
+            self._img_cache[page_index] = img
+            return img
+        except Exception as e:
+            print(f"[ERROR] wxReader Failed to load image {image_name}: {e}")
             return None
-
-        if len(self._img_cache) >= self._img_cache_limit:
-            first_key = next(iter(self._img_cache.keys()))
-            del self._img_cache[first_key]
-
-        self._img_cache[page_index] = img
-        return img
 
     @property
     def is_valid(self) -> bool:
@@ -224,17 +280,17 @@ class ArchiveContentProvider(ContentProvider):
         if not (0 <= page_index < self.page_count):
             return (1, 1)
 
-        image_name = self.image_list[page_index]
-        image_data = self.zip_file.read(image_name)
-        stream = io.BytesIO(image_data)
+        try:
+            image_name = self.image_list[page_index]
+            image_data = self.zip_file.read(image_name)
 
-        img = wx.Image(stream)
-        if not img.IsOk():
+            with Image.open(io.BytesIO(image_data)) as pil_img:
+                size = pil_img.size
+
+            self._size_cache[page_index] = size
+            return size
+        except Exception:
             return (1, 1)
-
-        size = (img.GetWidth(), img.GetHeight())
-        self._size_cache[page_index] = size
-        return size
 
     def get_page_images(self, page_index: int) -> list[dict]:
         if not self.is_valid or not (0 <= page_index < self.page_count):
@@ -244,16 +300,21 @@ class ArchiveContentProvider(ContentProvider):
             image_name = self.image_list[page_index]
             image_data = self.zip_file.read(image_name)
 
-            stream = io.BytesIO(image_data)
-            img = wx.Image(stream)
+            width, height = 0, 0
+            try:
+                with Image.open(io.BytesIO(image_data)) as pil_img:
+                    width, height = pil_img.size
+            except Exception as e:
+                print(f"[ERROR] failed to read image data: {e}")
 
             return [{
                 "bytes": image_data,
                 "ext": os.path.splitext(image_name)[1].lstrip('.'),
-                "width": img.GetWidth() if img.IsOk() else 0,
-                "height": img.GetHeight() if img.IsOk() else 0
+                "width": width,
+                "height": height
             }]
-        except Exception:
+        except Exception as e:
+            print(f"[ERROR] failed to read page: {e}")
             return []
 
     def render_page_to_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
@@ -279,10 +340,9 @@ class ArchiveContentProvider(ContentProvider):
         try:
             first_image_name = self.image_list[0]
             image_data = self.zip_file.read(first_image_name)
-            stream = io.BytesIO(image_data)
 
-            img = wx.Image(stream)
-            if not img.IsOk():
+            img = self._data_to_wx_image(image_data)
+            if not img or not img.IsOk():
                 return None
 
             img.Rescale(thumb_width, thumb_height, wx.IMAGE_QUALITY_HIGH)
