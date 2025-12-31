@@ -7,133 +7,162 @@ import wx.html
 MANUAL_TREE = [
     ("Introduction", """
         <h3>Welcome to wxReader</h3>
-        <p><b>wxReader</b> is a specialized document viewing environment designed for efficiency and readability. It combines standard navigation features with advanced rendering capabilities, including GPU-accelerated filtering and content extraction tools.</p>
-        <p>Use the <b>Contents</b> pane on the left to navigate this help file.</p>
+        <p>wxReader is a program for viewing documents and comics. It works with PDF, ePub, and compressed archive files (ZIP, CBZ). Mobi and fb2 files are not tested.</p>
+        <p>You can use the <b>Contents</b> list on the left to browse this help file.</p>
     """, []),
 
-    ("Interface & Navigation", """
-        <h3>Interface Overview</h3>
-        <p>The application workspace is divided into the Sidebar and the Main View.</p>
+    ("Files and Security", """
+        <h3>Files and Security</h3>
+        <p>This section explains how to work with different file types and how to handle passwords.</p>
+    """, [
+        ("Encrypted Archives", """
+            <h3>Opening Password Protected Files</h3>
+            <p>Some ZIP and CBZ files require a password to open. wxReader can check a list of passwords automatically.</p>
+            <p><b>To set up the password list:</b></p>
+            <ol>
+                <li>Create a text file named <code>pswd.txt</code> in the folder where you installed wxReader.</li>
+                <li>Type your passwords in the file, one per line.</li>
+                <li>Save the file.</li>
+            </ol>
+            <p>Next time you open a protected file, wxReader will try the passwords in this list.</p>
+            <p style="border: 1px solid #000; padding: 10px; background-color: #ffffcc;">
+                <b>WARNING:</b><br>
+                The <code>pswd.txt</code> file is a plain text file. Anyone using this computer can open it and read your passwords. <b>Do not</b> use this feature on a public or shared computer. Delete the file when you are done.
+            </p>
+        """, []),
+    ]),
+
+    ("Interface", """
+        <h3>Using the Interface</h3>
+        <p>The main window has a Sidebar on the left and a View area on the right.</p>
         <ul>
-            <li><b>Sidebar:</b> Provides document structure (Outline) and file system navigation. Toggle visibility via <b>View &gt; Show Sidebar</b> (F9).</li>
-            <li><b>Main View:</b> Displays the rendered document content.</li>
+            <li><b>Sidebar:</b> Shows the chapters or files. Press <b>F9</b> to hide or show it.</li>
+            <li><b>Main View:</b> Shows the document page.</li>
         </ul>
-        <p>Use the tabs at the bottom of the sidebar to switch between the <b>Outline</b> and the <b>File Browser</b>.</p>
     """, [
         ("Gallery Mode", """
-            <h3>Gallery Mode</h3>
-            <p>The Gallery Mode (File &gt; Gallery Mode) provides a visual overview of your document library. It scans the current directory and displays thumbnails for supported files, allowing for quick visual selection.</p>
+            <h3>Using Gallery Mode</h3>
+            <p>Gallery Mode shows you pictures of all the documents in the current folder. To use it, click <b>File</b>, then click <b>Gallery Mode</b>.</p>
+            <p>Click on a picture to open that file.</p>
         """, []),
-        ("Search & Outline", """
-            <h3>Search & Outline</h3>
-            <p><b>Outline:</b> If the document contains a Table of Contents, it will be displayed in the 'Outline' tab. Click an entry to jump to that section.</p>
-            <p><b>Search:</b> Press <b>Ctrl+F</b> to open the Find dialog. Search results will list page numbers and context; clicking a result navigates directly to that location.</p>
+        ("Search and Outline", """
+            <h3>Finding Your Place</h3>
+            <p><b>The Outline Tab</b></p>
+            <p>This tab lists the chapters in your document. Click a chapter to go to it.</p>
+            <p>If your file (like a ZIP or CBZ) does not have chapters, wxReader makes a list for you:</p>
+            <ul>
+                <li><b>Small files:</b> Every page is listed.</li>
+                <li><b>Large files (over 500 pages):</b> Every 10th page is listed.</li>
+            </ul>
+            <p><b>Searching</b></p>
+            <p>Press <b>Ctrl+F</b> to search for text. Click on a result to go to that page.</p>
         """, []),
         ("Keyboard Shortcuts", """
             <h3>Keyboard Shortcuts</h3>
-            <p>The following shortcuts are available to streamline navigation and view management:</p>
+            <p>You can use these keys to control the program:</p>
             <table border="1" cellpadding="5" cellspacing="0" width="100%">
-                <tr style="background-color: #f0f0f0;"><th><b>Action</b></th><th><b>Shortcut</b></th></tr>
-                <tr><td>Open File</td><td>Ctrl + O</td></tr>
-                <tr><td>Close File</td><td>Ctrl + W</td></tr>
-                <tr><td>Toggle Sidebar</td><td>F9</td></tr>
+                <tr style="background-color: #c0c0c0;"><th><b>To do this...</b></th><th><b>Press this...</b></th></tr>
+                <tr><td>Open a file</td><td>Ctrl + O</td></tr>
+                <tr><td>Close a file</td><td>Ctrl + W</td></tr>
+                <tr><td>Show/Hide Sidebar</td><td>F9</td></tr>
                 <tr><td>Switch Sidebar Tab</td><td>F8</td></tr>
                 <tr><td>Full Screen</td><td>F11</td></tr>
-                <tr><td colspan="2"><b>View Modes</b></td></tr>
-                <tr><td>Single Page View</td><td>Ctrl + 1</td></tr>
-                <tr><td>Two Page View</td><td>Ctrl + 2</td></tr>
-                <tr><td>Fit Width</td><td>Ctrl + 3</td></tr>
-                <tr><td>Fit Page</td><td>Ctrl + 4</td></tr>
+                <tr><td colspan="2"><b>Changing Views</b></td></tr>
+                <tr><td>Single Page</td><td>Ctrl + 1</td></tr>
+                <tr><td>Two Pages</td><td>Ctrl + 2</td></tr>
+                <tr><td>Fit to Width</td><td>Ctrl + 3</td></tr>
+                <tr><td>Fit to Window</td><td>Ctrl + 4</td></tr>
                 <tr><td>Zoom In / Out</td><td>Ctrl + (+) / (-)</td></tr>
-                <tr><td colspan="2"><b>Navigation</b></td></tr>
+                <tr><td colspan="2"><b>Moving Around</b></td></tr>
                 <tr><td>Next / Previous Page</td><td>Right / Left Arrow</td></tr>
-                <tr><td>Go to Page...</td><td>Ctrl + G</td></tr>
-                <tr><td>Find...</td><td>Ctrl + F</td></tr>
-                <tr><td>Show TOC Dialog</td><td>Ctrl + T</td></tr>
+                <tr><td>Go to specific page</td><td>Ctrl + G</td></tr>
+                <tr><td>Find text</td><td>Ctrl + F</td></tr>
+                <tr><td>View Table of Contents</td><td>Ctrl + T</td></tr>
                 <tr><td colspan="2"><b>Tools</b></td></tr>
-                <tr><td>Extract Text</td><td>Ctrl + E</td></tr>
-                <tr><td>Extract Images</td><td>Ctrl + I</td></tr>
+                <tr><td>Copy Text</td><td>Ctrl + E</td></tr>
+                <tr><td>Save Images</td><td>Ctrl + I</td></tr>
             </table>
         """, [])
     ]),
 
     ("Reading Experience", """
-        <h3>Reading Experience</h3>
-        <p>wxReader offers multiple view modes to emulate different reading environments.</p>
+        <h3>Reading Documents</h3>
+        <p>You can change how pages are displayed on the screen.</p>
     """, [
         ("Page Layout", """
-            <h3>Page Layout Modes</h3>
-            <p>Access these settings under the <b>View</b> menu:</p>
+            <h3>Page Layouts</h3>
+            <p>Click the <b>View</b> menu to choose a layout:</p>
             <ul>
-                <li><b>Single Page View (Ctrl+1):</b> Standard vertical scrolling.</li>
-                <li><b>Two Page View (Ctrl+2):</b> Simulates a physical book spread.</li>
+                <li><b>Single Page View:</b> Shows one page at a time. Scroll down to see more.</li>
+                <li><b>Two Page View:</b> Shows two pages side-by-side, like a book.</li>
             </ul>
-            <p><b>Page Direction:</b> Toggle between <b>Left-to-Right (LTR)</b> and <b>Right-to-Left (RTL)</b> to accommodate different languages.</p>
+            <p><b>Page Direction</b></p>
+            <p>You can change the reading order. Use <b>Left-to-Right</b> for English books. Use <b>Right-to-Left</b> for Manga.</p>
         """, []),
         ("Visual Customization", """
-            <h3>Visual Customization</h3>
-            <p><b>Margins & Gaps:</b> Select <b>View &gt; Set Margin and Gap</b> to define the spacing between pages and the window edge. Values are in pixels.</p>
-            <p><b>Background Color:</b> Use <b>View &gt; Background Color...</b> to change the canvas area behind the document pages.</p>
+            <h3>Customizing the View</h3>
+            <p><b>Margins & Gaps</b></p>
+            <p>Click <b>View</b>, then <b>Set Margin and Gap</b> to change the empty space around the pages.</p>
+            <p><b>Background Color</b></p>
+            <p>Click <b>View</b>, then <b>Background Color</b> to pick a new color for the area behind the pages.</p>
         """, []),
     ]),
 
-    ("Tools & Processing", None, [
+    ("Tools and Processing", None, [
         ("Content Extraction", """
-            <h3>Content Extraction</h3>
-            <p>wxReader allows you to extract raw data from the document.</p>
-            <h4>Extract Page Text (Ctrl+E)</h4>
-            <p>Parses the currently visible pages and displays the raw text in a dialog window, ready for copying to the clipboard.</p>
-            <h4>Extract Page Images (Ctrl+I)</h4>
-            <p>Scans the visible pages for embedded image resources. A dialog will present the found images, allowing you to view their native resolution and format.</p>
+            <h3>Copying Content</h3>
+            <p><b>Extract Page Text (Ctrl+E)</b></p>
+            <p>This opens a window with the text from the current page. You can copy it to the clipboard.</p>
+            <p><b>Extract Page Images (Ctrl+I)</b></p>
+            <p>This finds all pictures on the current page. You can save them to your computer.</p>
         """, []),
-        ("Filters (CPU)", """
-            <h3>Enhancement Filters (CPU)</h3>
-            <p>Located under the <b>Process</b> menu, CPU-based filters provide software-level image processing to improve legibility.</p>
-            <h4>Enhancement Modes</h4>
-            <ul>
-                <li><b>Sharpen:</b> Increases edge contrast to clarify blurred text.</li>
-                <li><b>Soften:</b> Applies a blur to reduce noise or scanning artifacts.</li>
-                <li><b>Soften + Sharpen:</b> A combined pass that reduces noise before sharpening edges for balanced clarity.</li>
-            </ul>
-            <h4>Color Modes</h4>
-            <ul>
-                <li><b>Invert Colors:</b> Reverses the color palette (e.g., white text on black background) for low-light reading.</li>
-                <li><b>Green/Brown Filter:</b> Applies a tinted overlay to reduce eye strain during prolonged reading sessions.</li>
-            </ul>
+        ("Visual Effects", """
+            <h3>Using Visual Effects</h3>
+            <p>You can change how the document looks using filters. These run on your video card.</p>
+            <p>To use a filter:</p>
+            <ol>
+                <li>Click the <b>Process</b> menu.</li>
+                <li>Expand a subfolder.</li>
+                <li>Click on an effect name.</li>
+            </ol>
+            <p>The effect happens instantly. To turn off the visual effects, use the same menu.</p>
         """, []),
     ]),
 
     ("Advanced Customization", None, [
         ("Custom GPU Shaders", """
-            <h3>Custom GPU Shaders</h3>
-            <p>wxReader supports custom GLSL fragment shaders for advanced visual post-processing.</p>
-            <h4>Shader Organization</h4>
-            <p>Shaders are loaded from the <code>filters</code> directory in the application root. You may organize shaders into subdirectories (e.g., <code>filters/Retro/crt.frag</code>). The application will automatically create corresponding submenus under <b>Process &gt; Shaders (GPU)</b> based on the folder structure.</p>
-            <h4>Shader Development Guide</h4>
-            <p>To create a filter, add a text file with the <code>.frag</code> extension. The application exposes the following uniforms to the shader program:</p>
+            <h3>Creating Custom Effects</h3>
+            <p>Advanced users can create new effects by writing shader files.</p>
+            <p><b>How to add a filter:</b></p>
+            <ol>
+                <li>Open the <code>filters</code> folder in the program directory.</li>
+                <li>Create a text file with a <code>.frag</code> extension.</li>
+            </ol>
+            <p>The program sends these uniforms to your shader:</p>
             <table border="1" cellpadding="5" cellspacing="0" width="100%">
-                <tr style="background-color: #f0f0f0;"><th><b>Uniform Type</b></th><th><b>Name</b></th><th><b>Description</b></th></tr>
-                <tr><td><code>sampler2D</code></td><td><b>uTex</b></td><td>The texture containing the rendered page content.</td></tr>
-                <tr><td><code>float</code></td><td><b>uTime</b></td><td>Elapsed time in seconds. Loops from 0.0 to 1000.0. Use this for animated effects.</td></tr>
-                <tr><td><code>float</code></td><td><b>uSeed</b></td><td>A random float value generated at initialization.</td></tr>
-                <tr><td><code>float</code></td><td><b>uStrength</b></td><td>Effect intensity value (currently fixed at 0.8).</td></tr>
+                <tr style="background-color: #c0c0c0;"><th><b>Variable</b></th><th><b>Type</b></th><th><b>What it is</b></th></tr>
+                <tr><td><b>uTex</b></td><td>sampler2D</td><td>The image of the page.</td></tr>
+                <tr><td><b>uResolution</b></td><td>vec2</td><td>The screen size (width, height).</td></tr>
+                <tr><td><b>uTime</b></td><td>float</td><td>A timer counting and loops from 0 to 1000.</td></tr>
+                <tr><td><b>uSeed</b></td><td>float</td><td>A random number.</td></tr>
+                <tr><td><b>uStrength</b></td><td>float</td><td>The strength setting (currently fixed at 0.8).</td></tr>
             </table>
-            <p><b>Note:</b> Standard texture coordinates should be used to sample <code>uTex</code>.</p>
+            <p>A graphical interface of changing uniforms is on the plan, but currently under developemnt.</p>
         """, []),
     ]),
 
     ("FAQ", """
-        <h3>Frequently Asked Questions</h3>
+        <h3>Common Questions</h3>
     """, [
         ("Fixing Misaligned Spreads", """
-            <h3>Why are the left and right pages reversed?</h3>
-            <p>In <b>Two Page View</b>, the application defaults to placing the first page on the left (LTR mode) or right (RTL mode). However, many books dedicate the first page to the cover, which should be displayed alone.</p>
-            <p><b>Solution:</b></p>
+            <h3>Why are the pages on the wrong side?</h3>
+            <p>In <b>Two Page View</b>, the first page might belong on the right side, but the program puts it on the left.</p>
+            <p><b>To fix this:</b></p>
             <ol>
-                <li>Go to the <b>View</b> menu.</li>
-                <li>Check the option <b>Add Blank Page at Start</b>.</li>
+                <li>Click the <b>View</b> menu.</li>
+                <li>Click <b>Add Blank Page at Start</b>.</li>
             </ol>
-            <p>This inserts a virtual padding page at the beginning of the document, shifting all subsequent pages by one slot and correcting the spread alignment.</p>
+            <p>This adds an empty space at the start, pushing all pages to the correct side.</p>
         """, []),
     ])
 ]
