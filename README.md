@@ -3,13 +3,18 @@
 **wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), and
 Python.
 
-> Happy to announce the release of **Version 1.1**!<br>What's new: OpenGL shaders with some built-in options, and you can add your own custom shaders.
+> **Version 1.1** Supports OpenGL shaders with some built-in options, and you can add your own custom shaders.
+>
+> **Version 1.2.1** Bug fix and UI/UX enhancements. New Gallery mode, built-in help manual.  More built-in shader to simulate reading papers.
 
 ---
 
 ## Features
 
-<img height="300" src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_1.png?raw=true"/>
+<div style="display: flex; justify-content: space-between;">
+  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_1.png?raw=true" width="49%">
+  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_2.png?raw=true" width="49%">
+</div>
 
 | Feature                 | Description                                                                                              |
 |-------------------------|----------------------------------------------------------------------------------------------------------|
