@@ -1,11 +1,11 @@
 # wxReader
 
-**wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), and
+**wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), libvips (pyvips), and
 Python.
 
 > **Version ~1.2** Supports OpenGL shaders with some built-in options, and you can add your own custom shaders. New Gallery mode, built-in help manual.
 > 
-> **Version 1.3** Add support for zip and cbz files. Add passwordbook support. Switch image backend to libvips. Fix image cache. Refactor code for maintainability.
+> **Version 1.3.1** Add support for zip and cbz files. Add passwordbook support. Switch image backend to libvips. Fix image cache. Refactor code for maintainability. Many bugs fixed.
 
 ---
 
@@ -32,8 +32,13 @@ Python.
 
 ## Installation
 
-1. From sauce (latest dev): Install Python 3.12 and uv. [Download](https://www.libvips.org/install.html) and put the libvips shared library *.dll files inside `./src`. Sync dependencies with `uv` and build with `cd ./src` and `../build.bat` on Windows x64. (Run the build
-   script inside /src folder.)
+1. From sauce (latest dev):
+   1. Install Python 3.12 and uv.
+   2. [Download](https://www.libvips.org/install.html) and put the libvips shared library *.dll files inside `./src`.
+   3. Sync dependencies with `uv`.
+   4. Build with `cd ./src` and `../build.bat` on Windows x64. (Run the build
+      script inside /src folder.)
+   5. (Notes: upgrade pymupdf will fail the compilation, and this is a Nuitka issue.)
 
 2. Pre-compiled binary (stable): portable `.exe` files is provided on the **Releases** page.
 
