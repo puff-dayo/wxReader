@@ -1,10 +1,10 @@
-import wx
-import os
-import threading
-import fitz  # PyMuPDF
 import concurrent.futures
+import os
 import queue
+import threading
 import time
+
+import wx
 
 from wxReaderProvider import PdfContentProvider, ArchiveContentProvider
 

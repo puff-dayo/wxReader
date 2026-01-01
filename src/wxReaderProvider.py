@@ -1,11 +1,11 @@
 import abc
-import io
 import os
 
 import fitz  # PyMuPDF
 import pyzipper
 import wx
-from PIL import Image, ImageFilter
+
+import pyvips
 
 
 class ContentProvider(abc.ABC):
@@ -190,7 +190,6 @@ class ArchiveContentProvider(ContentProvider):
         super().__init__(path)
 
         self.zip_file = pyzipper.AESZipFile(self.path, 'r')
-
         try:
             all_files = self.zip_file.namelist()
         except Exception:
@@ -212,8 +211,7 @@ class ArchiveContentProvider(ContentProvider):
                         with open('./pswd.txt', 'r', encoding='utf-8') as f:
                             for line in f:
                                 pwd = line.strip().encode('utf-8')
-                                if not pwd:
-                                    continue
+                                if not pwd: continue
                                 try:
                                     self.zip_file.setpassword(pwd)
                                     self.zip_file.read(test_file)
@@ -224,64 +222,33 @@ class ArchiveContentProvider(ContentProvider):
                         print(f"[ERROR] pyzipper failed to process password file: {e}")
 
         self._size_cache = {}
-        self._img_cache: dict[int, Image.Image] = {}
-        self._img_cache_limit = 8
+        self._img_cache: dict[int, pyvips.Image] = {}
+        self._img_cache_limit = 32
+
+        self.high_quality_render = 0
 
     def get_toc(self) -> list:
         if not self.is_valid:
             return []
-
-        toc = []
-        for i, filepath in enumerate(self.image_list):
-            title = filepath.replace("\\", "/").split("/")[-1]
-
-            toc.append([1, title, i + 1])
+        toc = [[1, f.replace("\\", "/").split("/")[-1], i + 1] for i, f in enumerate(self.image_list)]
         return toc
 
-    def _data_to_pil_image(self, data: bytes) -> Image.Image | None:
+    def _data_to_vips_image(self, data: bytes) -> pyvips.Image | None:
         try:
-            pil_img = Image.open(io.BytesIO(data))
+            image = pyvips.Image.new_from_buffer(data, "")
 
-            if pil_img.mode == 'P' and 'transparency' in pil_img.info:
-                pil_img = pil_img.convert('RGBA')
+            if image.hasalpha():
+                image = image.flatten(background=[255, 255, 255])
 
-            if pil_img.mode == 'RGBA':
-                background = Image.new('RGB', pil_img.size, (255, 255, 255))
-                background.paste(pil_img, mask=pil_img.split()[3])
-                pil_img = background
-            elif pil_img.mode != 'RGB':
-                pil_img = pil_img.convert('RGB')
+            if image.interpretation != 'srgb':
+                image = image.colourspace('srgb')
 
-            return pil_img
-        except Exception as e:
-            print(f"[ERROR] PIL decode failed: {e}")
+            return image
+        except pyvips.Error as e:
+            print(f"[ERROR] pyvips decode failed: {e}")
             return None
 
-    def _data_to_wx_image(self, data: bytes) -> wx.Image | None:
-        try:
-            pil_img = Image.open(io.BytesIO(data))
-
-            if pil_img.mode == 'P' and 'transparency' in pil_img.info:
-                pil_img = pil_img.convert('RGBA')
-
-            if pil_img.mode == 'RGBA':
-                background = Image.new('RGB', pil_img.size, (255, 255, 255))
-                background.paste(pil_img, mask=pil_img.split()[3])
-                pil_img = background
-
-            elif pil_img.mode != 'RGB':
-                pil_img = pil_img.convert('RGB')
-
-            width, height = pil_img.size
-
-            img = wx.Image(width, height, pil_img.tobytes())
-            return img
-
-        except Exception as e:
-            print(f"[ERROR] PIL transcode failed: {e}")
-            return None
-
-    def _load_original_image(self, page_index: int) -> Image.Image | None:
+    def _load_original_image(self, page_index: int) -> pyvips.Image | None:
         if page_index in self._img_cache:
             return self._img_cache[page_index]
 
@@ -291,7 +258,7 @@ class ArchiveContentProvider(ContentProvider):
         image_name = self.image_list[page_index]
         try:
             image_data = self.zip_file.read(image_name)
-            img = self._data_to_pil_image(image_data)
+            img = self._data_to_vips_image(image_data)
 
             if img is None:
                 return None
@@ -334,13 +301,14 @@ class ArchiveContentProvider(ContentProvider):
 
         try:
             image_name = self.image_list[page_index]
-            with self.zip_file.open(image_name) as f:
-                with Image.open(f) as pil_img:
-                    size = pil_img.size
+            image_data = self.zip_file.read(image_name)
+            with pyvips.Image.new_from_buffer(image_data, "") as vips_img:
+                size = (vips_img.width, vips_img.height)
 
             self._size_cache[page_index] = size
             return size
-        except Exception:
+        except Exception as e:
+            print(f"[ERROR] pyvips failed to get page size: {e}")
             return (1, 1)
 
     def get_page_images(self, page_index: int) -> list[dict]:
@@ -353,60 +321,50 @@ class ArchiveContentProvider(ContentProvider):
 
             width, height = 0, 0
             try:
-                with Image.open(io.BytesIO(image_data)) as pil_img:
-                    width, height = pil_img.size
+                with pyvips.Image.new_from_buffer(image_data, "") as vips_img:
+                    width, height = vips_img.width, vips_img.height
             except Exception as e:
-                print(f"[ERROR] failed to read image data: {e}")
+                print(f"[ERROR] pyvips failed to read image data for metadata: {e}")
 
             return [{
                 "bytes": image_data,
                 "ext": os.path.splitext(image_name)[1].lstrip('.'),
-                "width": width,
-                "height": height
+                "width": width, "height": height
             }]
         except Exception as e:
             print(f"[ERROR] failed to read page: {e}")
             return []
 
     def render_page_to_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
-        src_pil = self._load_original_image(page_index)
-        if not src_pil:
+        src_vips = self._load_original_image(page_index)
+        if not src_vips:
             return wx.Bitmap(1, 1)
 
-        w, h = src_pil.size
+        w, h = src_vips.width, src_vips.height
         target_w = max(1, int(round(w * zoom)))
         target_h = max(1, int(round(h * zoom)))
 
         if target_w == w and target_h == h:
-            final_pil = src_pil
+            final_vips = src_vips
         else:
             if self.high_quality_render == 2:
                 if zoom < 1.0:
-                    blur_radius = (1.0 / zoom) * 0.52
-                    blurred = src_pil.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-                    final_pil = blurred.resize((target_w, target_h), resample=Image.Resampling.BOX)
-                    print(f"[DEBUG] demoire trigger, radius: {blur_radius}")
+                    blur_sigma = (1.0 / zoom) * 0.45
+                    final_vips = src_vips.gaussblur(blur_sigma).resize(zoom, kernel='linear')
+                    # print(f"[DEBUG] pyvips demoire trigger, sigma: {blur_sigma}")
                 else:
-                    final_pil = src_pil.resize((target_w, target_h), resample=Image.Resampling.LANCZOS)
+                    final_vips = src_vips.resize(zoom, kernel='lanczos3')
             elif self.high_quality_render == 1:
-                final_pil = src_pil.resize((target_w, target_h), resample=Image.Resampling.LANCZOS)
-            elif self.high_quality_render == 0:
-                final_pil = src_pil.resize((target_w, target_h), resample=Image.Resampling.BILINEAR)
-            else:
-                final_pil = src_pil.resize((target_w, target_h), resample=Image.Resampling.BILINEAR)
-                print("[Error] illegal quality level.")
+                final_vips = src_vips.resize(zoom, kernel='lanczos3')
+            else:  # high_quality_render == 0 or fallback
+                final_vips = src_vips.resize(zoom, kernel='linear')
 
         try:
-            if final_pil.mode == 'RGBA':
-                return wx.Bitmap.FromBufferRGBA(final_pil.width, final_pil.height, final_pil.tobytes())
-            elif final_pil.mode == 'RGB':
-                return wx.Bitmap.FromBuffer(final_pil.width, final_pil.height, final_pil.tobytes())
-            else:
-                converted = final_pil.convert("RGB")
-                return wx.Bitmap.FromBuffer(converted.width, converted.height, converted.tobytes())
+            memory_buffer = final_vips.write_to_memory()
+            return wx.Bitmap.FromBuffer(final_vips.width, final_vips.height, memory_buffer)
 
         except Exception as e:
-            print(f"Conversion error: {e}")
+            print(f"pyvips conversion to wx.Bitmap error: {e}")
             return wx.Bitmap(1, 1)
 
     def get_thumbnail(self, thumb_width: int, thumb_height: int) -> bytes | None:
@@ -417,15 +375,14 @@ class ArchiveContentProvider(ContentProvider):
             first_image_name = self.image_list[0]
             image_data = self.zip_file.read(first_image_name)
 
-            img = self._data_to_wx_image(image_data)
-            if not img or not img.IsOk():
+            vips_img = self._data_to_vips_image(image_data)
+            if not vips_img:
                 return None
 
-            img.Rescale(thumb_width, thumb_height, wx.IMAGE_QUALITY_HIGH)
+            thumb = vips_img.thumbnail_image(thumb_width, height=thumb_height, crop='centre')
 
-            return img.GetData()
+            return thumb.write_to_memory()
 
         except Exception as e:
-            print(f"[ERROR] wxReader failed to get thumbnail for {self.path}: {e}")
-
-        return None
+            print(f"[ERROR] pyvips failed to get thumbnail for {self.path}: {e}")
+            return None

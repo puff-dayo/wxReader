@@ -308,20 +308,6 @@ class MainFrame(wx.Frame):
         m_view.AppendRadioItem(self.id_zoom_manual, "Manual Zoom")
         m_view.AppendSeparator()
 
-        m_quality = wx.Menu()
-
-        self.id_quality_hq = wx.NewIdRef()
-        self.id_quality_mq = wx.NewIdRef()
-        self.id_quality_lq = wx.NewIdRef()
-        item_hq = m_quality.AppendRadioItem(self.id_quality_hq, "DeMoiré")
-        item_mq = m_quality.AppendRadioItem(self.id_quality_mq, "Lanczos")
-        item_lq = m_quality.AppendRadioItem(self.id_quality_lq, "Bilinear")
-
-        item_lq.Check(True)
-
-        m_view.AppendSubMenu(m_quality, "Render Quality")
-        m_view.AppendSeparator()
-
         self.id_setmg = wx.NewIdRef()
         _add_item(m_view, self.id_setmg, "Set Margin and Gap")
 
@@ -338,6 +324,21 @@ class MainFrame(wx.Frame):
         m_view.AppendSeparator()
         self.id_fullscreen = wx.NewIdRef()
         m_view.AppendCheckItem(self.id_fullscreen, "Full &Screen\tF11")
+
+        m_view.AppendSeparator()
+
+        m_quality = wx.Menu()
+
+        self.id_quality_hq = wx.NewIdRef()
+        self.id_quality_mq = wx.NewIdRef()
+        self.id_quality_lq = wx.NewIdRef()
+        item_hq = m_quality.AppendRadioItem(self.id_quality_hq, "DeMoiré")
+        item_mq = m_quality.AppendRadioItem(self.id_quality_mq, "Lanczos")
+        item_lq = m_quality.AppendRadioItem(self.id_quality_lq, "Bilinear")
+
+        item_lq.Check(True)
+
+        m_view.AppendSubMenu(m_quality, "Render Quality")
 
         menubar.Append(m_view, "&View")
 
@@ -1056,7 +1057,7 @@ class MainFrame(wx.Frame):
             f"wxPython v{wx.version()} (LGPL)\n"
             "PyMuPDF v1.23.8 with MuPDF v1.23.7 (AGPL)\n"
             "OpenGL (PyOpenGL, BSD)\n"
-            "Pillow (MIT-CMU)\n"
+            "libvips (pyvips, LGPL-2.1)\n"
             "Python 3.12.9"
         )
         info.SetWebSite(url=r"https://github.com/puff-dayo/wxReader/")

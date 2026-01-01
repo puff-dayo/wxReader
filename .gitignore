@@ -11,3 +11,4 @@ screenshot/1.png
 test.py
 /src/pswd.txt
 /analysis/
+*.dll

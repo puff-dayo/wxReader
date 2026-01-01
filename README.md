@@ -3,11 +3,9 @@
 **wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), and
 Python.
 
-> **Version 1.1** Supports OpenGL shaders with some built-in options, and you can add your own custom shaders. (22-12-2025)
->
-> **Version 1.2.1** Bug fix and UI/UX enhancements. New Gallery mode, built-in help manual.  More built-in shader to simulate reading papers. (31-12-2025)
+> **Version ~1.2** Supports OpenGL shaders with some built-in options, and you can add your own custom shaders. New Gallery mode, built-in help manual.
 > 
-> **Version 1.3** Refactor to add support for zip and cbz files. Add passwordbook support. (WIP)
+> **Version 1.3** Add support for zip and cbz files. Add passwordbook support. Switch image backend to libvips. Fix image cache. Refactor code for maintainability.
 
 ---
 
@@ -20,13 +18,13 @@ Python.
 
 | Feature                 | Description                                                                                              |
 |-------------------------|----------------------------------------------------------------------------------------------------------|
-| **File Format Support** | PDF, EPUB... Supported by `MuPDF`.                                                                       |
+| **File Format Support** | PDF, EPUB, ePub, ZIP, CBZ (manga or comics archive files).                                               |
 | **Paging Strategy**     | Single Page and Two-Page spreads (with optional blank start page). Supports Right-to-Left (RTL) reading. |
 | **Content Extraction**  | Extract text and images directly from specific pages to the clipboard or disk.                           |
 | **Image Processing**    | Real-time built-in filters and enhancements. Support custom OpenGL frag shaders.                         |
-| **Zoom & View**         | Fit Width, Fit Page, Fullscreen Mode (F11), and customizable background color.                           |
+| **Zoom and View**       | Fit Width, Fit Page, Manual Zoom, Fullscreen Mode, and customizable background color.                    |
 | **Navigation**          | Sidebar with Outline (TOC) and File Browser tabs. Text search dialog, and a standalone TOC dialog.       |
-| **Reflowable Text**     | Adjustable font sizes for EPUB and other reflowable formats.                                             |
+| **Gallery Mode**        | View all thumbnails or frontpages of all books inside a same folder like a gallery.                      |
 | **File History**        | Automatically saves recent files and reading progress on close.                                          |
 | **Interaction**         | Drag-and-drop file loading and full keyboard operation support.                                          |
 
@@ -34,10 +32,12 @@ Python.
 
 ## Installation
 
-1. From sauce: Sync dependencies with `uv` and build with `cd ./src` and `../build.bat` on Windows x64. (Run the build
+1. From sauce (latest dev): Install Python 3.12 and uv. [Download](https://www.libvips.org/install.html) and put the libvips shared library *.dll files inside `./src`. Sync dependencies with `uv` and build with `cd ./src` and `../build.bat` on Windows x64. (Run the build
    script inside /src folder.)
 
-2. Pre-compiled binary: portable `.exe` files is provided on the **Releases** page.
+2. Pre-compiled binary (stable): portable `.exe` files is provided on the **Releases** page.
+
+3. Upgrade from older versions: simply copy the `wxReader.cfg` file containing all user settings to the folder of a new version.
 
 ## TODO
 
