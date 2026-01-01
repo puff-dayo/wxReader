@@ -362,7 +362,7 @@ class PDFView(wx.ScrolledWindow):
         pages_to_prerender = set()
         anchor = self.page
 
-        for i in range(anchor - 2, anchor + 4):
+        for i in range(anchor - 4, anchor + 6):
             if 0 <= i < self.content_provider.page_count:
                 pages_to_prerender.add(i)
 
@@ -381,7 +381,7 @@ class PDFView(wx.ScrolledWindow):
         pages_to_prerender = set()
         anchor = self.page
 
-        for i in range(anchor - 2, anchor + 4):
+        for i in range(anchor - 4, anchor + 6):
             if 0 <= i < self.content_provider.page_count:
                 pages_to_prerender.add(i)
 

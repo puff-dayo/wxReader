@@ -41,8 +41,8 @@ Python.
 
 ## TODO
 
-- [x] add support for zip and cbz format manga/comic files <- that's a hard refactor (v1.3)
-- [x] add support for encrypted zip and cbz files... (v1.3)
-- [x] fix page/width fit not auto updating when a book is made of pages of different sizes (v1.3.1)
-- [ ] handle two pages of different size in Two-page view
+- [x] add support for zip and cbz format manga/comic files <- that's a hard refactor
+- [x] add support for encrypted zip and cbz files...
+- [x] fix page/width fit not auto updating when a book is made of pages of different sizes
+- [x] handle two pages of different size in Two-page view
 - [ ] add manual detect new version and open browser in the menu

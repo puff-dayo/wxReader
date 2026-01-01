@@ -64,7 +64,7 @@ class MainFrame(wx.Frame):
 
         # Initialize state
         self.content_provider: ContentProvider | None = None
-        self.file_history = wx.FileHistory(12)
+        self.file_history = wx.FileHistory(24)
         self.quality_preference = 1
 
         self.epub_font_size = 12
