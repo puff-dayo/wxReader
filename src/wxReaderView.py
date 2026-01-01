@@ -41,9 +41,8 @@ class PDFView(wx.ScrolledWindow):
         self.direction = self.DIR_LTR
         self.pad_start = False
 
-        # Render cache for current zoom: {(page_index): wx.Bitmap}
-        self._bmp_cache: dict[int, wx.Bitmap] = {}
-        self._last_cache_zoom = self.zoom
+        # {(page_index): wx.Bitmap}
+        self._bmp_cache: dict[tuple[int, int], wx.Bitmap] = {}
         self._pre_render_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_pre_render_timer, self._pre_render_timer)
 
@@ -100,7 +99,7 @@ class PDFView(wx.ScrolledWindow):
     def set_pad_start(self, pad: bool):
         if self.pad_start != pad:
             self.pad_start = pad
-            self._bmp_cache.clear()  # Clear cache to be safe (indices might shift visually)
+            self._bmp_cache.clear()
             self._refresh_layout()
             self.Refresh()
 
@@ -146,7 +145,6 @@ class PDFView(wx.ScrolledWindow):
         self.Refresh()
 
     def go_to_page(self, page_index: int):
-        """Direct jump to a page index."""
         if not self.content_provider:
             return
         self.page = max(0, min(page_index, self.content_provider.page_count - 1))
@@ -154,7 +152,6 @@ class PDFView(wx.ScrolledWindow):
         self.Refresh()
 
     def stop_worker(self):
-        """Stops the preload timer to prevent crashes on exit."""
         if self._pre_render_timer.IsRunning():
             self._pre_render_timer.Stop()
 
@@ -174,18 +171,20 @@ class PDFView(wx.ScrolledWindow):
         keep_range = 10
 
         keys_to_delete = []
-        for p_idx in self._bmp_cache:
-            if abs(p_idx - current_page) > keep_range:
-                keys_to_delete.append(p_idx)
+        for cache_key in self._bmp_cache:
+            page_index_from_key = cache_key[0]
+
+            if abs(page_index_from_key - current_page) > keep_range:
+                keys_to_delete.append(cache_key)
 
         for k in keys_to_delete:
             del self._bmp_cache[k]
 
-    def _get_bitmap(self, page_index: int) -> wx.Bitmap:
-        self._ensure_cache_zoom()
+    def _get_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
+        cache_key = (page_index, int(zoom * 10000))
 
-        if page_index in self._bmp_cache:
-            return self._bmp_cache[page_index]
+        if cache_key in self._bmp_cache:
+            return self._bmp_cache[cache_key]
 
         if len(self._bmp_cache) > 36:
             self._prune_cache()
@@ -194,21 +193,21 @@ class PDFView(wx.ScrolledWindow):
         if page_index < 0:
             ref_idx = max(0, min(self.page, self.content_provider.page_count - 1))
             w_pt, h_pt = self.content_provider.get_page_size(ref_idx)
-            w_px = int(w_pt * self.zoom)
-            h_px = int(h_pt * self.zoom)
+            w_px = int(w_pt * zoom)
+            h_px = int(h_pt * zoom)
 
             img = wx.Image(w_px, h_px)
             img.SetRGB(wx.Rect(0, 0, w_px, h_px), 255, 255, 255)
             bmp = wx.Bitmap(img)
 
             bmp = self._apply_processing(bmp)
-            self._bmp_cache[page_index] = bmp
+            self._bmp_cache[cache_key] = bmp
             return bmp
 
-        bmp = self.content_provider.render_page_to_bitmap(page_index, self.zoom)
+        bmp = self.content_provider.render_page_to_bitmap(page_index, zoom)
         bmp = self._apply_processing(bmp)
 
-        self._bmp_cache[page_index] = bmp
+        self._bmp_cache[cache_key] = bmp
         return bmp
 
     def _spread_pages(self) -> list[int]:
@@ -256,7 +255,7 @@ class PDFView(wx.ScrolledWindow):
             return self.content_provider.get_page_size(ref_idx)
         return self.content_provider.get_page_size(page_index)
 
-    def _compute_auto_zoom(self) -> float | None:
+    def _compute_auto_zoom(self) -> list[float] | None:
         if not self.content_provider:
             return None
 
@@ -276,27 +275,38 @@ class PDFView(wx.ScrolledWindow):
         if len(sizes) == 1:
             pw, ph = sizes[0]
             if self.zoom_mode == self.ZOOM_FIT_WIDTH:
-                return avail_w / pw
+                return [avail_w / pw]
             if self.zoom_mode == self.ZOOM_FIT_PAGE:
-                return min(avail_w / pw, avail_h / ph)
+                return [min(avail_w / pw, avail_h / ph)]
             return None
 
         if len(sizes) != 2:
             return None
 
         (w0, h0), (w1, h1) = sizes
-        sum_w = w0 + w1
-        max_h = max(h0, h1)
 
+        if h0 <= 0 or h1 <= 0:
+            sum_w = w0 + w1 if w0 + w1 > 0 else 1
+            max_h = max(h0, h1) if max(h0, h1) > 0 else 1
+            z = min((avail_w - self.gap) / sum_w, avail_h / max_h)
+            return [z, z]
+
+        total_effective_width = w0 + w1 * (h0 / h1)
+        width_based_z0 = (avail_w - self.gap) / total_effective_width if total_effective_width > 0 else 0
+
+        height_based_z0 = avail_h / h0
+
+        z0 = 0.0
         if self.zoom_mode == self.ZOOM_FIT_WIDTH:
-            return max(0.01, (avail_w - self.gap) / sum_w)
+            z0 = width_based_z0
+        elif self.zoom_mode == self.ZOOM_FIT_PAGE:
+            z0 = min(width_based_z0, height_based_z0)
+        else:  # Manual zoom
+            return [self.zoom, self.zoom]
 
-        if self.zoom_mode == self.ZOOM_FIT_PAGE:
-            zw = max(0.01, (avail_w - self.gap) / sum_w)
-            zh = avail_h / max_h
-            return min(zw, zh)
+        z1 = z0 * (h0 / h1)
 
-        return None
+        return [max(self.MIN_ZOOM, z) for z in [z0, z1]]
 
     def _apply_auto_zoom_if_needed(self):
         if self.zoom_mode == self.ZOOM_MANUAL:
@@ -349,10 +359,6 @@ class PDFView(wx.ScrolledWindow):
         if not self or not self.content_provider or not self.content_provider.is_valid:
             return
 
-        current_pages_indices = self._spread_pages()
-        if not current_pages_indices:
-            return
-
         pages_to_prerender = set()
         anchor = self.page
 
@@ -364,38 +370,57 @@ class PDFView(wx.ScrolledWindow):
             if not self.content_provider or not self.content_provider.is_valid:
                 return
 
-            self._ensure_cache_zoom()
-            if page_index not in self._bmp_cache:
-                self._get_bitmap(page_index)
+            cache_key = (page_index, int(self.zoom * 10000))
+            if cache_key not in self._bmp_cache:
+                self._get_bitmap(page_index, self.zoom)
 
     def _pre_render_worker(self):
         if not self or not self.content_provider or not self.content_provider.is_valid:
             return
 
-        current_pages_indices = self._spread_pages()
-        if not current_pages_indices:
-            return
-
         pages_to_prerender = set()
-
         anchor = self.page
+
         for i in range(anchor - 2, anchor + 4):
             if 0 <= i < self.content_provider.page_count:
                 pages_to_prerender.add(i)
 
         for page_index in pages_to_prerender:
-            self._ensure_cache_zoom()
-            if page_index not in self._bmp_cache:
-                self._get_bitmap(page_index)
+            cache_key = (page_index, int(self.zoom * 10000))
+            if cache_key not in self._bmp_cache:
+                self._get_bitmap(page_index, self.zoom)
 
     def _refresh_layout(self):
         if not self.content_provider:
             self.SetVirtualSize((0, 0))
             return
 
-        self._apply_auto_zoom_if_needed()
         pages = self._spread_pages()
-        self._current_bitmaps = [(pi, self._get_bitmap(pi)) for pi in pages]
+        if not pages:
+            self.SetVirtualSize((0, 0))
+            self._current_bitmaps = []
+            return
+
+        zooms = []
+        if self.zoom_mode == self.ZOOM_MANUAL:
+            zooms = [self.zoom] * len(pages)
+        else:
+            computed_zooms = self._compute_auto_zoom()
+            if computed_zooms and len(computed_zooms) == len(pages):
+                zooms = computed_zooms
+                if zooms:
+                    new_base_zoom = zooms[0] if self.direction == self.DIR_LTR else zooms[-1]
+                    new_base_zoom = max(self.MIN_ZOOM, min(new_base_zoom, self.MAX_ZOOM))
+                    if abs(new_base_zoom - self.zoom) > 1e-9:
+                        self.zoom = new_base_zoom
+            else:
+                zooms = [self.zoom] * len(pages)
+
+        self._current_bitmaps = []
+        for i, page_index in enumerate(pages):
+            zoom_for_page = zooms[i]
+            bmp = self._get_bitmap(page_index, zoom_for_page)
+            self._current_bitmaps.append((page_index, bmp))
 
         widths = [bmp.GetWidth() for _, bmp in self._current_bitmaps]
         heights = [bmp.GetHeight() for _, bmp in self._current_bitmaps]
@@ -409,7 +434,7 @@ class PDFView(wx.ScrolledWindow):
             content_h = heights[0]
         else:
             content_w = widths[0] + self.gap + widths[1]
-            content_h = max(heights[0], heights[1])
+            content_h = heights[0]
 
         total_w = content_w + 2 * self.margin
         total_h = content_h + 2 * self.margin
