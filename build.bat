@@ -1,5 +1,5 @@
 @echo off
-echo run this inside the src folder
+echo Remember to run this inside the ./src folder
 
 python -m nuitka ^
   --mode=standalone ^
@@ -9,12 +9,16 @@ python -m nuitka ^
   --windows-console-mode=attach ^
   --windows-icon-from-ico=icon.png ^
   --include-data-file=icon.png=icon.png ^
+  --include-data-file=libglib-2.0-0.dll=libglib-2.0-0.dll ^
+  --include-data-file=libgobject-2.0-0.dll=libgobject-2.0-0.dll ^
+  --include-data-file=libvips-42.dll=libvips-42.dll ^
+  --include-data-file=libvips-cpp-42.dll=libvips-cpp-42.dll ^
   --include-data-dir=filters=filters ^
   wxReader.py
 
 echo.
 echo ================================
 echo              DONE
-echo delete unnecessary dlls manually.
+echo delete unnecessary tkinter dlls manually.
 echo ================================
 pause

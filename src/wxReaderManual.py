@@ -127,6 +127,11 @@ MANUAL_TREE = [
             </ol>
             <p>The effect happens instantly. To turn off the visual effects, use the same menu.</p>
         """, []),
+        ("Render Quality", """
+            <h3>Image Scaling Quality</h3>
+            <p>This setting changes how pictures are scaled (made larger or smaller) on your screen. A higher quality setting looks better but may be slower on older computers. A lower quality setting is faster.</p>
+            <p>To change the setting, click the <b>View</b> menu, go to <b>Render Quality</b>, and click on the setting you want.</p>
+        """, []),
     ]),
 
     ("Advanced Customization", None, [
@@ -166,7 +171,6 @@ MANUAL_TREE = [
         """, []),
     ])
 ]
-
 
 
 class ManualDialog(wx.Frame):
