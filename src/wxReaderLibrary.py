@@ -26,12 +26,13 @@ def process_cover_with_provider(file_path, thumb_width, thumb_height):
         elif ext in {".zip", ".cbz"}:
             provider = ArchiveContentProvider(file_path)
         else:
-            return file_path, 0, 0, None  # Unsupported
+            return file_path, 0, 0, None
 
-        raw_bytes = provider.get_thumbnail(thumb_width, thumb_height)
+        thumb_data = provider.get_thumbnail(thumb_width, thumb_height)
 
-        if raw_bytes:
-            img = wx.Image(thumb_width, thumb_height, raw_bytes)
+        if thumb_data:
+            w, h, raw_bytes = thumb_data
+            img = wx.Image(w, h, raw_bytes)
             if img.IsOk():
                 return file_path, img.GetWidth(), img.GetHeight(), raw_bytes
 
@@ -42,6 +43,7 @@ def process_cover_with_provider(file_path, thumb_width, thumb_height):
             provider.close()
 
     return file_path, 0, 0, None
+
 
 
 class ThumbnailPanel(wx.Panel):

@@ -19,6 +19,6 @@ python -m nuitka ^
 echo.
 echo ================================
 echo              DONE
-echo delete unnecessary tkinter dlls manually.
+echo delete unnecessary tkinter dlls and pil folder manually.
 echo ================================
 pause

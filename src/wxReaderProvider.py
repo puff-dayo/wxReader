@@ -2,10 +2,9 @@ import abc
 import os
 
 import fitz  # PyMuPDF
+import pyvips
 import pyzipper
 import wx
-
-import pyvips
 
 
 class ContentProvider(abc.ABC):
@@ -165,7 +164,7 @@ class PdfContentProvider(ContentProvider):
                     })
         return found_images
 
-    def get_thumbnail(self, thumb_width: int, thumb_height: int) -> bytes | None:
+    def get_thumbnail(self, thumb_width: int, thumb_height: int) -> tuple[int, int, bytes] | None:
         if not self.is_valid or self.page_count == 0:
             return None
 
@@ -175,10 +174,11 @@ class PdfContentProvider(ContentProvider):
             scale = min(thumb_width / rect.width, thumb_height / rect.height)
             mat = fitz.Matrix(scale, scale)
 
-            pix = page.get_pixmap(matrix=mat, alpha=False)
+            pix = page.get_pixmap(matrix=mat, colorspace=fitz.csRGB, alpha=False)
 
             if pix.n == 3:  # RGB
-                return bytes(pix.samples)
+                return pix.width, pix.height, bytes(pix.samples)
+
         except Exception as e:
             print(f"[ERROR] wxReader failed to get thumbnail for {self.path}: {e}")
 
@@ -367,7 +367,7 @@ class ArchiveContentProvider(ContentProvider):
             print(f"pyvips conversion to wx.Bitmap error: {e}")
             return wx.Bitmap(1, 1)
 
-    def get_thumbnail(self, thumb_width: int, thumb_height: int) -> bytes | None:
+    def get_thumbnail(self, thumb_width: int, thumb_height: int) -> tuple[int, int, bytes] | None:
         if not self.is_valid or self.page_count == 0:
             return None
 
@@ -381,7 +381,7 @@ class ArchiveContentProvider(ContentProvider):
 
             thumb = vips_img.thumbnail_image(thumb_width, height=thumb_height, crop='centre')
 
-            return thumb.write_to_memory()
+            return thumb.width, thumb.height, thumb.write_to_memory()
 
         except Exception as e:
             print(f"[ERROR] pyvips failed to get thumbnail for {self.path}: {e}")
