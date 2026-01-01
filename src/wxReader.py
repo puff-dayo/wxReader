@@ -297,6 +297,7 @@ class MainFrame(wx.Frame):
         self.id_zoom_out = wx.NewIdRef()
         self.id_fit_width = wx.NewIdRef()
         self.id_fit_page = wx.NewIdRef()
+        self.id_zoom_manual = wx.NewIdRef()
 
         _add_item(m_view, self.id_zoom_in, "Zoom &In\tCtrl++")
         _add_item(m_view, self.id_zoom_out, "Zoom &Out\tCtrl+-")
@@ -304,6 +305,7 @@ class MainFrame(wx.Frame):
 
         m_view.AppendRadioItem(self.id_fit_width, "Fit &Width\tCtrl+3")
         m_view.AppendRadioItem(self.id_fit_page, "Fit &Page\tCtrl+4")
+        m_view.AppendRadioItem(self.id_zoom_manual, "Manual Zoom")
         m_view.AppendSeparator()
 
         m_quality = wx.Menu()
@@ -311,7 +313,7 @@ class MainFrame(wx.Frame):
         self.id_quality_hq = wx.NewIdRef()
         self.id_quality_mq = wx.NewIdRef()
         self.id_quality_lq = wx.NewIdRef()
-        item_hq = m_quality.AppendRadioItem(self.id_quality_hq, "Box+DeMoiré")
+        item_hq = m_quality.AppendRadioItem(self.id_quality_hq, "DeMoiré")
         item_mq = m_quality.AppendRadioItem(self.id_quality_mq, "Lanczos")
         item_lq = m_quality.AppendRadioItem(self.id_quality_lq, "Bilinear")
 
@@ -456,6 +458,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_zoom_out, id=self.id_zoom_out)
         self.Bind(wx.EVT_MENU, self.on_fit_width, id=self.id_fit_width)
         self.Bind(wx.EVT_MENU, self.on_fit_page, id=self.id_fit_page)
+        self.Bind(wx.EVT_MENU, self.on_manual_zoom, id=self.id_zoom_manual)
         self.Bind(wx.EVT_MENU, self.on_setmg, id=self.id_setmg)
         self.Bind(wx.EVT_MENU, self.on_background_color, id=int(self.id_bg))
         self.Bind(wx.EVT_MENU, self.on_change_epub_font, id=self.id_font_increase)
@@ -569,6 +572,7 @@ class MainFrame(wx.Frame):
 
         mb.Check(self.id_fit_width, self.view.zoom_mode == PDFView.ZOOM_FIT_WIDTH)
         mb.Check(self.id_fit_page, self.view.zoom_mode == PDFView.ZOOM_FIT_PAGE)
+        mb.Check(self.id_zoom_manual, self.view.zoom_mode == PDFView.ZOOM_MANUAL)
 
         if has_provider:
             shown = self.view._spread_pages()
@@ -963,6 +967,10 @@ class MainFrame(wx.Frame):
 
     def on_fit_page(self, evt):
         self.view.set_zoom_mode(PDFView.ZOOM_FIT_PAGE)
+        self._update_ui()
+
+    def on_manual_zoom(self, evt):
+        self.view.set_zoom_mode(PDFView.ZOOM_MANUAL)
         self._update_ui()
 
     def on_quality_change(self, event):

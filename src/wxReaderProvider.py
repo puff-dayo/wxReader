@@ -382,7 +382,7 @@ class ArchiveContentProvider(ContentProvider):
         else:
             if self.high_quality_render == 2:
                 if zoom < 1.0:
-                    blur_radius = (1.0 / zoom) * 0.5
+                    blur_radius = (1.0 / zoom) * 0.52
                     blurred = src_pil.filter(ImageFilter.GaussianBlur(radius=blur_radius))
                     final_pil = blurred.resize((target_w, target_h), resample=Image.Resampling.BOX)
                     print(f"[DEBUG] demoire trigger, radius: {blur_radius}")
