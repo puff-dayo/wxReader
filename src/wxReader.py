@@ -7,6 +7,7 @@ import os
 import wx
 from wx import adv
 
+from src.wxReaderIcon import msw_set_theme
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
     ModernColorDialog
@@ -1005,6 +1006,7 @@ class MainFrame(wx.Frame):
         current_color = self.view.GetBackgroundColour()
 
         dlg = ModernColorDialog(self, initial_color=current_color, title="Change background color")
+        msw_set_theme(dlg)
 
         if dlg.ShowModal() == wx.ID_OK:
             new_color = dlg.GetColorData().GetColour()
@@ -1112,9 +1114,12 @@ class WxPDFReaderApp(wx.App):
     def OnInit(self):
         frame = MainFrame()
 
+        msw_set_theme(frame)
+
         from wxReaderIcon import APP_ICON
         if APP_ICON.IsOk():
             frame.SetIcon(APP_ICON)
+
         frame.Show()
 
         return True

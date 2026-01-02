@@ -47,8 +47,8 @@ class PDFView(wx.ScrolledWindow):
         self.Bind(wx.EVT_TIMER, self._on_pre_render_timer, self._pre_render_timer)
 
         # Layout
-        self.margin = 6
-        self.gap = 6
+        self.margin = 2
+        self.gap = 2
         self._current_bitmaps: list[tuple[int, wx.Bitmap]] = []  # [(page_index, bmp), ...]
 
         # Panning

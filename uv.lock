@@ -438,6 +438,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2d/6a/282936de9faac6addf6bc8792c18e006489d0023ffd8856b8643f54d0558/pyvips-3.1.1.tar.gz", hash = "sha256:84fe744d023b1084ac2516bb17064cacd41c7f8aabf8e524dd383534941b9301", size = 56951 }
 
 [[package]]
+name = "pywinstyles"
+version = "1.8"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/09/5b/c3356335b7f60a940c3e9c1aa6f3b6407af10b26c763739933c500937dbe/pywinstyles-1.8.tar.gz", hash = "sha256:7a087b1f45ef8d572b440712817dbbef8ae90793ab7fcc51b060851d2d6f301c", size = 10514 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/37/be473b2d3bde387ef39e57b3ebabadfaaf0627333814e0c3813dac686f5e/pywinstyles-1.8-py3-none-any.whl", hash = "sha256:17d89c6bc91569b676b71c00400ec958548302809858966c4cf447bb16a7e407", size = 10535 },
+]
+
+[[package]]
 name = "pyzipper"
 version = "0.3.6"
 source = { registry = "https://pypi.org/simple" }
@@ -482,6 +491,7 @@ dependencies = [
     { name = "pymupdf" },
     { name = "pyopengl" },
     { name = "pyvips" },
+    { name = "pywinstyles" },
     { name = "pyzipper" },
     { name = "wxpython" },
 ]
@@ -503,6 +513,7 @@ requires-dist = [
     { name = "pymupdf", specifier = "==1.23.8" },
     { name = "pyopengl", specifier = ">=3.1.10" },
     { name = "pyvips", specifier = ">=3.1.1" },
+    { name = "pywinstyles", specifier = ">=1.8" },
     { name = "pyzipper", specifier = ">=0.3.6" },
     { name = "radon", marker = "extra == 'analysis'", specifier = ">=6.0.1" },
     { name = "wxpython", specifier = ">=4.2.4" },
