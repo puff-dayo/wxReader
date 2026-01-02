@@ -6,6 +6,7 @@ import os
 
 import wx
 from wx import adv
+import wx.lib.agw.flatmenu as FM
 
 from src.wxReaderIcon import msw_set_theme
 from wxReaderConfigUtil import load_config, save_config, update_recent
@@ -65,7 +66,7 @@ class MainFrame(wx.Frame):
 
         # Initialize state
         self.content_provider: ContentProvider | None = None
-        self.file_history = wx.FileHistory(24)
+        self.file_history = FM.FileHistory(24)
         self.quality_preference = 1
 
         self.epub_font_size = 12
@@ -226,23 +227,27 @@ class MainFrame(wx.Frame):
         self.Raise()
 
     def _build_menus(self):
-        menubar = wx.MenuBar()
+        self.menubar = FM.FlatMenuBar(self, wx.ID_ANY, 16, 2, options=FM.FM_OPT_IS_LCD)
+        renderer = self.menubar.GetRenderer()
+        hover_color = wx.Colour("#86b486")
+        renderer.SetMenuBarHighlightColour(hover_color)
+        renderer.SetMenuHighlightColour(hover_color)
 
-        def _add_item(menu, id, label, art_id=None, help_text=""):
-            item = wx.MenuItem(menu, id, label, help_text)
-
+        def _add_item(menu, id, label, art_id=None, help_text="", kind=wx.ITEM_NORMAL, subMenu=None):
+            bmp = wx.NullBitmap
             if art_id:
-                bmp = wx.ArtProvider.GetBitmapBundle(art_id, wx.ART_MENU, wx.Size(16, 16))
-                item.SetBitmap(bmp)
+                bundle = wx.ArtProvider.GetBitmapBundle(art_id, wx.ART_MENU, wx.Size(16, 16))
+                if bundle.IsOk():
+                    bmp = bundle.GetBitmap(wx.Size(16, 16))
 
-            menu.Append(item)
+            item = FM.FlatMenuItem(menu, id, label, help_text, kind, subMenu, normalBmp=bmp)
+            menu.AppendItem(item)
             return item
 
         # --- File ---
-        m_file = wx.Menu()
+        m_file = FM.FlatMenu()
 
         m_open = _add_item(m_file, wx.ID_OPEN, "&Open...\tCtrl+O", wx.ART_FILE_OPEN)
-
         m_close = _add_item(m_file, wx.ID_CLOSE, "&Close\tCtrl+W")
 
         m_file.AppendSeparator()
@@ -252,24 +257,23 @@ class MainFrame(wx.Frame):
 
         m_file.AppendSeparator()
 
-        self.m_recent = wx.Menu()
-        m_file.AppendSubMenu(self.m_recent, "Open &Recent")
+        self.m_recent = FM.FlatMenu()
+        item_recent = FM.FlatMenuItem(m_file, wx.ID_ANY, "Open &Recent", "", wx.ITEM_NORMAL, self.m_recent)
+        m_file.AppendItem(item_recent)
 
         self.id_clear_history = wx.NewIdRef()
         _add_item(m_file, self.id_clear_history, "Clear Recent Files")
 
         m_file.AppendSeparator()
-
         m_exit = _add_item(m_file, wx.ID_EXIT, "E&xit", wx.ART_QUIT)
 
-        menubar.Append(m_file, "&File")
+        self.menubar.Append(m_file, "&File")
 
         # --- View ---
-        m_view = wx.Menu()
+        m_view = FM.FlatMenu()
 
         self.id_sidebar_toggle = wx.NewIdRef()
-        item = wx.MenuItem(m_view, self.id_sidebar_toggle, "Show &Sidebar\tF9", kind=wx.ITEM_CHECK)
-        m_view.Append(item)
+        _add_item(m_view, self.id_sidebar_toggle, "Show &Sidebar\tF9", kind=wx.ITEM_CHECK)
 
         self.id_switch_tab = wx.NewIdRef()
         _add_item(m_view, self.id_switch_tab, "Switch Sidebar Tab\tF8")
@@ -283,15 +287,18 @@ class MainFrame(wx.Frame):
         m_view.AppendSeparator()
 
         self.id_pad_start = wx.NewIdRef()
-        m_view.AppendCheckItem(self.id_pad_start, "Add Blank Page at Start")
+        _add_item(m_view, self.id_pad_start, "Add Blank Page at Start", kind=wx.ITEM_CHECK)
         m_view.AppendSeparator()
 
-        m_dir = wx.Menu()
+        m_dir = FM.FlatMenu()
         self.id_ltr = wx.NewIdRef()
         self.id_rtl = wx.NewIdRef()
         m_dir.AppendRadioItem(self.id_ltr, "Left-to-Right")
         m_dir.AppendRadioItem(self.id_rtl, "Right-to-Left")
-        m_view.AppendSubMenu(m_dir, "Page &Direction")
+
+        item_dir = FM.FlatMenuItem(m_view, wx.ID_ANY, "Page &Direction", "", wx.ITEM_NORMAL, m_dir)
+        m_view.AppendItem(item_dir)
+
         m_view.AppendSeparator()
 
         self.id_zoom_in = wx.NewIdRef()
@@ -324,27 +331,31 @@ class MainFrame(wx.Frame):
 
         m_view.AppendSeparator()
         self.id_fullscreen = wx.NewIdRef()
-        m_view.AppendCheckItem(self.id_fullscreen, "Full &Screen\tF11")
+        _add_item(m_view, self.id_fullscreen, "Full &Screen\tF11", kind=wx.ITEM_CHECK)
 
         m_view.AppendSeparator()
 
-        m_quality = wx.Menu()
+        m_quality = FM.FlatMenu()
 
         self.id_quality_hq = wx.NewIdRef()
         self.id_quality_mq = wx.NewIdRef()
         self.id_quality_lq = wx.NewIdRef()
-        item_hq = m_quality.AppendRadioItem(self.id_quality_hq, "DeMoiré")
-        item_mq = m_quality.AppendRadioItem(self.id_quality_mq, "Lanczos")
-        item_lq = m_quality.AppendRadioItem(self.id_quality_lq, "Bilinear")
 
-        item_lq.Check(True)
+        m_quality.AppendRadioItem(self.id_quality_hq, "DeMoiré")
+        m_quality.AppendRadioItem(self.id_quality_mq, "Lanczos")
+        m_quality.AppendRadioItem(self.id_quality_lq, "Bilinear")
 
-        m_view.AppendSubMenu(m_quality, "Render Quality")
+        item_lq = m_quality.FindItem(self.id_quality_lq)
+        if item_lq:
+            item_lq.Check(True)
 
-        menubar.Append(m_view, "&View")
+        item_quality = FM.FlatMenuItem(m_view, wx.ID_ANY, "Render Quality", "", wx.ITEM_NORMAL, m_quality)
+        m_view.AppendItem(item_quality)
+
+        self.menubar.Append(m_view, "&View")
 
         # --- Navigate ---
-        m_nav = wx.Menu()
+        m_nav = FM.FlatMenu()
 
         self.id_prev = wx.NewIdRef()
         self.id_next = wx.NewIdRef()
@@ -362,10 +373,10 @@ class MainFrame(wx.Frame):
         self.id_show_toc_dialog = wx.NewIdRef()
         _add_item(m_nav, self.id_show_toc_dialog, "Show TOC Dialog...\tCtrl+T")
 
-        menubar.Append(m_nav, "&Navigate")
+        self.menubar.Append(m_nav, "&Navigate")
 
         # --- Process ---
-        m_process = wx.Menu()
+        m_process = FM.FlatMenu()
 
         self.id_extract_text = wx.NewIdRef()
         _add_item(m_process, self.id_extract_text, "Extract Page Text\tCtrl+E")
@@ -376,16 +387,14 @@ class MainFrame(wx.Frame):
         m_process.AppendSeparator()
 
         self.id_custom_none = wx.NewIdRef()
-        m_process.AppendCheckItem(self.id_custom_none, "None / Turn Off")
+        _add_item(m_process, self.id_custom_none, "None / Turn Off", kind=wx.ITEM_CHECK)
         self.Bind(wx.EVT_MENU, lambda e: self._select_custom_filter(None), id=self.id_custom_none)
 
         self.filter_menu_map = {}
 
         def _populate_custom_filters_menu():
             filters_dir = os.path.join(os.path.dirname(__file__), "filters")
-            print(f"[INFO] Loading filters from: {filters_dir}")
             if not os.path.exists(filters_dir):
-                print("[ERROR] The filters folder was not found.")
                 return
 
             loaded_filters = set(self.gl_filters.filters.keys())
@@ -396,11 +405,10 @@ class MainFrame(wx.Frame):
                 entries = []
 
             for entry in entries:
-                print(f"[INFO] Loading filters from list: {entry}")
                 full_path = os.path.join(filters_dir, entry)
 
                 if os.path.isdir(full_path):
-                    submenu = wx.Menu()
+                    submenu = FM.FlatMenu()
                     has_items = False
 
                     sub_files = sorted(os.listdir(full_path))
@@ -408,32 +416,39 @@ class MainFrame(wx.Frame):
                         name, ext = os.path.splitext(f)
                         if name in loaded_filters:
                             mid = wx.NewIdRef()
-                            submenu.AppendCheckItem(mid, name)
+                            item = FM.FlatMenuItem(submenu, mid, name, "", wx.ITEM_CHECK)
+                            submenu.AppendItem(item)
+
                             self.Bind(wx.EVT_MENU, functools.partial(self._on_custom_filter_menu, name=name), id=mid)
 
                             self.filter_menu_map[name] = mid
                             has_items = True
 
                     if has_items:
-                        m_process.AppendSubMenu(submenu, entry)
+                        item_sub = FM.FlatMenuItem(m_process, wx.ID_ANY, entry, "", wx.ITEM_NORMAL, submenu)
+                        m_process.AppendItem(item_sub)
 
-            self.GetMenuBar().Check(self.id_custom_none, True)
+            item_none = m_process.FindItem(self.id_custom_none)
+            if item_none: item_none.Check(True)
 
         self._populate_custom_filters_menu = _populate_custom_filters_menu
 
-        menubar.Append(m_process, "&Process")
+        self.menubar.Append(m_process, "&Process")
 
         # --- Help ---
-        m_help = wx.Menu()
+        m_help = FM.FlatMenu()
         m_about = _add_item(m_help, wx.ID_ABOUT, "&About", wx.ART_INFORMATION)
-        menubar.Append(m_help, "&Info")
+        self.menubar.Append(m_help, "&Info")
 
         m_help.AppendSeparator()
 
         self.id_manual = wx.NewIdRef()
         _add_item(m_help, self.id_manual, "&Help Topics\tF1")
 
-        self.SetMenuBar(menubar)
+        # --- Integration ---
+        self.GetSizer().Insert(0, self.menubar, 0, wx.EXPAND)
+        self.Layout()
+
         self.file_history.UseMenu(self.m_recent)
         self.file_history.AddFilesToMenu(self.m_recent)
 
@@ -548,33 +563,42 @@ class MainFrame(wx.Frame):
         has_provider = self.content_provider is not None
         is_reflowable = has_provider and self.content_provider.is_reflowable
 
-        mb = self.GetMenuBar()
-        mb.Enable(self.id_sidebar_toggle, has_provider)
-        mb.Check(self.id_sidebar_toggle, self.splitter.IsSplit())
+        mb = self.menubar
 
-        mb.Enable(int(self.id_clear_history), bool(getattr(self, "recent_files", [])))
+        def _set_enable(mid, val):
+            item = mb.FindMenuItem(mid)
+            if item: item.Enable(val)
 
-        mb.Enable(self.id_font_increase, is_reflowable)
-        mb.Enable(self.id_font_decrease, is_reflowable)
+        def _set_check(mid, val):
+            item = mb.FindMenuItem(mid)
+            if item: item.Check(val)
 
-        mb.Enable(wx.ID_CLOSE, has_provider)
+        _set_enable(self.id_sidebar_toggle, has_provider)
+        _set_check(self.id_sidebar_toggle, self.splitter.IsSplit())
 
-        mb.Check(self.id_single_page, self.view.mode == PDFView.MODE_SINGLE)
-        mb.Check(self.id_two_page, self.view.mode == PDFView.MODE_TWO)
+        _set_enable(int(self.id_clear_history), bool(getattr(self, "recent_files", [])))
 
-        mb.Check(self.id_pad_start, self.view.pad_start)
-        mb.Enable(self.id_pad_start, has_provider and self.view.mode == PDFView.MODE_TWO)
+        _set_enable(self.id_font_increase, is_reflowable)
+        _set_enable(self.id_font_decrease, is_reflowable)
 
-        mb.Check(self.id_ltr, self.view.direction == PDFView.DIR_LTR)
-        mb.Check(self.id_rtl, self.view.direction == PDFView.DIR_RTL)
+        _set_enable(wx.ID_CLOSE, has_provider)
+
+        _set_check(self.id_single_page, self.view.mode == PDFView.MODE_SINGLE)
+        _set_check(self.id_two_page, self.view.mode == PDFView.MODE_TWO)
+
+        _set_check(self.id_pad_start, self.view.pad_start)
+        _set_enable(self.id_pad_start, has_provider and self.view.mode == PDFView.MODE_TWO)
+
+        _set_check(self.id_ltr, self.view.direction == PDFView.DIR_LTR)
+        _set_check(self.id_rtl, self.view.direction == PDFView.DIR_RTL)
 
         for item_id in [self.id_prev, self.id_next, self.id_goto, self.id_zoom_in,
                         self.id_zoom_out, self.id_fit_width, self.id_fit_page]:
-            mb.Enable(item_id, has_provider)
+            _set_enable(item_id, has_provider)
 
-        mb.Check(self.id_fit_width, self.view.zoom_mode == PDFView.ZOOM_FIT_WIDTH)
-        mb.Check(self.id_fit_page, self.view.zoom_mode == PDFView.ZOOM_FIT_PAGE)
-        mb.Check(self.id_zoom_manual, self.view.zoom_mode == PDFView.ZOOM_MANUAL)
+        _set_check(self.id_fit_width, self.view.zoom_mode == PDFView.ZOOM_FIT_WIDTH)
+        _set_check(self.id_fit_page, self.view.zoom_mode == PDFView.ZOOM_FIT_PAGE)
+        _set_check(self.id_zoom_manual, self.view.zoom_mode == PDFView.ZOOM_MANUAL)
 
         if has_provider:
             shown = self.view._spread_pages()
@@ -585,9 +609,9 @@ class MainFrame(wx.Frame):
             pad_str = " [Padded]" if self.view.pad_start else ""
 
             status_txt = (f"{os.path.basename(self.content_provider.path)}  |  "
-                          f"Page {current_page_display} of {self.content_provider.page_count}  |  "
-                          f"{direction_str}{pad_str}  |  "
-                          f"Zoom: {int(self.view.zoom * 100)}%")
+                                                              f"Page {current_page_display} of {self.content_provider.page_count}  |  "
+                                                              f"{direction_str}{pad_str}  |  "
+                                                              f"Zoom: {int(self.view.zoom * 100)}%")
             if is_reflowable:
                 status_txt += f" | Font Size: {self.epub_font_size}pt"
             self.SetStatusText(status_txt)
@@ -1029,19 +1053,21 @@ class MainFrame(wx.Frame):
         if self.view:
             self.view.set_custom_filter(name)
 
-        mb = self.GetMenuBar()
-        if not mb: return
+        # Update checks on FlatMenuBar
+        def _check_id(mid, val):
+            item = self.menubar.FindMenuItem(mid)
+            if item: item.Check(val)
 
         if name is None:
-            mb.Check(self.id_custom_none, True)
+            _check_id(self.id_custom_none, True)
             for fid in self.filter_menu_map.values():
-                mb.Check(fid, False)
+                _check_id(fid, False)
         else:
-            mb.Check(self.id_custom_none, False)
+            _check_id(self.id_custom_none, False)
 
             for fname, fid in self.filter_menu_map.items():
                 should_check = (fname == name)
-                mb.Check(fid, should_check)
+                _check_id(fid, should_check)
 
         self._update_ui()
 
