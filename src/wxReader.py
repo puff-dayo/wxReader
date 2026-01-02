@@ -3,9 +3,9 @@ from __future__ import annotations
 import functools
 import io
 import os
+import threading
 
 import wx
-from wx import adv
 import wx.lib.agw.flatmenu as FM
 
 from src.wxReaderIcon import msw_set_theme
@@ -16,8 +16,8 @@ from wxReaderGlUtil import GLFilterTool
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
 from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContentProvider
-from wxReaderView import PDFView
 from wxReaderString import *
+from wxReaderView import PDFView
 
 
 class FileDropTarget(wx.FileDropTarget):
@@ -56,7 +56,23 @@ def get_icon_v2(art_id):
 
 class MainFrame(wx.Frame):
     def __init__(self):
-        super().__init__(None, title=APP_NAME, size=(1280, 800))
+        cfg = load_config()
+
+        style = wx.DEFAULT_FRAME_STYLE
+        is_maximized = cfg.get("window_maximized", False)
+        if is_maximized:
+            style |= wx.MAXIMIZE
+        initial_pos = wx.DefaultPosition
+        initial_size = (1280, 800)
+
+        win_rect = cfg.get("window_rect")
+        if win_rect and len(win_rect) == 4 and not is_maximized:
+            x, y, w, h = win_rect
+            if wx.Display.GetFromPoint((x, y)) != wx.NOT_FOUND:
+                initial_pos = (x, y)
+                initial_size = (w, h)
+
+        super().__init__(None, title=APP_NAME, pos=initial_pos, size=initial_size, style=style)
         self.SetMinSize((600, 400))
 
         # Initialize state
@@ -142,7 +158,6 @@ class MainFrame(wx.Frame):
 
         filters_dir = os.path.join(os.path.dirname(__file__), "filters")
         self.gl_filters = GLFilterTool(self, filters_dir)
-        self.gl_filters.load_filters()
         root = wx.BoxSizer(wx.VERTICAL)
         root.Add(self.splitter, 1, wx.EXPAND)
         root.Add(self.gl_filters.canvas, 0)
@@ -153,29 +168,14 @@ class MainFrame(wx.Frame):
 
         self.recent_files = []
 
-        cfg = load_config()
-
         self.file_progress = cfg.get("file_progress", {})
 
         try:
-            win_rect = cfg.get("window_rect")
-            if win_rect and len(win_rect) == 4:
-                x, y, w, h = win_rect
-                display_rect = wx.Display(wx.Display.GetFromPoint((x, y))).GetGeometry()
-
-                if display_rect.Contains((x, y)):
-                    self.SetSize(wx.Rect(x, y, w, h))
-                else:
-                    self.Center()
-
-            if cfg.get("window_maximized", False):
-                self.Maximize()
-
             if cfg.get("window_fullscreen", False):
                 self.ShowFullScreen(True)
                 self.GetMenuBar().Check(self.id_fullscreen, True)
         except Exception as e:
-            print(f"[ERROR] wxReader Failed to restore window state: {e}")
+            print(f"[ERROR] wxReader Failed to restore fullscreen: {e}")
 
         try:
             show_sidebar = bool(cfg.get("show_sidebar", False))
@@ -220,6 +220,8 @@ class MainFrame(wx.Frame):
 
         self._update_ui()
         self.Raise()
+
+        wx.CallAfter(self._post_startup_tasks)
 
     def _build_menus(self):
         self.menubar = FM.FlatMenuBar(self, wx.ID_ANY, 16, 2, options=FM.FM_OPT_IS_LCD)
@@ -447,7 +449,7 @@ class MainFrame(wx.Frame):
         self.file_history.UseMenu(self.m_recent)
         self.file_history.AddFilesToMenu(self.m_recent)
 
-        self._populate_custom_filters_menu()
+        # self._populate_custom_filters_menu()
 
         # --- Bindings ---
         self.Bind(wx.EVT_MENU, self.on_open, m_open)
@@ -493,6 +495,21 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.on_about, m_about)
         self.Bind(wx.EVT_MENU, self.on_manual, id=self.id_manual)
+
+    def _post_startup_tasks(self):
+        threading.Thread(target=self._load_data_thread, daemon=True).start()
+
+    def _load_data_thread(self):
+        self.gl_filters.load_filters()
+
+        wx.CallAfter(self._update_menus_after_load)
+
+    def _update_menus_after_load(self):
+        if hasattr(self, '_populate_custom_filters_menu'):
+            self._populate_custom_filters_menu()
+            self.menubar.Refresh()
+
+            self.SetStatusText("Filters loaded successfully.")
 
     def _populate_sidebar(self, filter_text=None):
         if not self.content_provider:
