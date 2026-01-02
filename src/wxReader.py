@@ -709,6 +709,7 @@ class MainFrame(wx.Frame):
                 pass
 
         self.manual_window = ManualDialog(self)
+        msw_set_theme(self.manual_window)
         self.manual_window.Show()
 
     def on_open_library(self, evt):
@@ -747,6 +748,8 @@ class MainFrame(wx.Frame):
             wx.MessageBox("No TOC found.")
             return
         dlg = TOCDialog(self, toc, self.view.page, lambda p: (self.view.go_to_page(p), self._update_ui()))
+        msw_set_theme(dlg)
+
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -761,6 +764,8 @@ class MainFrame(wx.Frame):
             # self.Raise()
 
         dlg = SearchDialog(self, self.content_provider, navigate_to_page)
+        msw_set_theme(dlg)
+
         dlg.Show()
 
     def on_nav_go_up(self, evt):
@@ -836,6 +841,8 @@ class MainFrame(wx.Frame):
                 full_text = "<No text found on visible pages.>"
 
             dlg = TextExtractionDialog(self, full_text, title="Extracted Page Text")
+            msw_set_theme(dlg)
+
             dlg.ShowModal()
             dlg.Destroy()
 
@@ -883,6 +890,7 @@ class MainFrame(wx.Frame):
             return
 
         dlg = ImageExtractionDialog(self, found_images_data)
+        msw_set_theme(dlg)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -926,6 +934,7 @@ class MainFrame(wx.Frame):
 
     def on_setmg(self, evt):
         dlg = SetMarginGapDialog(self, title="Set Margin and Gap")
+        msw_set_theme(dlg)
 
         if dlg.ShowModal() == wx.ID_OK:
             margin_str, gap_str = dlg.GetValues()
