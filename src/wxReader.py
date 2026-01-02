@@ -11,18 +11,13 @@ import wx.lib.agw.flatmenu as FM
 from src.wxReaderIcon import msw_set_theme
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
-    ModernColorDialog
+    ModernColorDialog, AboutDialog
 from wxReaderGlUtil import GLFilterTool
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
 from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContentProvider
 from wxReaderView import PDFView
-
-APP_NAME = "wxReader"
-APP_VERSION = "1.3.1"
-SUPPORTED_EXTENSIONS = {".pdf", ".epub", ".mobi", ".fb2", ".txt", ".zip", ".cbz"}
-SUPPORTED_EXTENSIONS_STRING = ";".join("*" + ext for ext in SUPPORTED_EXTENSIONS)
-SUPPORTED_WILDCARDS = f"Supported files ({SUPPORTED_EXTENSIONS_STRING})|{SUPPORTED_EXTENSIONS_STRING}|All files (*.*)|*.*"
+from wxReaderString import *
 
 
 class FileDropTarget(wx.FileDropTarget):
@@ -1081,25 +1076,9 @@ class MainFrame(wx.Frame):
         self._update_ui()
 
     def on_about(self, event):
-        info = adv.AboutDialogInfo()
-
-        try:
-            from wxReaderIcon import APP_ICON
-            info.SetIcon(icon=APP_ICON)
-        except Exception:
-            print(Exception)
-        info.SetName(APP_NAME)
-        info.SetVersion(APP_VERSION)
-        info.SetDescription(
-            f"wxPython v{wx.version()} (LGPL)\n"
-            "PyMuPDF v1.23.8 with MuPDF v1.23.7 (AGPL)\n"
-            "OpenGL (PyOpenGL, BSD)\n"
-            "libvips (pyvips, LGPL-2.1)\n"
-            "Python 3.12.9"
-        )
-        info.SetWebSite(url=r"https://github.com/puff-dayo/wxReader/")
-
-        wx.adv.AboutBox(info)
+        dlg = AboutDialog(self)
+        msw_set_theme(dlg)
+        dlg.Show()
 
     def on_close(self, evt):
         if self.content_provider and self.view:

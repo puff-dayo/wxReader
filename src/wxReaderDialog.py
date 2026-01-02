@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import os
+
 import wx
 import colorsys
 
+from wx import adv
+
+from wxReaderString import *
 
 class TOCDialog(wx.Dialog):
     def __init__(self, parent, toc_list, current_page_idx, on_navigate_callback):
@@ -593,3 +598,64 @@ class ModernColorDialog(wx.Dialog):
             except ValueError:
                 pass
 
+
+class AboutDialog(wx.Dialog):
+    def __init__(self, parent):
+        super().__init__(parent, title="About", style=wx.DEFAULT_DIALOG_STYLE)
+
+        self.SetBackgroundColour(wx.WHITE)
+
+        wrapper = wx.BoxSizer(wx.VERTICAL)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        if os.path.exists("icon.png"):
+            img = wx.Image("icon.png", wx.BITMAP_TYPE_ANY)
+            img.Rescale(48, 48, wx.IMAGE_QUALITY_HIGH)
+
+            icon_img = wx.StaticBitmap(self, bitmap=wx.Bitmap(img))
+            main_sizer.Add(icon_img, 0, wx.CENTER | wx.BOTTOM, 5)
+
+        lbl_name = wx.StaticText(self, label=APP_NAME)
+        lbl_name.SetFont(wx.Font(16, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        main_sizer.Add(lbl_name, 0, wx.CENTER | wx.BOTTOM, 2)
+
+        lbl_ver = wx.StaticText(self, label=f"Version {APP_VERSION}")
+        lbl_ver.SetForegroundColour(wx.Colour(100, 100, 100))
+        main_sizer.Add(lbl_ver, 0, wx.CENTER)
+
+        line = wx.StaticLine(self)
+        main_sizer.Add(line, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+
+        tech_sizer = wx.FlexGridSizer(cols=3, hgap=10, vgap=4)
+
+        def _add_tech_row(label, value, license_name=""):
+            l1 = wx.StaticText(self, label=label)
+            l2 = wx.StaticText(self, label=value)
+            l3 = wx.StaticText(self, label=license_name)
+            l3.SetForegroundColour(wx.Colour(120, 120, 120))
+
+            tech_sizer.Add(l1, 0, wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+            tech_sizer.Add(l2, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+            tech_sizer.Add(l3, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+
+        _add_tech_row("GUI kit", f"wxPython {wx.version()}", "LGPL")
+        _add_tech_row("PDF engine", "PyMuPDF 1.23.8", "AGPL")
+        _add_tech_row("Post process", "OpenGL (PyOpenGL)", "BSD")
+        _add_tech_row("Image render", "libvips", "LGPL")
+        _add_tech_row("Runtime", "Python 3.12.9", "PSFL")
+
+        main_sizer.Add(tech_sizer, 0, wx.CENTER)
+
+        main_sizer.AddSpacer(10)
+
+        link = adv.HyperlinkCtrl(self, label="Visit GitHub Repository", url="https://github.com/puff-dayo/wxReader/")
+        main_sizer.Add(link, 0, wx.CENTER | wx.BOTTOM, 10)
+
+        btn = wx.Button(self, wx.ID_OK, label="Close")
+        btn.SetDefault()
+        main_sizer.Add(btn, 0, wx.CENTER)
+
+        wrapper.Add(main_sizer, 1, wx.EXPAND | wx.ALL, 15)
+
+        self.SetSizerAndFit(wrapper)
+        self.CenterOnParent()
