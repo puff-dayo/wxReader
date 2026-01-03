@@ -11,7 +11,7 @@ import wx.lib.agw.flatmenu as FM
 from src.wxReaderIcon import msw_set_theme
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
-    ModernColorDialog, AboutDialog
+    ModernColorDialog, AboutDialog, RecentFilesDialog
 from wxReaderGlUtil import GLFilterTool
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
@@ -25,7 +25,8 @@ class FileDropTarget(wx.FileDropTarget):
         super().__init__()
         self.frame = frame
 
-    def _accept(self, filenames):
+    @staticmethod
+    def _accept(filenames):
         if not filenames:
             return False
         path = filenames[0]
@@ -77,7 +78,6 @@ class MainFrame(wx.Frame):
 
         # Initialize state
         self.content_provider: ContentProvider | None = None
-        self.file_history = FM.FileHistory(24)
         self.quality_preference = 1
 
         self.epub_font_size = 12
@@ -199,10 +199,6 @@ class MainFrame(wx.Frame):
         self.recent_files = cfg.get("recent_files", []) or []
         last = cfg.get("last_file", "")
 
-        for p in reversed(self.recent_files):
-            if p and os.path.isfile(p):
-                self.file_history.AddFileToHistory(p)
-
         if last and os.path.isfile(last):
             wx.CallAfter(self._load_file, last)
 
@@ -254,12 +250,8 @@ class MainFrame(wx.Frame):
 
         m_file.AppendSeparator()
 
-        self.m_recent = FM.FlatMenu()
-        item_recent = FM.FlatMenuItem(m_file, wx.ID_ANY, "Open &Recent", "", wx.ITEM_NORMAL, self.m_recent)
-        m_file.AppendItem(item_recent)
-
-        self.id_clear_history = wx.NewIdRef()
-        _add_item(m_file, self.id_clear_history, "Clear Recent Files")
+        self.id_recent_dialog = wx.NewIdRef()
+        _add_item(m_file, self.id_recent_dialog, "Recent Files...")
 
         m_file.AppendSeparator()
         m_exit = _add_item(m_file, wx.ID_EXIT, "E&xit", wx.ART_QUIT)
@@ -446,17 +438,11 @@ class MainFrame(wx.Frame):
         self.GetSizer().Insert(0, self.menubar, 0, wx.EXPAND)
         self.Layout()
 
-        self.file_history.UseMenu(self.m_recent)
-        self.file_history.AddFilesToMenu(self.m_recent)
-
-        # self._populate_custom_filters_menu()
-
         # --- Bindings ---
         self.Bind(wx.EVT_MENU, self.on_open, m_open)
         self.Bind(wx.EVT_MENU, self.on_open_library, id=self.id_library)
+        self.Bind(wx.EVT_MENU, self.on_show_recent, id=self.id_recent_dialog)
         self.Bind(wx.EVT_MENU, self.on_close_pdf, m_close)
-        self.Bind(wx.EVT_MENU_RANGE, self.on_open_recent, id=wx.ID_FILE1, id2=wx.ID_FILE9)
-        self.Bind(wx.EVT_MENU, self.on_clear_history, id=self.id_clear_history)
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), m_exit)
 
         # View
@@ -588,8 +574,6 @@ class MainFrame(wx.Frame):
         _set_enable(self.id_sidebar_toggle, has_provider)
         _set_check(self.id_sidebar_toggle, self.splitter.IsSplit())
 
-        _set_enable(int(self.id_clear_history), bool(getattr(self, "recent_files", [])))
-
         _set_enable(self.id_font_increase, is_reflowable)
         _set_enable(self.id_font_decrease, is_reflowable)
 
@@ -665,8 +649,6 @@ class MainFrame(wx.Frame):
             self.content_provider = None
             return
 
-        self.file_history.AddFileToHistory(path)
-
         self._populate_sidebar()
 
         self.view.set_content_provider(self.content_provider)
@@ -676,7 +658,7 @@ class MainFrame(wx.Frame):
             if 0 <= saved_page < self.content_provider.page_count:
                 self.view.go_to_page(saved_page)
 
-        self.recent_files = update_recent(self.recent_files, path, limit=24)
+        self.recent_files = update_recent(self.recent_files, path)
 
         if not self.splitter.IsSplit():
             self.splitter.SplitVertically(self.sidebar, self.view, 250)
@@ -703,13 +685,6 @@ class MainFrame(wx.Frame):
             self.sidebar_nb.SetSelection(1)
 
         self._update_ui()
-
-    def on_open_recent(self, evt):
-        path = self.file_history.GetHistoryFile(evt.GetId() - wx.ID_FILE1)
-        if path and os.path.isfile(path):
-            self._load_file(path)
-        else:
-            wx.Bell()
 
     def on_manual(self, evt):
         if hasattr(self, 'manual_window') and self.manual_window:
@@ -743,15 +718,6 @@ class MainFrame(wx.Frame):
         lib_frame = LibraryFrame(self, current_dir, _open_from_lib)
         lib_frame.Show()
 
-    def on_clear_history(self, evt):
-        for i in range(self.file_history.GetCount() - 1, -1, -1):
-            self.file_history.RemoveFileFromHistory(i)
-
-        self.recent_files = []
-
-        self.file_history.AddFilesToMenu(self.m_recent)
-        self._update_ui()
-
     def on_show_toc_dialog(self, evt):
         if not self.content_provider:
             return
@@ -764,6 +730,29 @@ class MainFrame(wx.Frame):
 
         dlg.ShowModal()
         dlg.Destroy()
+
+    def on_show_recent(self, evt):
+        dlg = RecentFilesDialog(self, self.recent_files)
+        msw_set_theme(dlg)
+        dlg.ShowModal()
+
+        updated_recent = dlg.recent_files
+        file_to_open = dlg.file_to_open
+
+        dlg.Destroy()
+
+        if updated_recent != self.recent_files:
+            self.recent_files = updated_recent
+
+            try:
+                cfg = load_config()
+                cfg["recent_files"] = self.recent_files
+                save_config(cfg)
+            except Exception as e:
+                print(f"Error saving recent files: {e}")
+
+        if file_to_open:
+            wx.CallAfter(self._load_file, file_to_open)
 
     def on_show_search(self, evt):
         if not self.content_provider:

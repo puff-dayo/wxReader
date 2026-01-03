@@ -79,7 +79,7 @@ def save_config(data: dict) -> bool:
         return False
 
 
-def update_recent(recent_list: list[str], new_path: str, limit: int = 12) -> list[str]:
+def update_recent(recent_list: list[str], new_path: str, limit: int = 50) -> list[str]:
     new_path = str(Path(new_path).resolve())
     items = [new_path] + [p for p in recent_list if p and p != new_path]
     items = [p for p in items if Path(p).exists()]

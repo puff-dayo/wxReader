@@ -6,8 +6,11 @@ import wx
 import colorsys
 
 from wx import adv
+import wx.dataview as dv
 
+from src.wxReaderIcon import msw_set_theme
 from wxReaderString import *
+from wxReaderConfigUtil import load_config, save_config
 
 class TOCDialog(wx.Dialog):
     def __init__(self, parent, toc_list, current_page_idx, on_navigate_callback):
@@ -638,10 +641,10 @@ class AboutDialog(wx.Dialog):
             tech_sizer.Add(l2, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
             tech_sizer.Add(l3, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
 
-        _add_tech_row("GUI kit", f"wxPython {wx.version()}", "LGPL")
+        _add_tech_row("GUI kit", f"wxPython (wxWidgets 3.2.8)", "LGPL")
         _add_tech_row("PDF engine", "PyMuPDF 1.23.8", "AGPL")
         _add_tech_row("Post process", "OpenGL (PyOpenGL)", "BSD")
-        _add_tech_row("Image render", "libvips", "LGPL")
+        _add_tech_row("Image render", "pyvips (libvips)", "LGPL")
         _add_tech_row("Runtime", "Python 3.12.9", "PSFL")
 
         main_sizer.Add(tech_sizer, 0, wx.CENTER)
@@ -659,3 +662,128 @@ class AboutDialog(wx.Dialog):
 
         self.SetSizerAndFit(wrapper)
         self.CenterOnParent()
+
+
+class RecentFilesDialog(wx.Dialog):
+    def __init__(self, parent, recent_files):
+        super().__init__(parent, title="Recent Files", size=(700, 500),
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+
+        self.recent_files = list(recent_files)
+
+        self.file_to_open = None
+
+        self.CenterOnParent()
+
+        panel = wx.Panel(self)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        search_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.search_ctrl = wx.SearchCtrl(panel, style=wx.TE_PROCESS_ENTER)
+        self.search_ctrl.SetDescriptiveText("Search filename or path...")
+        self.search_ctrl.ShowCancelButton(True)
+        search_sizer.Add(self.search_ctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        main_sizer.Add(search_sizer, 0, wx.EXPAND | wx.ALL, 10)
+
+        self.dv_list = dv.DataViewListCtrl(panel, style=dv.DV_ROW_LINES | dv.DV_VERT_RULES | dv.DV_SINGLE)
+
+        self.dv_list.AppendTextColumn("#", width=40, mode=dv.DATAVIEW_CELL_INERT, align=wx.ALIGN_CENTER)
+        self.dv_list.AppendTextColumn("Filename", width=250, mode=dv.DATAVIEW_CELL_INERT)
+        self.dv_list.AppendTextColumn("Location", width=400, mode=dv.DATAVIEW_CELL_INERT)
+
+        main_sizer.Add(self.dv_list, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 15)
+
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.btn_clear = wx.Button(panel, label="Forget All")
+        self.btn_remove = wx.Button(panel, label="Forget Item")
+        self.btn_open = wx.Button(panel, label="Open")
+        self.btn_close = wx.Button(panel, label="Close")
+
+        self.btn_open.SetDefault()
+
+        btn_sizer.Add(self.btn_clear, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        btn_sizer.AddStretchSpacer(1)
+        btn_sizer.Add(self.btn_remove, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        btn_sizer.Add(self.btn_open, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        btn_sizer.Add(self.btn_close, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        main_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.ALL, 15)
+        panel.SetSizer(main_sizer)
+
+        self._populate_list()
+        self.on_selection_changed(None)
+
+        self.Bind(wx.EVT_BUTTON, self.on_open, self.btn_open)
+        self.Bind(wx.EVT_BUTTON, self.on_remove, self.btn_remove)
+        self.Bind(wx.EVT_BUTTON, self.on_clear, self.btn_clear)
+        self.Bind(wx.EVT_BUTTON, self.on_close, self.btn_close)
+
+        self.dv_list.Bind(dv.EVT_DATAVIEW_ITEM_ACTIVATED, self.on_double_click)
+        self.dv_list.Bind(dv.EVT_DATAVIEW_SELECTION_CHANGED, self.on_selection_changed)
+        self.search_ctrl.Bind(wx.EVT_TEXT, self.on_search)
+        self.search_ctrl.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.on_search_cancel)
+
+    def _populate_list(self, filter_text=""):
+        self.dv_list.DeleteAllItems()
+        filter_text = filter_text.lower()
+        current_idx = 1
+
+        for file_path in self.recent_files:
+            if not file_path: continue
+
+            name = os.path.basename(file_path)
+
+            if filter_text and (filter_text not in name.lower() and filter_text not in file_path.lower()):
+                continue
+
+            self.dv_list.AppendItem([str(current_idx), name, file_path])
+            current_idx += 1
+
+    def get_selected_path(self):
+        row = self.dv_list.GetSelectedRow()
+        if row == wx.NOT_FOUND: return None
+        return self.dv_list.GetTextValue(row, 2)
+
+    def on_selection_changed(self, evt):
+        selected = self.dv_list.GetSelectedRow() != wx.NOT_FOUND
+        self.btn_open.Enable(selected)
+        self.btn_remove.Enable(selected)
+
+    def on_search(self, evt):
+        self._populate_list(self.search_ctrl.GetValue())
+
+    def on_search_cancel(self, evt):
+        self.search_ctrl.SetValue("")
+        self._populate_list("")
+
+    def on_open(self, evt):
+        path = self.get_selected_path()
+        if path:
+            if not os.path.exists(path):
+                wx.MessageBox(f"File not found:\n{path}", "Error", wx.OK)
+                return
+
+            self.file_to_open = path
+            self.EndModal(wx.ID_OK)
+
+    def on_double_click(self, evt):
+        self.on_open(None)
+
+    def on_remove(self, evt):
+        path = self.get_selected_path()
+        if path and path in self.recent_files:
+            self.recent_files.remove(path)  # Update local copy
+            self._populate_list(self.search_ctrl.GetValue())
+            self.on_selection_changed(None)
+
+    def on_clear(self, evt):
+        if not self.recent_files: return
+        dlg = wx.MessageDialog(self, "Clear all recent files history?", "Confirm Clear", wx.YES_NO | wx.ICON_WARNING)
+        if dlg.ShowModal() == wx.ID_YES:
+            self.recent_files.clear()  # Update local copy
+            self._populate_list()
+        dlg.Destroy()
+
+    def on_close(self, evt):
+        self.EndModal(wx.ID_CANCEL)
