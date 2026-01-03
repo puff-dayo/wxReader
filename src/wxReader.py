@@ -7,6 +7,7 @@ import threading
 
 import wx
 import wx.lib.agw.flatmenu as FM
+import pyvips
 
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
@@ -920,23 +921,42 @@ class MainFrame(wx.Frame):
 
     def _generate_preview(self, data: bytes, w_orig: int, h_orig: int) -> wx.Bitmap:
         try:
+            img = pyvips.Image.new_from_buffer(data, "")
+
+            if img.hasalpha():
+                img = img.flatten(background=[255, 255, 255])
+            if img.interpretation != 'srgb':
+                img = img.colourspace('srgb')
+
+            scale = 1.0
+            if w_orig > 800 or h_orig > 800:
+                scale = 800 / max(w_orig, h_orig)
+                img = img.resize(scale, kernel='linear')
+
+            mem_buf = img.write_to_memory()
+            return wx.Bitmap.FromBuffer(img.width, img.height, mem_buf)
+
+        except Exception as e:
+            print(f"[ERROR] libvips preview generation failed: {e}")
+
+        try:
             stream = io.BytesIO(data)
             wx_img = wx.Image(stream)
 
             if not wx_img.IsOk():
-                raise ValueError("Image data is invalid or format not supported by wx.Image")
+                raise ValueError("Invalid image data")
 
             if w_orig > 800 or h_orig > 800:
                 scale = 800 / max(w_orig, h_orig)
-                preview_w = int(w_orig * scale)
-                preview_h = int(h_orig * scale)
-                if preview_w > 0 and preview_h > 0:
-                    wx_img = wx_img.Scale(preview_w, preview_h, wx.IMAGE_QUALITY_HIGH)
+                new_w = int(w_orig * scale)
+                new_h = int(h_orig * scale)
+                if new_w > 0 and new_h > 0:
+                    wx_img = wx_img.Scale(new_w, new_h, wx.IMAGE_QUALITY_HIGH)
 
             return wx.Bitmap(wx_img)
 
         except Exception as e:
-            print(f"Preview generation warning: {e}")
+            print(f"Preview generation error: {e}")
             ph = wx.Image(100, 100)
             ph.SetRGB(wx.Rect(0, 0, 100, 100), 200, 200, 200)
             return wx.Bitmap(ph)
