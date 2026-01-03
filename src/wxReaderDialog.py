@@ -785,3 +785,76 @@ class RecentFilesDialog(wx.Dialog):
 
     def on_close(self, evt):
         self.EndModal(wx.ID_CANCEL)
+
+
+class PswdManagerDialog(wx.Dialog):
+    def __init__(self, parent=None):
+        super().__init__(parent, title="Password Editor", size=(500, 600))
+
+        self.file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pswd.txt')
+
+        self.InitUI()
+        self.LoadPasswords()
+        self.Center()
+
+    def InitUI(self):
+        panel = wx.Panel(self)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        desc_label = wx.StaticText(panel, label="Enter one password per line.")
+        warn_label = wx.StaticText(panel, label="WARNING: Passwords are stored in PLAIN TEXT.")
+        warn_label.SetForegroundColour(wx.Colour("#bb707c"))
+
+        main_sizer.Add(desc_label, 0, wx.CENTRE | wx.TOP, 15)
+        main_sizer.Add(warn_label, 0, wx.CENTRE | wx.BOTTOM, 10)
+
+        self.text_editor = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_RICH2)
+        editor_font = wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.text_editor.SetFont(editor_font)
+
+        main_sizer.Add(self.text_editor, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 15)
+
+        footer_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.btn_save = wx.Button(panel, label="Save")
+        self.btn_close = wx.Button(panel, label="Cancel")
+
+        footer_sizer.AddStretchSpacer()
+        footer_sizer.Add(self.btn_save, 0, wx.ALL, 10)
+        footer_sizer.Add(self.btn_close, 0, wx.ALL, 10)
+
+        main_sizer.Add(footer_sizer, 0, wx.EXPAND)
+
+        # Bindings
+        self.Bind(wx.EVT_BUTTON, self.OnSave, self.btn_save)
+        self.Bind(wx.EVT_BUTTON, self.OnClose, self.btn_close)
+
+        panel.SetSizer(main_sizer)
+
+    def LoadPasswords(self):
+        if not os.path.exists(self.file_path):
+            return
+
+        try:
+            with open(self.file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            self.text_editor.SetValue(content)
+        except Exception as e:
+            wx.MessageBox(f"Failed to load file:\n{e}", "Error", wx.ICON_ERROR)
+
+    def OnSave(self, event):
+        try:
+            content = self.text_editor.GetValue()
+            with open(self.file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+            self.EndModal(wx.ID_OK)
+        except Exception as e:
+            wx.MessageBox(f"Failed to save:\n{e}", "Error", wx.ICON_ERROR)
+
+    def OnClose(self, event):
+        if self.text_editor.IsModified():
+            res = wx.MessageBox("You have unsaved changes. Exit anyway?", "Confirm", wx.YES_NO | wx.ICON_WARNING)
+            if res == wx.NO:
+                return
+
+        self.EndModal(wx.ID_CANCEL)

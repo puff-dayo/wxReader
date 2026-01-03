@@ -11,7 +11,7 @@ import wx.lib.agw.flatmenu as FM
 from wxReaderIcon import msw_set_theme, get_app_icon
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
-    ModernColorDialog, AboutDialog, RecentFilesDialog
+    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog
 from wxReaderGlUtil import GLFilterTool
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
@@ -254,6 +254,11 @@ class MainFrame(wx.Frame):
         _add_item(m_file, self.id_recent_dialog, "Recent Files...")
 
         m_file.AppendSeparator()
+
+        self.id_pswdmng = wx.NewIdRef()
+        _add_item(m_file, self.id_pswdmng, "Edit pswd.txt")
+
+        m_file.AppendSeparator()
         m_exit = _add_item(m_file, wx.ID_EXIT, "E&xit", wx.ART_QUIT)
 
         self.menubar.Append(m_file, "&File")
@@ -443,6 +448,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_open_library, id=self.id_library)
         self.Bind(wx.EVT_MENU, self.on_show_recent, id=self.id_recent_dialog)
         self.Bind(wx.EVT_MENU, self.on_close_pdf, m_close)
+        self.Bind(wx.EVT_MENU, self.on_open_pswdmng, id=self.id_pswdmng)
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), m_exit)
 
         # View
@@ -718,6 +724,11 @@ class MainFrame(wx.Frame):
         lib_frame = LibraryFrame(self, current_dir, _open_from_lib)
         msw_set_theme(lib_frame)
         lib_frame.Show()
+
+    def on_open_pswdmng(self, evt):
+        dlg = PswdManagerDialog(self)
+        msw_set_theme(dlg)
+        dlg.Show()
 
     def on_show_toc_dialog(self, evt):
         if not self.content_provider:
