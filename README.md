@@ -5,7 +5,7 @@ Python.
 
 > **Version ~1.2** Supports OpenGL shaders with some built-in options, and you can add your own custom shaders. New Gallery mode, built-in help manual.
 > 
-> **Version 1.3.1** Add support for zip and cbz files. Add passwordbook support. Switch image backend to libvips. Fix image cache. Refactor code for maintainability. Many bugs fixed.
+> **Version 1.3.3** Add support for zip and cbz files. Add passwordbook support. Switch image backend to libvips. Fix image cache. Refactor code for maintainability. New UI decorations. MANY bugs fixed. 
 
 ---
 
@@ -50,4 +50,5 @@ Python.
 - [x] add support for encrypted zip and cbz files...
 - [x] fix page/width fit not auto updating when a book is made of pages of different sizes
 - [x] handle two pages of different size in Two-page view
-- [ ] add manual detect new version and open browser in the menu
+- [x] add manual detect new version and open browser in the menu
+- [ ] scale UI (add to `get_app_font(size)`)
