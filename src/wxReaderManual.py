@@ -1,6 +1,8 @@
 import wx
 import wx.html
 
+from wxReaderIcon import get_app_icon
+
 # Format: List of tuples -> (Title, HTML_Content, [List of Children Tuples])
 # HTML_Content can be None if just a category
 
@@ -211,8 +213,10 @@ class ManualDialog(wx.Frame):
             self.tree.SelectItem(first_child)
 
         self.Center()
-        from wxReaderIcon import APP_ICON
-        self.SetIcon(APP_ICON)
+
+        app_icon = get_app_icon()
+        if app_icon.IsOk():
+            self.SetIcon(app_icon)
 
     def _populate_tree(self, parent_id, nodes):
         for title, content, children in nodes:

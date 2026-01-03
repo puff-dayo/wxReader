@@ -8,7 +8,7 @@ import threading
 import wx
 import wx.lib.agw.flatmenu as FM
 
-from src.wxReaderIcon import msw_set_theme
+from wxReaderIcon import msw_set_theme, get_app_icon
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
     ModernColorDialog, AboutDialog, RecentFilesDialog
@@ -716,6 +716,7 @@ class MainFrame(wx.Frame):
             self._load_file(path)
 
         lib_frame = LibraryFrame(self, current_dir, _open_from_lib)
+        msw_set_theme(lib_frame)
         lib_frame.Show()
 
     def on_show_toc_dialog(self, evt):
@@ -1136,9 +1137,9 @@ class WxPDFReaderApp(wx.App):
 
         msw_set_theme(frame)
 
-        from wxReaderIcon import APP_ICON
-        if APP_ICON.IsOk():
-            frame.SetIcon(APP_ICON)
+        app_icon = get_app_icon()
+        if app_icon.IsOk():
+            frame.SetIcon(app_icon)
 
         frame.Show()
 

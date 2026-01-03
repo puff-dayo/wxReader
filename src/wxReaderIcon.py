@@ -1,12 +1,25 @@
+import os
 import platform
 
 import pywinstyles
 import wx
 
-try:
-    APP_ICON = wx.Icon('icon.png', wx.BITMAP_TYPE_ANY)
-except Exception:
-    print(Exception)
+
+def get_app_icon():
+    icon_path = 'icon.png'
+
+    if not os.path.exists(icon_path):
+        print(f"Error: {icon_path} not found.")
+        return wx.NullIcon
+
+    try:
+        icon = wx.Icon(icon_path, wx.BITMAP_TYPE_ANY)
+        if icon.IsOk():
+            return icon
+    except Exception as e:
+        print(f"Failed to create icon: {e}")
+
+    return wx.NullIcon
 
 
 def is_windows_11():
@@ -21,5 +34,8 @@ def msw_set_theme(frame):
         try:
             pywinstyles.change_header_color(frame, "#568466")
             pywinstyles.change_title_color(frame, color="white")
-        except Exception:
-            print(f"[ERROR] Failed to apply sytle: {Exception}")
+        except Exception as e1:
+            try:
+                pywinstyles.apply_style(frame, "mica")
+            except Exception as e2:
+                print(f"[ERROR] Failed to apply sytle: {e1}. {e2}")

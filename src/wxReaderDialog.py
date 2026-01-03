@@ -1,16 +1,14 @@
 from __future__ import annotations
 
+import colorsys
 import os
 
 import wx
-import colorsys
-
-from wx import adv
 import wx.dataview as dv
+from wx import adv
 
-from src.wxReaderIcon import msw_set_theme
 from wxReaderString import *
-from wxReaderConfigUtil import load_config, save_config
+
 
 class TOCDialog(wx.Dialog):
     def __init__(self, parent, toc_list, current_page_idx, on_navigate_callback):
@@ -637,15 +635,15 @@ class AboutDialog(wx.Dialog):
             l3 = wx.StaticText(self, label=license_name)
             l3.SetForegroundColour(wx.Colour(120, 120, 120))
 
-            tech_sizer.Add(l1, 0, wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+            tech_sizer.Add(l1, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
             tech_sizer.Add(l2, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
             tech_sizer.Add(l3, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
 
-        _add_tech_row("GUI kit", f"wxPython (wxWidgets 3.2.8)", "LGPL")
-        _add_tech_row("PDF engine", "PyMuPDF 1.23.8", "AGPL")
-        _add_tech_row("Post process", "OpenGL (PyOpenGL)", "BSD")
-        _add_tech_row("Image render", "pyvips (libvips)", "LGPL")
-        _add_tech_row("Runtime", "Python 3.12.9", "PSFL")
+        _add_tech_row("GUI kit:", f"wxPython (wxWidgets 3.2.8)", "LGPL")
+        _add_tech_row("PDF engine:", "PyMuPDF 1.23.8", "AGPL")
+        _add_tech_row("Post process:", "OpenGL (PyOpenGL)", "BSD")
+        _add_tech_row("Image:", "pyvips (libvips)", "LGPL")
+        _add_tech_row("Runtime:", "Python 3.12.9", "PSFL")
 
         main_sizer.Add(tech_sizer, 0, wx.CENTER)
 

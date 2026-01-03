@@ -7,6 +7,7 @@ import time
 import wx
 
 from wxReaderProvider import PdfContentProvider, ArchiveContentProvider
+from wxReaderIcon import get_app_icon
 
 THUMB_WIDTH = 140
 THUMB_HEIGHT = 200
@@ -147,8 +148,9 @@ class LibraryFrame(wx.Frame):
 
         self.SetBackgroundColour(BG_COLOR)
 
-        from wxReaderIcon import APP_ICON
-        self.SetIcon(APP_ICON)
+        app_icon = get_app_icon()
+        if app_icon.IsOk():
+            self.SetIcon(app_icon)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
