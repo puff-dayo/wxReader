@@ -501,8 +501,6 @@ class MainFrame(wx.Frame):
             self._populate_custom_filters_menu()
             self.menubar.Refresh()
 
-            self.SetStatusText("Filters loaded successfully.")
-
     def _populate_sidebar(self, filter_text=None):
         if not self.content_provider:
             return

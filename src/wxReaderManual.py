@@ -22,7 +22,7 @@ MANUAL_TREE = [
             <p>Some ZIP and CBZ files require a password to open. wxReader can check a list of passwords automatically.</p>
             <p><b>To set up the password list:</b></p>
             <ol>
-                <li>Create a text file named <code>pswd.txt</code> in the folder where you installed wxReader.</li>
+                <li>Open the password book editor from <b>File -> Edit pswd.txt</b> option.</li>
                 <li>Type your passwords in the file, one per line.</li>
                 <li>Save the file.</li>
             </ol>
@@ -177,7 +177,7 @@ MANUAL_TREE = [
 
 class ManualDialog(wx.Frame):
     def __init__(self, parent):
-        super().__init__(parent, title="wxReader Help", size=(850, 600))
+        super().__init__(parent, title="wxReader Help", size=(850, 768))
 
         if parent:
             self.SetIcon(parent.GetIcon())
