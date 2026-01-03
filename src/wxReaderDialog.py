@@ -8,12 +8,15 @@ import wx.dataview as dv
 from wx import adv
 
 from wxReaderString import *
+from wxReaderIcon import get_app_font
 
 
 class TOCDialog(wx.Dialog):
     def __init__(self, parent, toc_list, current_page_idx, on_navigate_callback):
         super().__init__(parent, title="Table of Contents", size=(450, 650),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+
+        self.SetFont(get_app_font())
 
         self.toc_list = toc_list
         self.on_navigate = on_navigate_callback
@@ -127,8 +130,7 @@ class TextExtractionDialog(wx.Dialog):
         self.text_ctrl = wx.TextCtrl(self, value=text,
                                      style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL)
 
-        font = wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        self.text_ctrl.SetFont(font)
+        self.text_ctrl.SetFont(get_app_font())
 
         sizer.Add(self.text_ctrl, 1, wx.EXPAND | wx.ALL, 10)
 
@@ -168,6 +170,8 @@ class ImageExtractionDialog(wx.Dialog):
         """
         super().__init__(parent, title="Extract Images", size=(700, 500),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+
+        self.SetFont(get_app_font())
 
         self.image_list = image_list
         self.current_sel = 0
@@ -273,6 +277,8 @@ class SearchDialog(wx.Dialog):
     def __init__(self, parent, pdf_doc, navigation_callback):
         super().__init__(parent, title="Search Document", size=(600, 450),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+
+        self.SetFont(get_app_font())
 
         self.pdf_doc = pdf_doc
         self.nav_cb = navigation_callback
@@ -381,8 +387,10 @@ class SearchDialog(wx.Dialog):
 
 
 class SetMarginGapDialog(wx.Dialog):
-    def __init__(self, parent, title, default_margin="6", default_gap="6"):
+    def __init__(self, parent, title, default_margin="1", default_gap="1"):
         super(SetMarginGapDialog, self).__init__(parent, title=title)
+
+        self.SetFont(get_app_font())
 
         vbox = wx.BoxSizer(wx.VERTICAL)
 
@@ -416,6 +424,8 @@ class SetMarginGapDialog(wx.Dialog):
 class ColorPreviewPanel(wx.Panel):
     def __init__(self, parent, old_color, new_color):
         super().__init__(parent, size=(100, 100))
+        self.SetFont(get_app_font())
+
         self.old_color = old_color
         self.new_color = new_color
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
@@ -455,6 +465,8 @@ class ModernColorDialog(wx.Dialog):
         self.color = wx.Colour(initial_color)
         self.initial_color = self.color
         self._updating = False
+
+        self.SetFont(get_app_font())
 
         # Layout
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -605,6 +617,7 @@ class AboutDialog(wx.Dialog):
         super().__init__(parent, title="About", style=wx.DEFAULT_DIALOG_STYLE)
 
         self.SetBackgroundColour(wx.WHITE)
+        self.SetFont(get_app_font())
 
         wrapper = wx.BoxSizer(wx.VERTICAL)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -617,7 +630,7 @@ class AboutDialog(wx.Dialog):
             main_sizer.Add(icon_img, 0, wx.CENTER | wx.BOTTOM, 5)
 
         lbl_name = wx.StaticText(self, label=APP_NAME)
-        lbl_name.SetFont(wx.Font(16, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        lbl_name.SetFont(get_app_font(4))
         main_sizer.Add(lbl_name, 0, wx.CENTER | wx.BOTTOM, 2)
 
         lbl_ver = wx.StaticText(self, label=f"Version {APP_VERSION}")
@@ -672,6 +685,8 @@ class RecentFilesDialog(wx.Dialog):
         self.file_to_open = None
 
         self.CenterOnParent()
+
+        self.SetFont(get_app_font())
 
         panel = wx.Panel(self)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -809,8 +824,7 @@ class PswdManagerDialog(wx.Dialog):
         main_sizer.Add(warn_label, 0, wx.CENTRE | wx.BOTTOM, 10)
 
         self.text_editor = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_RICH2)
-        editor_font = wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        self.text_editor.SetFont(editor_font)
+        self.text_editor.SetFont(get_app_font(1))
 
         main_sizer.Add(self.text_editor, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 15)
 

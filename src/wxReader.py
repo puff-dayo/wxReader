@@ -8,7 +8,7 @@ import threading
 import wx
 import wx.lib.agw.flatmenu as FM
 
-from wxReaderIcon import msw_set_theme, get_app_icon
+from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
     ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog
@@ -55,6 +55,8 @@ def get_icon_v2(art_id):
     return wx.ArtProvider.GetBitmapBundle(art_id, wx.ART_OTHER, wx.Size(16, 16))
 
 
+
+
 class MainFrame(wx.Frame):
     def __init__(self):
         cfg = load_config()
@@ -75,6 +77,8 @@ class MainFrame(wx.Frame):
 
         super().__init__(None, title=APP_NAME, pos=initial_pos, size=initial_size, style=style)
         self.SetMinSize((600, 400))
+
+        self.SetFont(wx.GetApp().global_font)
 
         # Initialize state
         self.content_provider: ContentProvider | None = None
@@ -172,8 +176,12 @@ class MainFrame(wx.Frame):
 
         try:
             if cfg.get("window_fullscreen", False):
-                self.ShowFullScreen(True)
-                self.GetMenuBar().Check(self.id_fullscreen, True)
+                def _do_fullscreen():
+                    self.ShowFullScreen(True)
+                    item = self.menubar.FindMenuItem(self.id_fullscreen)
+                    if item:
+                        item.Check(True)
+                wx.CallAfter(_do_fullscreen)
         except Exception as e:
             print(f"[ERROR] wxReader Failed to restore fullscreen: {e}")
 
@@ -221,6 +229,7 @@ class MainFrame(wx.Frame):
 
     def _build_menus(self):
         self.menubar = FM.FlatMenuBar(self, wx.ID_ANY, 16, 2, options=FM.FM_OPT_IS_LCD)
+        self.menubar.SetFont(get_app_font())
         renderer = self.menubar.GetRenderer()
         hover_color = wx.Colour("#86b486")
         renderer.SetMenuBarHighlightColour(hover_color)
@@ -434,6 +443,9 @@ class MainFrame(wx.Frame):
         m_about = _add_item(m_help, wx.ID_ABOUT, "&About", wx.ART_INFORMATION)
         self.menubar.Append(m_help, "&Info")
 
+        self.id_check_update = wx.NewIdRef()
+        _add_item(m_help, self.id_check_update, "Check for Updates...")
+
         m_help.AppendSeparator()
 
         self.id_manual = wx.NewIdRef()
@@ -486,6 +498,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_extract_images, id=self.id_extract_images)
 
         self.Bind(wx.EVT_MENU, self.on_about, m_about)
+        self.Bind(wx.EVT_MENU, self.on_check_update, id=self.id_check_update)
         self.Bind(wx.EVT_MENU, self.on_manual, id=self.id_manual)
 
     def _post_startup_tasks(self):
@@ -1066,6 +1079,11 @@ class MainFrame(wx.Frame):
 
         self._update_ui()
 
+    def on_check_update(self, evt):
+        from wxReaderUpdater import UpdateChecker
+        checker = UpdateChecker(self, silent_on_no_update=False)
+        checker.check()
+
     def _on_custom_filter_menu(self, evt, name: str):
         self._select_custom_filter(name)
 
@@ -1141,7 +1159,13 @@ class MainFrame(wx.Frame):
 
 
 class WxPDFReaderApp(wx.App):
+    def __init__(self, redirect=False, filename=None, useBestVisual=False, clearSigInt=True):
+        super().__init__(redirect, filename, useBestVisual, clearSigInt)
+        self.global_font = None
+
     def OnInit(self):
+        self.global_font = get_app_font()
+
         frame = MainFrame()
 
         msw_set_theme(frame)

@@ -22,6 +22,21 @@ def get_app_icon():
     return wx.NullIcon
 
 
+def get_app_font(add_size=0):
+    face_name = 'Segoe UI'
+    try:
+        sys_font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        font = wx.Font(sys_font.GetPointSize() + add_size, wx.FONTFAMILY_SWISS,
+                       wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL,
+                       faceName=face_name)
+        print(f"[DEBUG] App font set to {face_name}.")
+        return font
+    except Exception as e:
+        print(f"[ERROR ]Failed to font set: {e}")
+
+    return wx.SYS_DEFAULT_GUI_FONT
+
+
 def is_windows_11():
     if platform.system() == "Windows":
         build_number = int(platform.version().split('.')[-1])
