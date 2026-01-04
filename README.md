@@ -52,3 +52,4 @@ Python.
 - [x] handle two pages of different size in Two-page view
 - [x] add manual detect new version and open browser in the menu
 - [ ] scale UI (add to `get_app_font(size)`)
+- [ ] keys for navigation can conflict with input fields

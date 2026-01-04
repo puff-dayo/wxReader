@@ -8,7 +8,184 @@ import wx.dataview as dv
 from wx import adv
 
 from wxReaderString import *
-from wxReaderIcon import get_app_font
+from wxReaderIcon import get_app_font, msw_set_theme
+from wxReaderKeyBinds import DEFAULT_KEYBINDS
+
+
+class KeyCaptureDialog(wx.Dialog):
+    def __init__(self, parent, action_name):
+        super().__init__(parent, title="Press a key...", size=(300, 150))
+        self.SetFont(get_app_font())
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        lbl = wx.StaticText(self, label=f"Press new key for:\n'{action_name}'")
+        lbl.SetFont(get_app_font(4))
+        sizer.Add(lbl, 1, wx.ALIGN_CENTER | wx.ALL, 20)
+
+        self.key_string = None
+
+        self.SetSizer(sizer)
+        self.CenterOnParent()
+
+        self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
+
+    def on_key(self, evt):
+        code = evt.GetKeyCode()
+
+        if code in [wx.WXK_CONTROL, wx.WXK_SHIFT, wx.WXK_ALT, wx.WXK_COMMAND]:
+            evt.Skip()
+            return
+
+        modifiers = []
+        if evt.ControlDown():
+            modifiers.append("Ctrl")
+        if evt.AltDown():
+            modifiers.append("Alt")
+        if evt.ShiftDown():
+            modifiers.append("Shift")
+
+        key_name = self._get_key_name(code)
+
+        if key_name:
+            full_key = "+".join(modifiers + [key_name])
+            self.key_string = full_key
+            self.EndModal(wx.ID_OK)
+        else:
+            evt.Skip()
+
+    def _get_key_name(self, code):
+        if 32 <= code <= 126:
+            return chr(code).upper()
+
+        mapping = {
+            wx.WXK_LEFT: "Left", wx.WXK_RIGHT: "Right",
+            wx.WXK_UP: "Up", wx.WXK_DOWN: "Down",
+
+            wx.WXK_RETURN: "Enter",
+            wx.WXK_NUMPAD_ENTER: "Enter",
+
+            wx.WXK_ESCAPE: "Esc",
+            wx.WXK_SPACE: "Space", wx.WXK_DELETE: "Del",
+            wx.WXK_BACK: "Back", wx.WXK_TAB: "Tab",
+
+            wx.WXK_F1: "F1", wx.WXK_F2: "F2", wx.WXK_F3: "F3",
+            wx.WXK_F4: "F4", wx.WXK_F5: "F5", wx.WXK_F6: "F6",
+            wx.WXK_F7: "F7", wx.WXK_F8: "F8", wx.WXK_F9: "F9",
+            wx.WXK_F10: "F10", wx.WXK_F11: "F11", wx.WXK_F12: "F12",
+
+            wx.WXK_NUMPAD0: "0", wx.WXK_NUMPAD1: "1",
+            wx.WXK_NUMPAD2: "2", wx.WXK_NUMPAD3: "3",
+            wx.WXK_NUMPAD4: "4", wx.WXK_NUMPAD5: "5",
+            wx.WXK_NUMPAD6: "6", wx.WXK_NUMPAD7: "7",
+            wx.WXK_NUMPAD8: "8", wx.WXK_NUMPAD9: "9",
+            wx.WXK_NUMPAD_ADD: "+", wx.WXK_NUMPAD_SUBTRACT: "-",
+            wx.WXK_NUMPAD_MULTIPLY: "*", wx.WXK_NUMPAD_DIVIDE: "/"
+        }
+        return mapping.get(code, None)
+
+
+class KeymapDialog(wx.Dialog):
+    def __init__(self, parent, current_keybinds):
+        super().__init__(parent, title="Keyboard Shortcuts", size=(500, 600))
+
+        self.SetFont(get_app_font())
+
+        self.keybinds = current_keybinds.copy()
+
+        self.display_names = {
+            "open": "Open File", "close": "Close File",
+            "toggle_sidebar": "Toggle Sidebar", "switch_tab": "Switch Sidebar Tab",
+            "single_page": "Single Page Mode", "two_page": "Two Page Mode",
+            "pad_start": "Pad First Page",
+            "zoom_in": "Zoom In", "zoom_out": "Zoom Out",
+            "fit_width": "Fit Width", "fit_page": "Fit Page",
+            "fullscreen": "Fullscreen",
+            "prev_page": "Previous Page", "next_page": "Next Page",
+            "goto_page": "Go To Page", "find": "Find/Search",
+            "show_toc": "Show TOC", "extract_text": "Extract Text",
+            "extract_images": "Extract Images", "help": "Help"
+        }
+
+        self.list_ctrl = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
+        self.list_ctrl.InsertColumn(0, "Action", width=250)
+        self.list_ctrl.InsertColumn(1, "Shortcut", width=150)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.list_ctrl, 1, wx.EXPAND | wx.ALL, 10)
+
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        btn_edit = wx.Button(self, label="Edit Key")
+        btn_clear = wx.Button(self, label="Clear Key")
+        btn_reset = wx.Button(self, label="Reset Defaults")
+
+        btn_save = wx.Button(self, wx.ID_OK, label="Save")
+        btn_cancel = wx.Button(self, wx.ID_CANCEL, label="Cancel")
+
+        btn_sizer.Add(btn_edit, 0, wx.RIGHT, 5)
+        btn_sizer.Add(btn_clear, 0, wx.RIGHT, 5)
+        btn_sizer.Add(btn_reset, 0, wx.RIGHT, 20)
+        btn_sizer.AddStretchSpacer()
+        btn_sizer.Add(btn_save, 0, wx.RIGHT, 5)
+        btn_sizer.Add(btn_cancel, 0)
+
+        sizer.Add(btn_sizer, 0, wx.EXPAND | wx.ALL, 10)
+        self.SetSizer(sizer)
+
+        self._populate_list()
+
+        # Events
+        self.Bind(wx.EVT_BUTTON, self.on_edit, btn_edit)
+        self.Bind(wx.EVT_BUTTON, self.on_clear, btn_clear)
+        self.Bind(wx.EVT_BUTTON, self.on_reset, btn_reset)
+        self.list_ctrl.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_edit)  # Double click
+
+    def _populate_list(self):
+        self.list_ctrl.DeleteAllItems()
+        items = []
+        for key, val in self.keybinds.items():
+            name = self.display_names.get(key, key)
+            items.append((name, val, key))
+
+        items.sort(key=lambda x: x[0])
+
+        for name, shortcut, key_id in items:
+            idx = self.list_ctrl.InsertItem(self.list_ctrl.GetItemCount(), name)
+            self.list_ctrl.SetItem(idx, 1, shortcut)
+            self.list_ctrl.SetItemData(idx, hash(key_id))
+
+        self.current_items = items
+
+    def _get_selected_key_id(self):
+        idx = self.list_ctrl.GetFirstSelected()
+        if idx < 0: return None
+        return self.current_items[idx][2]
+
+    def on_edit(self, evt):
+        key_id = self._get_selected_key_id()
+        if not key_id: return
+
+        readable_name = self.display_names.get(key_id, key_id)
+        dlg = KeyCaptureDialog(self, readable_name)
+        msw_set_theme(dlg)
+        if dlg.ShowModal() == wx.ID_OK and dlg.key_string:
+            self.keybinds[key_id] = dlg.key_string
+            self._populate_list()
+        dlg.Destroy()
+
+    def on_clear(self, evt):
+        key_id = self._get_selected_key_id()
+        if key_id:
+            self.keybinds[key_id] = ""
+            self._populate_list()
+
+    def on_reset(self, evt):
+        if wx.MessageBox("Reset all shortcuts to default?", "Confirm", wx.YES_NO) == wx.YES:
+            self.keybinds = DEFAULT_KEYBINDS.copy()
+            self._populate_list()
+
+    def GetKeybinds(self):
+        return self.keybinds
 
 
 class TOCDialog(wx.Dialog):

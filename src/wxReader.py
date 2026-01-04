@@ -12,12 +12,13 @@ import pyvips
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
-    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog
+    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog
 from wxReaderGlUtil import GLFilterTool
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
 from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContentProvider
 from wxReaderString import *
+from wxReaderKeyBinds import DEFAULT_KEYBINDS, get_menu_label
 from wxReaderView import PDFView
 
 
@@ -59,6 +60,10 @@ def get_icon_v2(art_id):
 class MainFrame(wx.Frame):
     def __init__(self):
         cfg = load_config()
+
+        self.keybinds = DEFAULT_KEYBINDS.copy()
+        if "keybinds" in cfg:
+            self.keybinds.update(cfg["keybinds"])
 
         style = wx.DEFAULT_FRAME_STYLE
         is_maximized = cfg.get("window_maximized", False)
@@ -272,6 +277,14 @@ class MainFrame(wx.Frame):
         wx.CallAfter(self._post_startup_tasks)
 
     def _build_menus(self):
+        if hasattr(self, 'menubar') and self.menubar:
+            self.GetSizer().Detach(self.menubar)
+
+            self.menubar.Destroy()
+            self.menubar = None
+
+            self.Layout()
+
         self.menubar = FM.FlatMenuBar(self, wx.ID_ANY, 16, 2, options=FM.FM_OPT_IS_LCD)
         self.menubar.SetFont(get_app_font())
         renderer = self.menubar.GetRenderer()
@@ -293,8 +306,8 @@ class MainFrame(wx.Frame):
         # --- File ---
         m_file = FM.FlatMenu()
 
-        m_open = _add_item(m_file, wx.ID_OPEN, "&Open...\tCtrl+O", wx.ART_FILE_OPEN)
-        m_close = _add_item(m_file, wx.ID_CLOSE, "&Close\tCtrl+W")
+        m_open = _add_item(m_file, wx.ID_OPEN, get_menu_label("&Open...", "open"), wx.ART_FILE_OPEN)
+        m_close = _add_item(m_file, wx.ID_CLOSE, get_menu_label("&Close", "close"))
 
         m_file.AppendSeparator()
 
@@ -312,6 +325,11 @@ class MainFrame(wx.Frame):
         _add_item(m_file, self.id_pswdmng, "Edit pswd.txt")
 
         m_file.AppendSeparator()
+
+        self.id_key_binds_editor = wx.NewIdRef()
+        _add_item(m_file, self.id_key_binds_editor, "Preferences")
+
+        m_file.AppendSeparator()
         m_exit = _add_item(m_file, wx.ID_EXIT, "E&xit", wx.ART_QUIT)
 
         self.menubar.Append(m_file, "&File")
@@ -320,17 +338,17 @@ class MainFrame(wx.Frame):
         m_view = FM.FlatMenu()
 
         self.id_sidebar_toggle = wx.NewIdRef()
-        _add_item(m_view, self.id_sidebar_toggle, "Show &Sidebar\tF9", kind=wx.ITEM_CHECK)
+        _add_item(m_view, self.id_sidebar_toggle, get_menu_label("Show &Sidebar", "toggle_sidebar"), kind=wx.ITEM_CHECK)
 
         self.id_switch_tab = wx.NewIdRef()
-        _add_item(m_view, self.id_switch_tab, "Switch Sidebar Tab\tF8")
+        _add_item(m_view, self.id_switch_tab, get_menu_label("Switch Sidebar Tab", "switch_tab"))
 
         m_view.AppendSeparator()
 
         self.id_single_page = wx.NewIdRef()
         self.id_two_page = wx.NewIdRef()
-        m_view.AppendRadioItem(self.id_single_page, "Single Page View\tCtrl+1")
-        m_view.AppendRadioItem(self.id_two_page, "Two Page View\tCtrl+2")
+        m_view.AppendRadioItem(self.id_single_page, get_menu_label("Single Page View", "single_page"))
+        m_view.AppendRadioItem(self.id_two_page, get_menu_label("Two Page View", "two_page"))
         m_view.AppendSeparator()
 
         self.id_pad_start = wx.NewIdRef()
@@ -354,12 +372,12 @@ class MainFrame(wx.Frame):
         self.id_fit_page = wx.NewIdRef()
         self.id_zoom_manual = wx.NewIdRef()
 
-        _add_item(m_view, self.id_zoom_in, "Zoom &In\tCtrl++")
-        _add_item(m_view, self.id_zoom_out, "Zoom &Out\tCtrl+-")
+        _add_item(m_view, self.id_zoom_in, get_menu_label("Zoom &In", "zoom_in"))
+        _add_item(m_view, self.id_zoom_out, get_menu_label("Zoom &Out", "zoom_out"))
         m_view.AppendSeparator()
 
-        m_view.AppendRadioItem(self.id_fit_width, "Fit &Width\tCtrl+3")
-        m_view.AppendRadioItem(self.id_fit_page, "Fit &Page\tCtrl+4")
+        m_view.AppendRadioItem(self.id_fit_width, get_menu_label("Fit &Width", "fit_width"))
+        m_view.AppendRadioItem(self.id_fit_page, get_menu_label("Fit &Page", "fit_page"))
         m_view.AppendRadioItem(self.id_zoom_manual, "Manual Zoom")
         m_view.AppendSeparator()
 
@@ -378,7 +396,7 @@ class MainFrame(wx.Frame):
 
         m_view.AppendSeparator()
         self.id_fullscreen = wx.NewIdRef()
-        _add_item(m_view, self.id_fullscreen, "Full &Screen\tF11", kind=wx.ITEM_CHECK)
+        _add_item(m_view, self.id_fullscreen, get_menu_label("Full &Screen", "fullscreen"), kind=wx.ITEM_CHECK)
 
         m_view.AppendSeparator()
 
@@ -408,17 +426,17 @@ class MainFrame(wx.Frame):
         self.id_next = wx.NewIdRef()
         self.id_goto = wx.NewIdRef()
 
-        _add_item(m_nav, self.id_prev, "Previous Page\tLeft", wx.ART_GO_BACK)
-        _add_item(m_nav, self.id_next, "Next Page\tRight", wx.ART_GO_FORWARD)
-        _add_item(m_nav, self.id_goto, "&Go to Page...\tCtrl+G")
+        _add_item(m_nav, self.id_prev, get_menu_label("Previous Page", "prev_page"), wx.ART_GO_BACK)
+        _add_item(m_nav, self.id_next, get_menu_label("Next Page", "next_page"), wx.ART_GO_FORWARD)
+        _add_item(m_nav, self.id_goto, get_menu_label("&Go to Page...", "goto_page"))
 
         m_nav.AppendSeparator()
 
         self.id_search = wx.NewIdRef()
-        _add_item(m_nav, self.id_search, "&Find...\tCtrl+F", wx.ART_FIND)
+        _add_item(m_nav, self.id_search, get_menu_label("&Find...", "find"), wx.ART_FIND)
 
         self.id_show_toc_dialog = wx.NewIdRef()
-        _add_item(m_nav, self.id_show_toc_dialog, "Show TOC Dialog...\tCtrl+T")
+        _add_item(m_nav, self.id_show_toc_dialog, get_menu_label("Show TOC Dialog...", "show_toc"))
 
         self.menubar.Append(m_nav, "&Navigate")
 
@@ -426,10 +444,10 @@ class MainFrame(wx.Frame):
         m_process = FM.FlatMenu()
 
         self.id_extract_text = wx.NewIdRef()
-        _add_item(m_process, self.id_extract_text, "Extract Page Text\tCtrl+E")
+        _add_item(m_process, self.id_extract_text, get_menu_label("Extract Page Text", "extract_text"))
 
         self.id_extract_images = wx.NewIdRef()
-        _add_item(m_process, self.id_extract_images, "Extract Page Images\tCtrl+I")
+        _add_item(m_process, self.id_extract_images, get_menu_label("Extract Page Images", "extract_images"))
 
         m_process.AppendSeparator()
 
@@ -493,7 +511,7 @@ class MainFrame(wx.Frame):
         m_help.AppendSeparator()
 
         self.id_manual = wx.NewIdRef()
-        _add_item(m_help, self.id_manual, "&Help Topics\tF1")
+        _add_item(m_help, self.id_manual, "&Help Topics", "help")
 
         # --- Integration ---
         self.GetSizer().Insert(0, self.menubar, 0, wx.EXPAND)
@@ -505,6 +523,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_show_recent, id=self.id_recent_dialog)
         self.Bind(wx.EVT_MENU, self.on_close_pdf, m_close)
         self.Bind(wx.EVT_MENU, self.on_open_pswdmng, id=self.id_pswdmng)
+        self.Bind(wx.EVT_MENU, self.on_edit_keys, id=self.id_key_binds_editor)
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), m_exit)
 
         # View
@@ -1079,6 +1098,25 @@ class MainFrame(wx.Frame):
                 wx.MessageBox("Invalid number.")
         dlg.Destroy()
 
+    def on_edit_keys(self, evt):
+        dlg = KeymapDialog(self, self.keybinds)
+        msw_set_theme(dlg)
+
+        if dlg.ShowModal() == wx.ID_OK:
+            self.keybinds = dlg.GetKeybinds()
+
+            cfg = load_config()
+            cfg["keybinds"] = self.keybinds
+            save_config(cfg)
+
+            self.Freeze()
+            self._build_menus()
+            self.Thaw()
+
+            print("[INFO] wxReader Keybinds updated and saved.")
+
+        dlg.Destroy()
+
     def on_setmg(self, evt):
         dlg = SetMarginGapDialog(self, title="Set Margin and Gap")
         msw_set_theme(dlg)
@@ -1260,6 +1298,8 @@ class MainFrame(wx.Frame):
                 "file_progress": self.file_progress,
             }
             cfg.update(current_cfg)
+
+            cfg["keybinds"] = self.keybinds
 
             if not self.IsIconized():
                 is_maximized = self.IsMaximized()
