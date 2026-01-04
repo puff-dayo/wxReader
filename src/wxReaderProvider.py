@@ -1,5 +1,6 @@
 import abc
 import os
+import threading
 
 import fitz  # PyMuPDF
 import pyvips
@@ -34,6 +35,10 @@ class ContentProvider(abc.ABC):
     def render_page_to_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
         pass
 
+    @abc.abstractmethod
+    def render_to_data(self, page_index: int, zoom: float) -> tuple[int, int, bytes] | None:
+        pass
+
     def get_toc(self) -> list:
         return []
 
@@ -63,6 +68,7 @@ class PdfContentProvider(ContentProvider):
     def __init__(self, path: str):
         super().__init__(path)
         self.doc = fitz.open(path)
+        self.render_lock = threading.Lock()
 
     @property
     def is_valid(self) -> bool:
@@ -100,6 +106,21 @@ class PdfContentProvider(ContentProvider):
 
         img = wx.Image(pix.width, pix.height, pix.samples)
         return wx.Bitmap(img)
+
+    def render_to_data(self, page_index: int, zoom: float) -> tuple[int, int, bytes] | None:
+        if not self.is_valid or not (0 <= page_index < self.page_count):
+            return None
+
+        with self.render_lock:
+            try:
+                page = self.doc.load_page(page_index)
+                mat = fitz.Matrix(zoom, zoom)
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+
+                return pix.width, pix.height, bytes(pix.samples)
+            except Exception as e:
+                print(f"[ERROR] wxReader render error: {e}")
+                return None
 
     def get_toc(self) -> list:
         if not self.is_valid:
@@ -246,6 +267,36 @@ class ArchiveContentProvider(ContentProvider):
             return image
         except pyvips.Error as e:
             print(f"[ERROR] pyvips decode failed: {e}")
+            return None
+
+    def render_to_data(self, page_index: int, zoom: float) -> tuple[int, int, bytes] | None:
+        src_vips = self._load_original_image(page_index)
+        if not src_vips:
+            return None
+
+        w, h = src_vips.width, src_vips.height
+        target_w = max(1, int(round(w * zoom)))
+        target_h = max(1, int(round(h * zoom)))
+
+        if target_w == w and target_h == h:
+            final_vips = src_vips
+        else:
+            if self.high_quality_render == 2:
+                if zoom < 1.0:
+                    blur_sigma = (1.0 / zoom) * 0.45
+                    final_vips = src_vips.gaussblur(blur_sigma).resize(zoom, kernel='linear')
+                else:
+                    final_vips = src_vips.resize(zoom, kernel='lanczos3')
+            elif self.high_quality_render == 1:
+                final_vips = src_vips.resize(zoom, kernel='lanczos3')
+            else:
+                final_vips = src_vips.resize(zoom, kernel='linear')
+
+        try:
+            memory_buffer = final_vips.write_to_memory()
+            return final_vips.width, final_vips.height, memory_buffer
+        except Exception as e:
+            print(f"pyvips render error: {e}")
             return None
 
     def _load_original_image(self, page_index: int) -> pyvips.Image | None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import queue
+import threading
 import webbrowser
 
 import fitz  # PyMuPDF
@@ -30,6 +32,11 @@ class PDFView(wx.ScrolledWindow):
         self.custom_filter: str | None = None
 
         self.main_frame = None
+
+        self.render_queue = queue.Queue()
+        self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
+        self.worker_thread.start()
+        self._requested_pages = set()
 
         # State
         self.content_provider: ContentProvider | None = None
@@ -154,6 +161,54 @@ class PDFView(wx.ScrolledWindow):
     def stop_worker(self):
         if self._pre_render_timer.IsRunning():
             self._pre_render_timer.Stop()
+
+    # --------------------------
+    # Threading Logic
+    # --------------------------
+    def _worker_loop(self):
+        while True:
+            task = self.render_queue.get()
+            try:
+                page_idx, zoom, provider = task
+                if not provider.is_valid:
+                    continue
+
+                result = provider.render_to_data(page_idx, zoom)
+
+                wx.CallAfter(self._on_worker_result, page_idx, zoom, result, provider)
+            except Exception as e:
+                print(f"Worker error: {e}")
+            finally:
+                self.render_queue.task_done()
+
+    def _on_worker_result(self, page_idx, zoom, result, task_provider):
+        if task_provider != self.content_provider:
+            return
+
+        cache_key = (page_idx, int(zoom * 10000))
+        if cache_key in self._requested_pages:
+            self._requested_pages.remove(cache_key)
+
+        if not result or not self.content_provider:
+            return
+
+        if abs(self.zoom - zoom) > 0.01:
+            return
+
+        width, height, data = result
+
+        img = wx.Image(width, height, data)
+        bmp = wx.Bitmap(img)
+
+        bmp = self._apply_processing(bmp)
+
+        self._bmp_cache[cache_key] = bmp
+
+        if self._is_page_visible(page_idx):
+            self.Refresh()
+
+    def _is_page_visible(self, page_index):
+        return any(p_idx == page_index for p_idx, _ in self._current_bitmaps)
 
     # --------------------------
     # Internals
@@ -356,39 +411,26 @@ class PDFView(wx.ScrolledWindow):
         self._pre_render_timer.Start(200, wx.TIMER_ONE_SHOT)
 
     def _on_pre_render_timer(self, evt):
-        if not self or not self.content_provider or not self.content_provider.is_valid:
+        if not self.content_provider:
             return
 
-        pages_to_prerender = set()
         anchor = self.page
+        pages_to_check = range(anchor - 4, anchor + 6)
 
-        for i in range(anchor - 4, anchor + 6):
-            if 0 <= i < self.content_provider.page_count:
-                pages_to_prerender.add(i)
-
-        for page_index in pages_to_prerender:
-            if not self.content_provider or not self.content_provider.is_valid:
-                return
+        for page_index in pages_to_check:
+            if not (0 <= page_index < self.content_provider.page_count):
+                continue
 
             cache_key = (page_index, int(self.zoom * 10000))
-            if cache_key not in self._bmp_cache:
-                self._get_bitmap(page_index, self.zoom)
 
-    def _pre_render_worker(self):
-        if not self or not self.content_provider or not self.content_provider.is_valid:
-            return
+            if cache_key in self._bmp_cache:
+                continue
 
-        pages_to_prerender = set()
-        anchor = self.page
+            if cache_key in self._requested_pages:
+                continue
 
-        for i in range(anchor - 4, anchor + 6):
-            if 0 <= i < self.content_provider.page_count:
-                pages_to_prerender.add(i)
-
-        for page_index in pages_to_prerender:
-            cache_key = (page_index, int(self.zoom * 10000))
-            if cache_key not in self._bmp_cache:
-                self._get_bitmap(page_index, self.zoom)
+            self._requested_pages.add(cache_key)
+            self.render_queue.put((page_index, self.zoom, self.content_provider))
 
     def _refresh_layout(self):
         if not self.content_provider:
