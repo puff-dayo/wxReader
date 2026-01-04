@@ -56,8 +56,6 @@ def get_icon_v2(art_id):
     return wx.ArtProvider.GetBitmapBundle(art_id, wx.ART_OTHER, wx.Size(16, 16))
 
 
-
-
 class MainFrame(wx.Frame):
     def __init__(self):
         cfg = load_config()
@@ -87,17 +85,18 @@ class MainFrame(wx.Frame):
 
         self.epub_font_size = 12
 
-        # --- Layout ---
         self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3D)
         self.splitter.SetMinimumPaneSize(50)
 
-        # 1. Sidebar
+        # START Sidebar
+
+        # 0. Sidebar Container
         self.sidebar = wx.Panel(self.splitter)
         self.sidebar_main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.sidebar_nb = wx.Notebook(self.sidebar)
 
-        # Tab 1: TOC (Outline)
+        # 1. Outline
         self.toc_panel = wx.Panel(self.sidebar_nb)
         toc_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -114,11 +113,11 @@ class MainFrame(wx.Frame):
 
         self.sidebar_nb.AddPage(self.toc_panel, "Outline")
 
-        # Tab 2: File Browser
+        # 2. Browser
         self.files_panel = wx.Panel(self.sidebar_nb)
         files_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # Buttons
+        # 2.1 Buttons
         btn_sizer = wx.GridSizer(1, 3, 0, 5)
 
         self.btn_go_up = wx.Button(self.files_panel, label="Dir Up")
@@ -139,7 +138,7 @@ class MainFrame(wx.Frame):
 
         files_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
-        # Directory
+        # 2.2 Directory control
         self.dir_ctrl = wx.GenericDirCtrl(self.files_panel, dir=os.getcwd(), filter=SUPPORTED_WILDCARDS,
                                           style=wx.DIRCTRL_SHOW_FILTERS | wx.DIRCTRL_3D_INTERNAL)
 
@@ -148,10 +147,39 @@ class MainFrame(wx.Frame):
 
         self.sidebar_nb.AddPage(self.files_panel, "File Browser")
 
+        # 3. Folder List
+        self.fv_panel = wx.Panel(self.sidebar_nb)
+        fv_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # 3.1 Sort Controls
+        fv_ctrl_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        lbl_sort = wx.StaticText(self.fv_panel, label="Sort:")
+        self.fv_sort_choice = wx.Choice(self.fv_panel, choices=[
+            "Name (A-Z)",
+            "Name (Z-A)",
+            "Date (Newest)",
+            "Date (Oldest)"
+        ])
+        self.fv_sort_choice.SetSelection(2)  # Default: Date (Newest)
+
+        fv_ctrl_sizer.Add(lbl_sort, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        fv_ctrl_sizer.Add(self.fv_sort_choice, 1, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
+
+        fv_sizer.Add(fv_ctrl_sizer, 0, wx.EXPAND)
+
+        # 3.2 File List
+        self.fv_listbox = wx.ListBox(self.fv_panel, style=wx.LB_SINGLE | wx.LB_HSCROLL | wx.LB_NEEDED_SB)
+        fv_sizer.Add(self.fv_listbox, 1, wx.EXPAND | wx.ALL, 5)
+
+        self.fv_panel.SetSizer(fv_sizer)
+        self.sidebar_nb.AddPage(self.fv_panel, "Folder List")
+
+        # END Sidebar
         self.sidebar_main_sizer.Add(self.sidebar_nb, 1, wx.EXPAND)
         self.sidebar.SetSizer(self.sidebar_main_sizer)
 
-        # 2. Main Content
+        # START Main Content
         self.view = PDFView(self.splitter)
         self.view.main_frame = self
 
@@ -170,9 +198,10 @@ class MainFrame(wx.Frame):
         self.Layout()
 
         self._build_menus()
+        # END Main Content
 
+        # START Load Config
         self.recent_files = []
-
         self.file_progress = cfg.get("file_progress", {})
 
         try:
@@ -182,6 +211,7 @@ class MainFrame(wx.Frame):
                     item = self.menubar.FindMenuItem(self.id_fullscreen)
                     if item:
                         item.Check(True)
+
                 wx.CallAfter(_do_fullscreen)
         except Exception as e:
             print(f"[ERROR] wxReader Failed to restore fullscreen: {e}")
@@ -210,6 +240,7 @@ class MainFrame(wx.Frame):
 
         if last and os.path.isfile(last):
             wx.CallAfter(self._load_file, last)
+        # END Load Config
 
         # --- Events ---
         self.Bind(wx.EVT_CLOSE, self.on_close)
@@ -219,6 +250,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.on_nav_current, self.btn_sync_file)
         self.Bind(wx.EVT_BUTTON, self.on_open_library, self.btn_open_library)
         self.Bind(wx.EVT_DIRCTRL_FILEACTIVATED, self.on_file_browser_activated, self.dir_ctrl)
+        self.fv_sort_choice.Bind(wx.EVT_CHOICE, self.on_fv_sort)
+        self.fv_listbox.Bind(wx.EVT_LISTBOX_DCLICK, self.on_fv_item_activated)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
 
         self.SetDropTarget(FileDropTarget(self))
@@ -549,6 +582,63 @@ class MainFrame(wx.Frame):
         else:
             self.sidebar_tree.ExpandAll()
 
+    def _populate_folder_view_list(self):
+        # Ensure we have a valid path
+        if not hasattr(self, 'current_folder_path') or not self.current_folder_path or not os.path.exists(
+                self.current_folder_path):
+            self.fv_listbox.Clear()
+            return
+
+        try:
+            # List files
+            all_files = os.listdir(self.current_folder_path)
+        except OSError:
+            return
+
+        supported_files = []
+        for f in all_files:
+            full_path = os.path.join(self.current_folder_path, f)
+            if os.path.isfile(full_path):
+                ext = os.path.splitext(f)[1].lower()
+                if ext in SUPPORTED_EXTENSIONS:
+                    supported_files.append(f)
+
+        # Sort
+        sort_mode = self.fv_sort_choice.GetSelection()
+
+        if sort_mode == 0:  # A-Z
+            supported_files.sort(key=str.lower)
+        elif sort_mode == 1:  # Z-A
+            supported_files.sort(key=str.lower, reverse=True)
+        elif sort_mode == 2 or sort_mode == 3:  # Date
+            def get_mtime(fname):
+                try:
+                    return os.path.getmtime(os.path.join(self.current_folder_path, fname))
+                except OSError:
+                    return 0
+
+            supported_files.sort(key=get_mtime, reverse=(sort_mode == 2))
+
+        self.fv_listbox.Set(supported_files)
+
+        if self.content_provider:
+            current_fname = os.path.basename(self.content_provider.path)
+            idx = self.fv_listbox.FindString(current_fname)
+            if idx != wx.NOT_FOUND:
+                self.fv_listbox.SetSelection(idx)
+                self.fv_listbox.EnsureVisible(idx)
+
+    def on_fv_sort(self, evt):
+        self._populate_folder_view_list()
+
+    def on_fv_item_activated(self, evt):
+        selection_idx = self.fv_listbox.GetSelection()
+        if selection_idx != wx.NOT_FOUND:
+            fname = self.fv_listbox.GetString(selection_idx)
+            full_path = os.path.join(self.current_folder_path, fname)
+            if os.path.exists(full_path):
+                self._load_file(full_path)
+
     def on_sidebar_search(self, evt):
         if not self.content_provider:
             return
@@ -623,9 +713,9 @@ class MainFrame(wx.Frame):
             pad_str = " [Padded]" if self.view.pad_start else ""
 
             status_txt = (f"{os.path.basename(self.content_provider.path)}  |  "
-                                                              f"Page {current_page_display} of {self.content_provider.page_count}  |  "
-                                                              f"{direction_str}{pad_str}  |  "
-                                                              f"Zoom: {int(self.view.zoom * 100)}%")
+                          f"Page {current_page_display} of {self.content_provider.page_count}  |  "
+                          f"{direction_str}{pad_str}  |  "
+                          f"Zoom: {int(self.view.zoom * 100)}%")
             if is_reflowable:
                 status_txt += f" | Font Size: {self.epub_font_size}pt"
             self.SetStatusText(status_txt)
@@ -687,6 +777,9 @@ class MainFrame(wx.Frame):
         self.view.SetFocus()
 
         self.on_nav_current(None)
+
+        self.current_folder_path = os.path.dirname(path)
+        self._populate_folder_view_list()
 
     def on_close_pdf(self, evt):
         if self.content_provider:
