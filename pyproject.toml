@@ -20,4 +20,5 @@ analysis = [
     "jinja2>=3.1.6",
     "lizard>=1.19.0",
     "radon>=6.0.1",
+    "viztracer>=1.1.1",
 ]

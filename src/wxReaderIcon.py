@@ -1,10 +1,12 @@
 import os
 import platform
+from functools import lru_cache
 
 import pywinstyles
 import wx
 
 
+@lru_cache(maxsize=1)
 def get_app_icon():
     icon_path = 'icon.png'
 
@@ -22,6 +24,7 @@ def get_app_icon():
     return wx.NullIcon
 
 
+@lru_cache(maxsize=6)
 def get_app_font(add_size=0):
     face_name = 'Segoe UI'
     try:
@@ -37,6 +40,7 @@ def get_app_font(add_size=0):
     return wx.SYS_DEFAULT_GUI_FONT
 
 
+@lru_cache(maxsize=None)
 def is_windows_11():
     if platform.system() == "Windows":
         build_number = int(platform.version().split('.')[-1])

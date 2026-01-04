@@ -12,3 +12,4 @@ test.py
 /src/pswd.txt
 /analysis/
 *.dll
+src/result.json
