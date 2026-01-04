@@ -1,8 +1,11 @@
 @echo off
 echo Remember to run this inside the ./src folder
 
+set CCFLAGS=/arch:AVX2
+
 python -m nuitka ^
   --mode=standalone ^
+  --lto=yes ^
   --output-dir=build ^
   --remove-output ^
   --follow-imports ^
