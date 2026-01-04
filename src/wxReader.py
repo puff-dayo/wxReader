@@ -151,26 +151,34 @@ class MainFrame(wx.Frame):
         self.fv_panel = wx.Panel(self.sidebar_nb)
         fv_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # 3.1 Sort Controls
-        fv_ctrl_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # 3.1 Toolbar Line
+        fv_toolbar_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        lbl_sort = wx.StaticText(self.fv_panel, label="Sort:")
+        self.btn_fv_refresh = wx.Button(self.fv_panel, label="Refresh")
+
+        self.btn_fv_gallery = wx.Button(self.fv_panel, label="Gallery")
+
         self.fv_sort_choice = wx.Choice(self.fv_panel, choices=[
-            "Name (A-Z)",
-            "Name (Z-A)",
-            "Date (Newest)",
-            "Date (Oldest)"
+            "A-Z",
+            "Z-A",
+            "Newest",
+            "Oldest"
         ])
-        self.fv_sort_choice.SetSelection(2)  # Default: Date (Newest)
+        self.fv_sort_choice.SetSelection(2)
 
-        fv_ctrl_sizer.Add(lbl_sort, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-        fv_ctrl_sizer.Add(self.fv_sort_choice, 1, wx.EXPAND | wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
+        btn_sizer = wx.GridSizer(1, 2, 5, 0)
+        btn_sizer.Add(self.btn_fv_refresh, 0, wx.EXPAND)
+        btn_sizer.Add(self.btn_fv_gallery, 0, wx.EXPAND)
 
-        fv_sizer.Add(fv_ctrl_sizer, 0, wx.EXPAND)
+        fv_toolbar_sizer.Add(self.fv_sort_choice, 1, wx.EXPAND | wx.RIGHT, 5)
+
+        fv_toolbar_sizer.Add(btn_sizer, 0, wx.EXPAND)
+
+        fv_sizer.Add(fv_toolbar_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
         # 3.2 File List
         self.fv_listbox = wx.ListBox(self.fv_panel, style=wx.LB_SINGLE | wx.LB_HSCROLL | wx.LB_NEEDED_SB)
-        fv_sizer.Add(self.fv_listbox, 1, wx.EXPAND | wx.ALL, 5)
+        fv_sizer.Add(self.fv_listbox, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
         self.fv_panel.SetSizer(fv_sizer)
         self.sidebar_nb.AddPage(self.fv_panel, "Folder List")
@@ -252,6 +260,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_DIRCTRL_FILEACTIVATED, self.on_file_browser_activated, self.dir_ctrl)
         self.fv_sort_choice.Bind(wx.EVT_CHOICE, self.on_fv_sort)
         self.fv_listbox.Bind(wx.EVT_LISTBOX_DCLICK, self.on_fv_item_activated)
+        self.Bind(wx.EVT_BUTTON, lambda e: self._populate_folder_view_list(), self.btn_fv_refresh)
+        self.Bind(wx.EVT_BUTTON, self.on_open_library, self.btn_fv_gallery)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
 
         self.SetDropTarget(FileDropTarget(self))
