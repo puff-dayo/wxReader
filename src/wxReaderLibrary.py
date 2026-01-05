@@ -167,6 +167,13 @@ class LibraryFrame(wx.Frame):
         top_sizer.Add(wx.StaticText(top_panel, label="Sort by: "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         top_sizer.Add(self.combo_sort, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         top_sizer.Add(self.btn_refresh, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+
+        top_sizer.AddStretchSpacer(1)
+
+        self.chk_stay_on_top = wx.CheckBox(top_panel, label="Stay on top")
+        self.chk_stay_on_top.SetValue(False)
+        top_sizer.Add(self.chk_stay_on_top, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+
         top_panel.SetSizer(top_sizer)
 
         self.scrolled = wx.ScrolledWindow(self, style=wx.VSCROLL)
@@ -189,6 +196,7 @@ class LibraryFrame(wx.Frame):
 
         self.combo_sort.Bind(wx.EVT_COMBOBOX, self.on_sort_change)
         self.btn_refresh.Bind(wx.EVT_BUTTON, self.on_refresh)
+        self.chk_stay_on_top.Bind(wx.EVT_CHECKBOX, self.on_toggle_top)
         self.Bind(wx.EVT_CLOSE, self.on_close)
         self.scrolled.Bind(wx.EVT_SIZE, self.on_resize)
 
@@ -384,6 +392,14 @@ class LibraryFrame(wx.Frame):
 
     def on_refresh(self, evt):
         self.load_files()
+
+    def on_toggle_top(self, evt):
+        if self.chk_stay_on_top.GetValue():
+            self.SetWindowStyle(self.GetWindowStyle() | wx.STAY_ON_TOP)
+        else:
+            self.SetWindowStyle(self.GetWindowStyle() & ~wx.STAY_ON_TOP)
+
+        self.Refresh()
 
     def on_thumb_click(self, path):
         if self.open_callback:
