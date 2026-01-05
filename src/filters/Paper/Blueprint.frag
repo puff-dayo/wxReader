@@ -1,6 +1,7 @@
 #version 120
 
 uniform sampler2D uTex;
+uniform float uStrength;
 varying vec2 vTex;
 
 void main() {
@@ -15,7 +16,9 @@ void main() {
     float gridLine = step(0.95, gridPos.x) + step(0.95, gridPos.y);
     gridLine = clamp(gridLine, 0.0, 1.0);
 
-    vec3 bgWithGrid = mix(blueBg, blueBg * 1.3, gridLine * 0.3);
+    float s = clamp(uStrength, 0.0, 1.0);
+
+    vec3 bgWithGrid = mix(blueBg, blueBg * 1.4, gridLine * 0.5 * s);
 
     vec3 finalColor = mix(whiteInk, bgWithGrid, brightness);
 

@@ -2,6 +2,7 @@
 
 uniform sampler2D uTex;
 uniform float uTime;
+uniform float uStrength;
 varying vec2 vTex;
 
 float rand(vec2 n) {
@@ -20,23 +21,24 @@ float noise(vec2 p){
 
 void main() {
     vec4 texColor = texture2D(uTex, vTex);
+    float s = clamp(uStrength, 0.0, 1.0);
 
     vec3 oldPaperColor = vec3(0.92, 0.86, 0.76);
+    vec3 currentTint = mix(vec3(1.0), oldPaperColor, s);
 
     float spot = noise(vTex * 5.0);
-    vec3 stains = vec3(1.0) - (0.1 * spot);
+    vec3 stains = vec3(1.0) - (0.1 * spot * s);
 
     vec2 uv = vTex * (1.0 - vTex.yx);
-    float vig = uv.x * uv.y * 15.0;
-    vig = pow(vig, 0.07);
+    float vigBase = uv.x * uv.y * 15.0;
+    float vig = pow(vigBase, 0.07);
+    float vigApplied = mix(1.0, vig, s);
 
     vec3 finalColor = texColor.rgb;
 
-    finalColor *= oldPaperColor;
-
+    finalColor *= currentTint;
     finalColor *= stains;
-
-    finalColor *= vig;
+    finalColor *= vigApplied;
 
     gl_FragColor = vec4(finalColor, 1.0);
 }

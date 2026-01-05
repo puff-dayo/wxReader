@@ -199,17 +199,22 @@ class GLFilterTool:
         loc = glGetUniformLocation(prog, b"uResolution")
         if loc >= 0:
             glUniform2f(loc, float(w), float(h))
+
         loc = glGetUniformLocation(prog, b"uTex")
         if loc >= 0:
             glUniform1i(loc, 0)
+
         loc = glGetUniformLocation(prog, b"uTime")
         if loc >= 0:
             elapsed = time.time() - start_time
             looped_time = elapsed % 1000.0
             glUniform1f(loc, float(looped_time))
+
         loc = glGetUniformLocation(prog, b"uSeed")
         if loc >= 0:
-            glUniform1f(loc, float(seed))
+            current_seed = random.uniform(0.0, 100.0)
+            glUniform1f(loc, current_seed)
+
         loc = glGetUniformLocation(prog, b"uStrength")
         if loc >= 0:
             glUniform1f(loc, self.strength)
