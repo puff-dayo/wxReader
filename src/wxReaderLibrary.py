@@ -33,17 +33,16 @@ def process_cover_with_provider(file_path, thumb_width, thumb_height):
 
         if thumb_data:
             w, h, raw_bytes = thumb_data
-            img = wx.Image(w, h, raw_bytes)
-            if img.IsOk():
-                return file_path, img.GetWidth(), img.GetHeight(), raw_bytes
+            return file_path, w, h, raw_bytes
 
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[ERROR] wxReader failed to process cover: {e}")
     finally:
         if provider:
             provider.close()
 
     return file_path, 0, 0, None
+
 
 
 
@@ -103,6 +102,7 @@ class ThumbnailPanel(wx.Panel):
         self.Refresh()
 
 
+
 class LibraryManagerThread(threading.Thread):
     def __init__(self, files, result_queue):
         super().__init__()
@@ -128,13 +128,13 @@ class LibraryManagerThread(threading.Thread):
                 try:
                     res = future.result()
                     self.result_queue.put(res)
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[ERROR] wxReader background thread failed: {e}")
 
 
 class LibraryFrame(wx.Frame):
     def __init__(self, parent, directory, open_callback=None):
-        super().__init__(parent, title="wxReader Gallery", size=(900, 600))
+        super().__init__(parent, title="wxReader Gallery", size=(1200, 960))
         self.directory = directory
         self.open_callback = open_callback
 
@@ -230,6 +230,8 @@ class LibraryFrame(wx.Frame):
 
         threading.Thread(target=self._scan_worker, args=(current_dir, sort_mode), daemon=True).start()
 
+        self.Raise()
+
     def _scan_worker(self, directory, sort_mode):
         try:
             all_files = os.listdir(directory)
@@ -268,6 +270,8 @@ class LibraryFrame(wx.Frame):
         self.creation_index = 0
 
         self._batch_create_placeholders()
+
+        self.Raise()
 
     def _batch_create_placeholders(self):
         BATCH_SIZE = 10
@@ -361,18 +365,22 @@ class LibraryFrame(wx.Frame):
                 self.update_timer.Stop()
                 self.status_lbl.SetLabel("Done.")
                 self.gauge.SetValue(self.gauge.GetRange())
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[ERROR]: {e}")
 
     def _apply_cover_raw(self, file_path, w, h, data):
         thumb = self.item_map.get(file_path)
-        if thumb and data and len(data) == w * h * 3:
-            try:
-                img = wx.Image(w, h, data)
-                if img.IsOk():
-                    thumb.update_image(wx.Bitmap(img))
-            except Exception:
-                pass
+
+        # check if matches RGB or RGBA
+        if thumb and data and w > 0 and h > 0:
+            expected_len = w * h * 3
+            if len(data) == expected_len:
+                try:
+                    img = wx.Image(w, h, data)
+                    if img.IsOk():
+                        thumb.update_image(wx.Bitmap(img))
+                except Exception as e:
+                    print(f"Failed to create image for {file_path}: {e}")
 
     def on_refresh(self, evt):
         self.load_files()

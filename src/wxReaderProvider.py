@@ -207,6 +207,8 @@ class PdfContentProvider(ContentProvider):
 
 
 class ArchiveContentProvider(ContentProvider):
+    _cached_passwords = None
+
     def __init__(self, path: str):
         super().__init__(path)
 
@@ -227,20 +229,25 @@ class ArchiveContentProvider(ContentProvider):
             try:
                 self.zip_file.read(test_file)
             except (RuntimeError, pyzipper.BadZipFile):
-                if os.path.exists('./pswd.txt'):
+                if ArchiveContentProvider._cached_passwords is None:
+                    ArchiveContentProvider._cached_passwords = []
+                    if os.path.exists('./pswd.txt'):
+                        try:
+                            with open('./pswd.txt', 'r', encoding='utf-8') as f:
+                                for line in f:
+                                    pwd = line.strip().encode('utf-8')
+                                    if pwd:
+                                        ArchiveContentProvider._cached_passwords.append(pwd)
+                        except Exception as e:
+                            print(f"[ERROR] failed to load password file: {e}")
+
+                for pwd in ArchiveContentProvider._cached_passwords:
                     try:
-                        with open('./pswd.txt', 'r', encoding='utf-8') as f:
-                            for line in f:
-                                pwd = line.strip().encode('utf-8')
-                                if not pwd: continue
-                                try:
-                                    self.zip_file.setpassword(pwd)
-                                    self.zip_file.read(test_file)
-                                    break
-                                except (RuntimeError, pyzipper.BadZipFile):
-                                    continue
-                    except Exception as e:
-                        print(f"[ERROR] pyzipper failed to process password file: {e}")
+                        self.zip_file.setpassword(pwd)
+                        self.zip_file.read(test_file)
+                        break
+                    except (RuntimeError, pyzipper.BadZipFile):
+                        continue
 
         self._size_cache = {}
         self._img_cache: dict[int, pyvips.Image] = {}
