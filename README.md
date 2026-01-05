@@ -6,6 +6,8 @@ Python.
 > **Version ~1.2** Supports OpenGL shaders with some built-in options, and you can add your own custom shaders. New Gallery mode, built-in help manual.
 > 
 > **Version 1.3.3** Add support for zip and cbz files. Add passwordbook support. Switch image backend to libvips. Fix image cache. Refactor code for maintainability. New UI decorations. MANY bugs fixed. 
+> 
+> **Version 1.3.4** Add customizable keyboard shortcuts. Add GUI control on uStrength of shaders. Add a folder tab in the sidebar. Gallery and cache performance optimized.
 
 ---
 
@@ -46,10 +48,6 @@ Python.
 
 ## TODO
 
-- [x] add support for zip and cbz format manga/comic files <- that's a hard refactor
-- [x] add support for encrypted zip and cbz files...
-- [x] fix page/width fit not auto updating when a book is made of pages of different sizes
-- [x] handle two pages of different size in Two-page view
-- [x] add manual detect new version and open browser in the menu
-- [ ] scale UI (add to `get_app_font(size)`)
+- [ ] add a feature to automatically set the background color to an immersive dark mode based on current pages
+- [ ] scale UI (add to `get_app_font(size)`) (planned on v1.3.5)
 - [ ] keys for navigation can conflict with input fields
