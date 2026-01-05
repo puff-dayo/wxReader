@@ -7,6 +7,7 @@ import webbrowser
 import fitz  # PyMuPDF
 import numpy as np
 import wx
+from collections import OrderedDict
 
 from wxReaderProvider import ContentProvider
 
@@ -24,6 +25,8 @@ class PDFView(wx.ScrolledWindow):
 
     MIN_ZOOM = 0.01
     MAX_ZOOM = 10.0
+
+    MAX_CACHE_SIZE = 36
 
     def __init__(self, parent):
         super().__init__(parent, style=wx.HSCROLL | wx.VSCROLL | wx.WANTS_CHARS)
@@ -49,7 +52,7 @@ class PDFView(wx.ScrolledWindow):
         self.pad_start = False
 
         # {(page_index): wx.Bitmap}
-        self._bmp_cache: dict[tuple[int, int], wx.Bitmap] = {}
+        self._bmp_cache: OrderedDict[tuple[int, int], wx.Bitmap] = OrderedDict()
         self._pre_render_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_pre_render_timer, self._pre_render_timer)
 
@@ -218,31 +221,15 @@ class PDFView(wx.ScrolledWindow):
             self._bmp_cache.clear()
             self._last_cache_zoom = self.zoom
 
-    def _prune_cache(self):
-        if not self.content_provider:
-            return
-
-        current_page = self.page
-        keep_range = 10
-
-        keys_to_delete = []
-        for cache_key in self._bmp_cache:
-            page_index_from_key = cache_key[0]
-
-            if abs(page_index_from_key - current_page) > keep_range:
-                keys_to_delete.append(cache_key)
-
-        for k in keys_to_delete:
-            del self._bmp_cache[k]
-
     def _get_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
         cache_key = (page_index, int(zoom * 10000))
 
         if cache_key in self._bmp_cache:
+            self._bmp_cache.move_to_end(cache_key)
             return self._bmp_cache[cache_key]
 
-        if len(self._bmp_cache) > 36:
-            self._prune_cache()
+        if len(self._bmp_cache) >= self.MAX_CACHE_SIZE:
+            self._bmp_cache.popitem(last=False)
 
         # Blank page index: -1
         if page_index < 0:
