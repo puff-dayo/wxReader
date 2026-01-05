@@ -13,27 +13,6 @@ MANUAL_TREE = [
         <p>You can use the <b>Contents</b> list on the left to browse this help file.</p>
     """, []),
 
-    ("Files and Security", """
-        <h3>Files and Security</h3>
-        <p>This section explains how to work with different file types and how to handle passwords.</p>
-    """, [
-        ("Encrypted Archives", """
-            <h3>Opening Password Protected Files</h3>
-            <p>Some ZIP and CBZ files require a password to open. wxReader can check a list of passwords automatically.</p>
-            <p><b>To set up the password list:</b></p>
-            <ol>
-                <li>Open the password book editor from <b>File -> Edit pswd.txt</b> option.</li>
-                <li>Type your passwords in the file, one per line.</li>
-                <li>Save the file.</li>
-            </ol>
-            <p>Next time you open a protected file, wxReader will try the passwords in this list.</p>
-            <p style="border: 1px solid #000; padding: 10px; background-color: #ffffcc;">
-                <b>WARNING:</b><br>
-                The <code>pswd.txt</code> file is a plain text file. Anyone using this computer can open it and read your passwords. <b>Do not</b> use this feature on a public or shared computer. Delete the file when you are done.
-            </p>
-        """, []),
-    ]),
-
     ("Interface", """
         <h3>Using the Interface</h3>
         <p>The main window has a Sidebar on the left and a View area on the right.</p>
@@ -84,7 +63,61 @@ MANUAL_TREE = [
                 <tr><td>Copy Text</td><td>Ctrl + E</td></tr>
                 <tr><td>Save Images</td><td>Ctrl + I</td></tr>
             </table>
-        """, [])
+        """, []),
+        ("Keyboard Customization", """
+            <h3>Edit Keyboard Shortcuts</h3>
+            <p>You can change the keyboard shortcuts to how you like.</p>
+            <p><b>To customize shortcuts:</b></p>
+            <ol>
+                <li>Click the <b>File</b> menu. </li>
+                <li>Click <b>Preferences</b>.</li>
+                <li>Find the action you want to change.</li>
+                <li>Double-click the shortcut field and press the new keys you want to use.</li>
+                <li>Click OK to save. </li>
+            </ol>
+            <p>Your custom shortcuts are saved and will be used every time you open the program.</p>
+        """, []),
+    ]),
+
+    ("Files and Folders", """
+        <h3>Working with Your Files</h3>
+        <p>This section explains how to manage your book collection and folders.</p>
+    """, [
+        ("File Browser and Folder List", """
+            <h3>Browse Your Folders</h3>
+            <p>The tabs at the sidebar helps you navigate through all your files and folders.</p>
+            <p>To use it:</p>
+            <ol>
+                <li>Look at the tabs on the left side.</li>
+                <li>Click to navigate in tab <b>File Browser</b> or sort and list all files inside tab <b>Folder List</b>.</li>
+                <li>Double-click on any file to open it.</li>
+            </ol>
+            <p>A toolbar at the top of the sidebar gives you quick buttons for common tasks.</p>
+        """, []),
+        ("Recent Files", """
+            <h3>Open Files You've Used Before</h3>
+            <p>The Recent Files dialog keeps track of the files you have opened. </p>
+            <p><b>To open the Recent Files dialog:</b></p>
+            <ol>
+                <li>Click <b>File</b> in the menu. </li>
+                <li>Click <b>Recent Files</b>.</li>
+            </ol>
+            <p>Click on any file in the list to open it right away.</p>
+        """, []),
+        ("Password Manager", """
+            <h3>Managing Your Passwords</h3>
+            <p>If you have many password-protected files, the Password Manager dialog helps you organize them.</p>
+            <p><b>To open the Password Manager:</b></p>
+            <ol>
+                <li>Click <b>File</b> in the menu.</li>
+                <li>Click <b>Manage Passwords</b>.</li>
+            </ol>
+            <p>Here you can add, edit, or remove passwords from the password list.  This is easier than editing the text file directly.</p>
+            <p style="border:  1px solid #000; padding: 10px; background-color: #ffffcc;">
+                <b>WARNING:</b><br>
+                The <code>pswd.txt</code> file is a plain text file. Anyone using this computer can open it and read your passwords.  <b>Do not</b> use this feature on a public or shared computer. 
+            </p>
+        """, []),
     ]),
 
     ("Reading Experience", """
@@ -152,9 +185,8 @@ MANUAL_TREE = [
                 <tr><td><b>uResolution</b></td><td>vec2</td><td>The screen size (width, height).</td></tr>
                 <tr><td><b>uTime</b></td><td>float</td><td>A timer counting and loops from 0 to 1000.</td></tr>
                 <tr><td><b>uSeed</b></td><td>float</td><td>A random number.</td></tr>
-                <tr><td><b>uStrength</b></td><td>float</td><td>The strength setting (currently fixed at 0.8).</td></tr>
+                <tr><td><b>uStrength</b></td><td>float</td><td>The strength setting. You can adjust this with the Strength slider in <b>Process->Shader Settings</b>.</td></tr>
             </table>
-            <p>A graphical interface of changing uniforms is on the plan, but currently under developemnt.</p>
         """, []),
     ]),
 
@@ -170,6 +202,25 @@ MANUAL_TREE = [
                 <li>Click <b>Add Blank Page at Start</b>.</li>
             </ol>
             <p>This adds an empty space at the start, pushing all pages to the correct side.</p>
+        """, []),
+        ("Version Information", """
+            <h3>What Version Do I Have?</h3>
+            <p>To see what version of wxReader you are using: </p>
+            <ol>
+                <li>Click <b>Info</b> in the menu.</li>
+                <li>Click <b>About</b>.</li>
+            </ol>
+            <p>This window shows the version number and other information about the program.</p>
+        """, []),
+        ("Checking for Updates", """
+            <h3>Get New Features and Fixes</h3>
+            <p>wxReader can check if a newer version is available. </p>
+            <p>To check for updates manually:</p>
+            <ol>
+                <li>Click <b>Info</b> in the menu.</li>
+                <li>Click <b>Check for Updates...</b>.</li>
+            </ol>
+            <p>To upgrade from older versions, just simply copy the <b>wxReader.cfg</b> and <b>pswd.txt</b> files containing all user settings to the folder of a new version. All wxReader releases are portable.</p>
         """, []),
     ])
 ]

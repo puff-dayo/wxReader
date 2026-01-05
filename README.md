@@ -44,7 +44,7 @@ Python.
 
 2. Pre-compiled binary (stable): portable `.exe` files is provided on the **Releases** page.
 
-3. Upgrade from older versions: simply copy the `wxReader.cfg` file containing all user settings to the folder of a new version.
+3. Upgrade from older versions: simply copy the `wxReader.cfg` and `pswd.txt` files containing all user settings to the folder of a new version.
 
 ## TODO
 
