@@ -1049,3 +1049,40 @@ class PswdManagerDialog(wx.Dialog):
                 return
 
         self.EndModal(wx.ID_CANCEL)
+
+
+class FilterSettingsDialog(wx.Dialog):
+    def __init__(self, parent, gl_tool, on_change):
+        super().__init__(parent, title="Shader Settings", size=(300, 170))
+        self.gl_tool = gl_tool
+        self.on_change = on_change
+
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        lbl = wx.StaticText(panel, label="uniform float uStrength:")
+        sizer.Add(lbl, 0, wx.ALL, 10)
+
+        current_val = int(self.gl_tool.strength * 100)
+        self.slider = wx.Slider(panel, value=current_val, minValue=0, maxValue=100,
+                                style=wx.SL_HORIZONTAL | wx.SL_LABELS)
+
+        self.slider.Bind(wx.EVT_SLIDER, self._on_slider)
+        sizer.Add(self.slider, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        btn = wx.Button(panel, wx.ID_OK)
+        btn_sizer.AddButton(btn)
+        btn_sizer.Realize()
+
+        sizer.AddStretchSpacer()
+        sizer.Add(btn_sizer, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+
+        panel.SetSizer(sizer)
+        self.CenterOnParent()
+
+    def _on_slider(self, evt):
+        val = self.slider.GetValue()
+        self.gl_tool.strength = val / 100.0
+        if self.on_change:
+            self.on_change()

@@ -59,6 +59,8 @@ class GLFilterTool:
         self.filters_dir = filters_dir
         self.filters: dict[str, str] = {}  # name -> frag_source
 
+        self.strength = 0.8
+
         attribs = [glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER, glcanvas.WX_GL_DEPTH_SIZE, 0]
         self.canvas = glcanvas.GLCanvas(parent, attribList=attribs, size=(1, 1), style=wx.NO_BORDER)
         self.canvas.SetMinSize((1, 1))
@@ -210,7 +212,7 @@ class GLFilterTool:
             glUniform1f(loc, float(seed))
         loc = glGetUniformLocation(prog, b"uStrength")
         if loc >= 0:
-            glUniform1f(loc, 0.8)  #todo: expose uStrength to wxUI
+            glUniform1f(loc, self.strength)
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self._in_tex)

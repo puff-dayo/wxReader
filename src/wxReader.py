@@ -12,7 +12,7 @@ import pyvips
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
-    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog
+    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog, FilterSettingsDialog
 from wxReaderGlUtil import GLFilterTool
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
@@ -451,6 +451,11 @@ class MainFrame(wx.Frame):
 
         m_process.AppendSeparator()
 
+        self.id_filter_settings = wx.NewIdRef()
+        _add_item(m_process, self.id_filter_settings, "Shader Settings...", wx.ART_EXECUTABLE_FILE)
+
+        m_process.AppendSeparator()
+
         self.id_custom_none = wx.NewIdRef()
         _add_item(m_process, self.id_custom_none, "None / Turn Off", kind=wx.ITEM_CHECK)
         self.Bind(wx.EVT_MENU, lambda e: self._select_custom_filter(None), id=self.id_custom_none)
@@ -559,6 +564,7 @@ class MainFrame(wx.Frame):
         # Process
         self.Bind(wx.EVT_MENU, self.on_extract_text, id=self.id_extract_text)
         self.Bind(wx.EVT_MENU, self.on_extract_images, id=self.id_extract_images)
+        self.Bind(wx.EVT_MENU, self.on_filter_settings, id=self.id_filter_settings)
 
         self.Bind(wx.EVT_MENU, self.on_about, m_about)
         self.Bind(wx.EVT_MENU, self.on_check_update, id=self.id_check_update)
@@ -1239,6 +1245,34 @@ class MainFrame(wx.Frame):
         self.ShowFullScreen(not is_full, style=wx.FULLSCREEN_ALL)
 
         self._update_ui()
+
+    def on_filter_settings(self, evt):
+        debounce_timer = wx.Timer(self)
+
+        def _do_refresh(timer_evt):
+            if hasattr(self.view, '_bmp_cache'):
+                self.view._bmp_cache.clear()
+            self.view._refresh_layout()
+            self.view.Refresh()
+            self.view.Update()
+
+        self.Bind(wx.EVT_TIMER, _do_refresh, debounce_timer)
+
+        def _on_change():
+            debounce_timer.Start(200, wx.TIMER_ONE_SHOT)
+
+        dlg = FilterSettingsDialog(self, self.gl_filters, _on_change)
+
+        def _on_close_dialog(event):
+            if debounce_timer.IsRunning():
+                debounce_timer.Stop()
+            self.Unbind(wx.EVT_TIMER, debounce_timer)
+            event.Skip()
+
+        dlg.Bind(wx.EVT_CLOSE, _on_close_dialog)
+        msw_set_theme(dlg)
+        dlg.Show()
+
 
     def on_check_update(self, evt):
         from wxReaderUpdater import UpdateChecker
