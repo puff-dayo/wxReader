@@ -758,12 +758,14 @@ class MainFrame(wx.Frame):
             shown = self.view._spread_pages()
 
             current_page_display = self.view.page + 1
+            total_pages = self.content_provider.page_count
+            progress_pct = (current_page_display / total_pages) * 100 if total_pages > 0 else 0
 
             direction_str = "RTL" if self.view.direction == PDFView.DIR_RTL else "LTR"
             pad_str = " [Padded]" if self.view.pad_start else ""
 
             status_txt = (f"{os.path.basename(self.content_provider.path)}  |  "
-                          f"Page {current_page_display} of {self.content_provider.page_count}  |  "
+                          f"Page {current_page_display} of {total_pages} ({progress_pct:.1f}%)  |  "
                           f"{direction_str}{pad_str}  |  "
                           f"Zoom: {int(self.view.zoom * 100)}%")
             if is_reflowable:
