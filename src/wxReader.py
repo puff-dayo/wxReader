@@ -265,6 +265,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_DIRCTRL_FILEACTIVATED, self.on_file_browser_activated, self.dir_ctrl)
         self.fv_sort_choice.Bind(wx.EVT_CHOICE, self.on_fv_sort)
         self.fv_listbox.Bind(wx.EVT_LISTBOX_DCLICK, self.on_fv_item_activated)
+        self.fv_listbox.Bind(wx.EVT_MOTION, self.on_fv_hover)
         self.Bind(wx.EVT_BUTTON, lambda e: self._populate_folder_view_list(), self.btn_fv_refresh)
         self.Bind(wx.EVT_BUTTON, self.on_open_library, self.btn_fv_gallery)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
@@ -686,6 +687,20 @@ class MainFrame(wx.Frame):
             if data is not None:
                 self.view.go_to_page(data)
                 self._update_ui()
+
+    def on_fv_hover(self, evt):
+        pos = evt.GetPosition()
+        item_index = self.fv_listbox.HitTest(pos)
+
+        if item_index != wx.NOT_FOUND:
+            text = self.fv_listbox.GetString(item_index)
+            if self.fv_listbox.GetToolTipText() != text:
+                self.fv_listbox.SetToolTip(text)
+        else:
+            if self.fv_listbox.GetToolTipText():
+                self.fv_listbox.UnsetToolTip()
+
+        evt.Skip()
 
     def on_toggle_sidebar(self, evt):
         if self.splitter.IsSplit():
