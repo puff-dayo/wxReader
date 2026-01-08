@@ -788,8 +788,8 @@ class MainFrame(wx.Frame):
             self.SetStatusText(status_txt)
         else:
             self.SetStatusText("Welcome to wxReader - File->Open or Drag-and-drop a file to begin.")
-            if self.splitter.IsSplit():
-                self.splitter.Unsplit(self.sidebar)
+            # if self.splitter.IsSplit():
+            #     self.splitter.Unsplit(self.sidebar)
 
     # --- Actions ---
 
@@ -837,8 +837,10 @@ class MainFrame(wx.Frame):
 
         if not self.splitter.IsSplit():
             self.splitter.SplitVertically(self.sidebar, self.view, 250)
-            if not self.content_provider.get_toc():
-                self.on_switch_sidebar_tab(None)
+        if not self.content_provider.get_toc():
+            self.sidebar_nb.SetSelection(1)
+        else:
+            self.sidebar_nb.SetSelection(0)
 
         self._update_ui()
         self.view.SetFocus()
