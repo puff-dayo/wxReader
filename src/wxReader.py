@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import ctypes
+try:
+    ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+except Exception:
+    print(Exception)
+
 import functools
 import io
 import os
@@ -287,11 +293,19 @@ class MainFrame(wx.Frame):
             self.Layout()
 
         self.menubar = FM.FlatMenuBar(self, wx.ID_ANY, 16, 2, options=FM.FM_OPT_IS_LCD)
+        theme_mmgr = self.menubar.GetRendererManager()
+        renderer = FM.FMRendererXP()
+        for attr in (
+                "buttonFocusFaceColour",
+                "menuFocusFaceColour",
+                "menuBarFocusFaceColour",
+        ):
+            setattr(renderer, attr, wx.Colour("#b6e4b6"))
+
+        theme_id = theme_mmgr.AddRenderer(renderer)
+        theme_mmgr.SetTheme(theme_id)
+
         self.menubar.SetFont(get_app_font())
-        renderer = self.menubar.GetRenderer()
-        hover_color = wx.Colour("#86b486")
-        renderer.SetMenuBarHighlightColour(hover_color)
-        renderer.SetMenuHighlightColour(hover_color)
 
         def _add_item(menu, id, label, art_id=None, help_text="", kind=wx.ITEM_NORMAL, subMenu=None):
             bmp = wx.NullBitmap
@@ -772,7 +786,7 @@ class MainFrame(wx.Frame):
                 status_txt += f" | Font Size: {self.epub_font_size}pt"
             self.SetStatusText(status_txt)
         else:
-            self.SetStatusText("Welcome to wxReader - File -> Open to begin")
+            self.SetStatusText("Welcome to wxReader - File->Open or Drag-and-drop a file to begin.")
             if self.splitter.IsSplit():
                 self.splitter.Unsplit(self.sidebar)
 
