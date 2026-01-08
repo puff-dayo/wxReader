@@ -8,6 +8,8 @@ Python.
 > **Version 1.3.3** Add support for zip and cbz files. Add passwordbook support. Switch image backend to libvips. Fix image cache. Refactor code for maintainability. New UI decorations. MANY bugs fixed. 
 > 
 > **Version 1.3.4** Add customizable keyboard shortcuts. Add GUI control on uStrength of shaders. Add a folder tab in the sidebar. Gallery and cache performance optimized.
+> 
+> **Version 1.3.5** UI/UX enhancements. Bugs fixed.
 
 ---
 
