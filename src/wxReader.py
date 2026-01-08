@@ -837,10 +837,10 @@ class MainFrame(wx.Frame):
 
         if not self.splitter.IsSplit():
             self.splitter.SplitVertically(self.sidebar, self.view, 250)
-        if not self.content_provider.get_toc():
-            self.sidebar_nb.SetSelection(1)
-        else:
-            self.sidebar_nb.SetSelection(0)
+        # if not self.content_provider.get_toc():
+        #     self.sidebar_nb.SetSelection(1)
+        # else:
+        #     self.sidebar_nb.SetSelection(0)
 
         self._update_ui()
         self.view.SetFocus()
