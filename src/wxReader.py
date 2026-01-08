@@ -26,6 +26,7 @@ from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContent
 from wxReaderString import *
 from wxReaderKeyBinds import DEFAULT_KEYBINDS, get_menu_label
 from wxReaderView import PDFView
+from wxReaderToast import show_toast
 
 
 class FileDropTarget(wx.FileDropTarget):
@@ -813,11 +814,11 @@ class MainFrame(wx.Frame):
             elif ext in {".zip", ".cbz"}:
                 self.content_provider = ArchiveContentProvider(path)
             else:
-                wx.MessageBox(f"Unsupported file type: {ext}", "Error")
+                show_toast(self, f"Unsupported file type: {ext}", True)
                 return
 
         except Exception as e:
-            wx.MessageBox(f"Error opening file: {e}", "Error")
+            show_toast(self, f"Error opening file: {e}", True)
             if self.content_provider:
                 self.content_provider.close()
             self.content_provider = None
@@ -899,14 +900,15 @@ class MainFrame(wx.Frame):
     def on_open_pswdmng(self, evt):
         dlg = PswdManagerDialog(self)
         msw_set_theme(dlg)
-        dlg.Show()
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def on_show_toc_dialog(self, evt):
         if not self.content_provider:
             return
         toc = self.content_provider.get_toc()
         if not toc:
-            wx.MessageBox("No TOC found.")
+            show_toast(self, f"No TOC found.")
             return
         dlg = TOCDialog(self, toc, self.view.page, lambda p: (self.view.go_to_page(p), self._update_ui()))
         msw_set_theme(dlg)
@@ -939,7 +941,7 @@ class MainFrame(wx.Frame):
 
     def on_show_search(self, evt):
         if not self.content_provider:
-            wx.MessageBox("Please open a document first.", "No Document")
+            show_toast(self, "Please open a document first.")
             return
 
         def navigate_to_page(page_index):
@@ -1031,7 +1033,7 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
 
         except Exception as e:
-            wx.MessageBox(f"Failed to extract text: {e}", "Error")
+            show_toast(self, f"Failed to extract text: {e}", True)
 
     def on_extract_images(self, evt):
         if not self.content_provider:
@@ -1063,14 +1065,14 @@ class MainFrame(wx.Frame):
 
         except Exception as e:
             wx.EndBusyCursor()
-            wx.MessageBox(f"Error extracting images: {e}", "Error")
+            show_toast(self, f"Error extracting images: {e}", True)
             return
         finally:
             if wx.IsBusy():
                 wx.EndBusyCursor()
 
         if not found_images_data:
-            wx.MessageBox("No images found on the visible page(s).", "Info")
+            show_toast(self, "No images found on the visible page(s).")
             return
 
         dlg = ImageExtractionDialog(self, found_images_data)
@@ -1123,6 +1125,7 @@ class MainFrame(wx.Frame):
     def on_goto_page(self, evt):
         if not self.content_provider: return
         dlg = wx.TextEntryDialog(self, f"Enter page number (1-{self.content_provider.page_count}):", "Go to Page")
+        msw_set_theme(dlg)
         if dlg.ShowModal() == wx.ID_OK:
             try:
                 val = int(dlg.GetValue())
@@ -1130,9 +1133,9 @@ class MainFrame(wx.Frame):
                     self.view.go_to_page(val - 1)
                     self._update_ui()
                 else:
-                    wx.MessageBox("Page number out of range.")
+                    show_toast(self, "Page number out of range.")
             except ValueError:
-                wx.MessageBox("Invalid number.")
+                show_toast(self, "Invalid number.")
         dlg.Destroy()
 
     def on_edit_keys(self, evt):
@@ -1168,10 +1171,9 @@ class MainFrame(wx.Frame):
                     self.view.set_margin_gap(m=m_val, g=g_val)
                     self._update_ui()
                 else:
-                    wx.MessageBox("Numbers must be between 0 and 999.", "Range Error", wx.OK | wx.ICON_ERROR)
+                    show_toast(self, "Numbers must be between 0 and 999.", True)
             except ValueError:
-                wx.MessageBox("Please enter integers only.", "Input Error",
-                              wx.OK | wx.ICON_ERROR)
+                show_toast(self, "Please enter integers only.", True)
 
         dlg.Destroy()
 

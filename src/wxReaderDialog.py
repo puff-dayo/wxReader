@@ -10,6 +10,7 @@ from wx import adv
 from wxReaderString import *
 from wxReaderIcon import get_app_font, msw_set_theme
 from wxReaderKeyBinds import DEFAULT_KEYBINDS
+from wxReaderToast import show_toast
 
 
 class KeyCaptureDialog(wx.Dialog):
@@ -330,9 +331,9 @@ class TextExtractionDialog(wx.Dialog):
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(self.text_ctrl.GetValue()))
             wx.TheClipboard.Close()
-            wx.MessageBox("Text copied to clipboard!", "Success")
+            show_toast(self, "Text copied to clipboard!")
         else:
-            wx.MessageBox("Could not open clipboard.", "Error")
+            show_toast(self, "Could not open clipboard.", True)
 
 
 class ImageExtractionDialog(wx.Dialog):
@@ -426,8 +427,9 @@ class ImageExtractionDialog(wx.Dialog):
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(bmp_obj)
             wx.TheClipboard.Close()
+            show_toast(self, "Image copied to clipboard.")
         else:
-            wx.MessageBox("Could not access clipboard.", "Error")
+            show_toast(self, "Could not open clipboard.", True)
 
     def on_save(self, evt):
         if self.current_sel < 0 or self.current_sel >= len(self.image_list):
@@ -445,9 +447,9 @@ class ImageExtractionDialog(wx.Dialog):
                 try:
                     with open(path, "wb") as f:
                         f.write(img_data['bytes'])
-                    wx.MessageBox(f"Saved to {path}", "Success")
+                    show_toast(self, f"Saved to {path}")
                 except Exception as e:
-                    wx.MessageBox(f"Failed to save file:\n{e}", "Error")
+                    show_toast(self, f"Failed to save file:\n{e}", True)
 
 
 class SearchDialog(wx.Dialog):
@@ -951,7 +953,7 @@ class RecentFilesDialog(wx.Dialog):
         path = self.get_selected_path()
         if path:
             if not os.path.exists(path):
-                wx.MessageBox(f"File not found:\n{path}", "Error", wx.OK)
+                show_toast(self, "File not found.", True)
                 return
 
             self.file_to_open = path
@@ -1030,7 +1032,8 @@ class PswdManagerDialog(wx.Dialog):
                 content = f.read()
             self.text_editor.SetValue(content)
         except Exception as e:
-            wx.MessageBox(f"Failed to load file:\n{e}", "Error", wx.ICON_ERROR)
+            show_toast(self, f"Failed to load file:\n{e}", True)
+            print(e)
 
     def OnSave(self, event):
         try:
@@ -1040,7 +1043,8 @@ class PswdManagerDialog(wx.Dialog):
 
             self.EndModal(wx.ID_OK)
         except Exception as e:
-            wx.MessageBox(f"Failed to save:\n{e}", "Error", wx.ICON_ERROR)
+            show_toast(self, f"Failed to save file:\n{e}", True)
+            print(e)
 
     def OnClose(self, event):
         if self.text_editor.IsModified():
