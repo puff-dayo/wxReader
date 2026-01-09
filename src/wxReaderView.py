@@ -541,12 +541,15 @@ class PDFView(wx.ScrolledWindow):
             anchor_x = vx * spx + mx
             anchor_y = vy * spy + my
 
+            self.Freeze()
             self._refresh_layout()
             scale = self.zoom / old_zoom
             new_scroll_px_x = max(0, int(anchor_x * scale - mx))
             new_scroll_px_y = max(0, int(anchor_y * scale - my))
 
             self.Scroll(new_scroll_px_x // spx if spx else 0, new_scroll_px_y // spy if spy else 0)
+            self.Thaw()
+
             self.Refresh()
         else:
             evt.Skip()
