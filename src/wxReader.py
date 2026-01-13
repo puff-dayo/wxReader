@@ -27,6 +27,7 @@ from wxReaderString import *
 from wxReaderKeyBinds import DEFAULT_KEYBINDS, get_menu_label
 from wxReaderView import PDFView
 from wxReaderToast import show_toast
+from wxReaderExtCtrl import ControlServer
 
 
 class FileDropTarget(wx.FileDropTarget):
@@ -448,6 +449,12 @@ class MainFrame(wx.Frame):
 
         m_nav.AppendSeparator()
 
+        self.id_extctrl_toggle = wx.NewIdRef()
+        self.menu_extctrl = _add_item(m_nav, self.id_extctrl_toggle, "External Control", kind=wx.ITEM_CHECK)
+        self.menu_extctrl.Check(False)
+
+        m_nav.AppendSeparator()
+
         self.id_search = wx.NewIdRef()
         _add_item(m_nav, self.id_search, get_menu_label("&Find...", "find"), wx.ART_FIND)
 
@@ -573,6 +580,7 @@ class MainFrame(wx.Frame):
         # Navigate
         self.Bind(wx.EVT_MENU, lambda e: self.view.go_prev(), id=self.id_prev)
         self.Bind(wx.EVT_MENU, lambda e: self.view.go_next(), id=self.id_next)
+        self.Bind(wx.EVT_MENU, self.on_toggle_server, id=self.id_extctrl_toggle)
         self.Bind(wx.EVT_MENU, self.on_goto_page, id=self.id_goto)
         self.Bind(wx.EVT_MENU, self.on_show_search, id=self.id_search)
         self.Bind(wx.EVT_MENU, self.on_show_toc_dialog, id=self.id_show_toc_dialog)
@@ -590,6 +598,12 @@ class MainFrame(wx.Frame):
         threading.Thread(target=self._load_data_thread, daemon=True).start()
 
     def _load_data_thread(self):
+        self.server = ControlServer(
+            on_next_callback=self.view.go_next,
+            on_prev_callback=self.view.go_prev,
+            on_ready_callback=self._update_ui
+        ) # todo: add pswd and port GUI
+
         self.gl_filters.load_filters()
 
         wx.CallAfter(self._update_menus_after_load)
@@ -690,6 +704,14 @@ class MainFrame(wx.Frame):
             if os.path.exists(full_path):
                 self._load_file(full_path)
 
+    def on_toggle_server(self, event):
+        if self.menu_extctrl.IsChecked():
+            self.server.start()
+            self._update_ui()
+        else:
+            self.server.stop()
+            self._update_ui()
+
     def on_sidebar_search(self, evt):
         if not self.content_provider:
             return
@@ -769,6 +791,13 @@ class MainFrame(wx.Frame):
         _set_check(self.id_fit_page, self.view.zoom_mode == PDFView.ZOOM_FIT_PAGE)
         _set_check(self.id_zoom_manual, self.view.zoom_mode == PDFView.ZOOM_MANUAL)
 
+        server_info = ""
+        if self.menu_extctrl.IsChecked():
+            try:
+                server_info = f"  |  Control: {self.server.get_port()} ({self.server.get_token()})"
+            except Exception:
+                print("failed to get info")
+
         if has_provider:
             shown = self.view._spread_pages()
 
@@ -782,7 +811,8 @@ class MainFrame(wx.Frame):
             status_txt = (f"{os.path.basename(self.content_provider.path)}  |  "
                           f"Page {current_page_display} of {total_pages} ({progress_pct:.1f}%)  |  "
                           f"{direction_str}{pad_str}  |  "
-                          f"Zoom: {int(self.view.zoom * 100)}%")
+                          f"Zoom: {int(self.view.zoom * 100)}%"
+                          f"{server_info}")
             if is_reflowable:
                 status_txt += f" | Font Size: {self.epub_font_size}pt"
             self.SetStatusText(status_txt)
@@ -1386,6 +1416,8 @@ class MainFrame(wx.Frame):
 
         except Exception as e:
             print(f"Save failed: {e}")
+
+        self.server.stop()
 
         evt.Skip()
 
