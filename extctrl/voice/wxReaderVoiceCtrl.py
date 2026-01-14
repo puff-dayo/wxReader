@@ -1,4 +1,5 @@
 import os
+import sys
 import platform
 from functools import lru_cache
 
@@ -14,9 +15,19 @@ DEFAULT_MODEL_PATH = "./model/vosk-model-small-en-us-0.15"
 DEFAULT_IP = "127.0.0.1"
 
 
+def _base_dir():
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def _resource_path(*parts):
+    return os.path.join(_base_dir(), *parts)
+
+
 @lru_cache(maxsize=1)
 def get_app_icon():
-    icon_path = 'icon.png'
+    icon_path = _resource_path("icon.png")
 
     if not os.path.exists(icon_path):
         print(f"Error: {icon_path} not found.")
@@ -70,7 +81,7 @@ def msw_set_theme(frame):
 
 class VoiceControllerFrame(wx.Frame):
     def __init__(self):
-        super().__init__(None, title="wxReader Voice Commander", size=(450, 550))
+        super().__init__(None, title="wxReader Voice Commander", size=(480, 560))
 
         self.is_running = False
         self.thread = None
@@ -78,31 +89,44 @@ class VoiceControllerFrame(wx.Frame):
 
         self.init_ui()
         self.SetFont(get_app_font(0))
+        self.SetMinSize((480, 560))
         self.Center()
         msw_set_theme(self)
 
     def init_ui(self):
         panel = wx.Panel(self)
-        vbox = wx.BoxSizer(wx.VERTICAL)
+        outer = wx.BoxSizer(wx.VERTICAL)
+        outer.SetMinSize((480, 560))
+
+        header = wx.BoxSizer(wx.HORIZONTAL)
+        title = wx.StaticText(panel, label="Voice Commander")
+        title.SetFont(get_app_font(3))
+        self.lbl_status = wx.StaticText(panel, label="Idle")
+        header.Add(title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 10)
+        header.Add(self.lbl_status, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        outer.Add(header, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
+
+        top_row = wx.BoxSizer(wx.HORIZONTAL)
 
         sb_conn = wx.StaticBox(panel, label="Connection")
         sbs_conn = wx.StaticBoxSizer(sb_conn, wx.VERTICAL)
 
-        flex_grid = wx.FlexGridSizer(2, 2, 10, 10)
+        grid_conn = wx.FlexGridSizer(2, 2, 6, 8)
+        grid_conn.AddGrowableCol(1, 1)
 
-        flex_grid.Add(wx.StaticText(panel, label="Port:"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.txt_port = wx.TextCtrl(panel, value="")
-        flex_grid.Add(self.txt_port, 1, wx.EXPAND)
+        lbl_port = wx.StaticText(panel, label="Port")
+        self.txt_port = wx.TextCtrl(panel, value="", size=(110, -1))
 
-        # Token
-        flex_grid.Add(wx.StaticText(panel, label="Token:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        lbl_token = wx.StaticText(panel, label="Token")
         self.txt_token = wx.TextCtrl(panel, value="")
-        self.txt_token.SetHint("")
-        flex_grid.Add(self.txt_token, 1, wx.EXPAND)
 
-        flex_grid.AddGrowableCol(1, 1)
-        sbs_conn.Add(flex_grid, 0, wx.EXPAND | wx.ALL, 10)
-        vbox.Add(sbs_conn, 0, wx.EXPAND | wx.ALL, 10)
+        grid_conn.Add(lbl_port, 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_conn.Add(self.txt_port, 1, wx.EXPAND)
+        grid_conn.Add(lbl_token, 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_conn.Add(self.txt_token, 1, wx.EXPAND)
+
+        sbs_conn.Add(grid_conn, 0, wx.EXPAND | wx.ALL, 8)
+        top_row.Add(sbs_conn, 1, wx.EXPAND | wx.RIGHT, 10)
 
         sb_audio = wx.StaticBox(panel, label="Microphone")
         sbs_audio = wx.StaticBoxSizer(sb_audio, wx.VERTICAL)
@@ -111,57 +135,84 @@ class VoiceControllerFrame(wx.Frame):
         self.combo_mics = wx.ComboBox(panel, style=wx.CB_READONLY)
         self.refresh_mics()
 
-        btn_refresh = wx.Button(panel, label="↻", size=(30, -1))
+        btn_refresh = wx.Button(panel, label="Refresh", size=(80, -1))
         btn_refresh.Bind(wx.EVT_BUTTON, lambda e: self.refresh_mics())
 
-        hbox_mic.Add(self.combo_mics, 1, wx.EXPAND | wx.RIGHT, 5)
+        hbox_mic.Add(self.combo_mics, 1, wx.EXPAND | wx.RIGHT, 8)
         hbox_mic.Add(btn_refresh, 0, wx.ALIGN_CENTER_VERTICAL)
-        sbs_audio.Add(hbox_mic, 0, wx.EXPAND | wx.ALL, 10)
-        vbox.Add(sbs_audio, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
+        sbs_audio.Add(hbox_mic, 0, wx.EXPAND | wx.ALL, 8)
+        top_row.Add(sbs_audio, 1, wx.EXPAND)
 
-        sb_cmd = wx.StaticBox(panel, label="Custom Keywords")
+        outer.Add(top_row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
+
+        sb_cmd = wx.StaticBox(panel, label="Keywords")
         sbs_cmd = wx.StaticBoxSizer(sb_cmd, wx.VERTICAL)
 
-        sbs_cmd.Add(wx.StaticText(panel, label="Go next page:"), 0, wx.TOP, 5)
-        self.txt_cmd_next = wx.TextCtrl(panel, value="next, next page, go, down, yes")
-        sbs_cmd.Add(self.txt_cmd_next, 0, wx.EXPAND | wx.BOTTOM, 10)
+        grid_cmd = wx.FlexGridSizer(2, 2, 6, 8)
+        grid_cmd.AddGrowableCol(1, 1)
 
-        sbs_cmd.Add(wx.StaticText(panel, label="Go priv page:"), 0, wx.TOP, 5)
-        self.txt_cmd_prev = wx.TextCtrl(panel, value="back, previous, up, last")
-        sbs_cmd.Add(self.txt_cmd_prev, 0, wx.EXPAND | wx.BOTTOM, 5)
+        lbl_next = wx.StaticText(panel, label="Next page")
+        self.txt_cmd_next = wx.TextCtrl(panel, value="next page, go down")
+        self.txt_cmd_next.SetHint("Comma-separated words/phrases")
+        self.txt_cmd_next.SetToolTip("Comma-separated keywords that trigger NEXT")
 
-        sbs_cmd.Add(wx.StaticText(panel, label="* dont add too much words"), 0, wx.ALIGN_RIGHT)
-        vbox.Add(sbs_cmd, 0, wx.EXPAND | wx.ALL, 10)
+        lbl_prev = wx.StaticText(panel, label="Previous page")
+        self.txt_cmd_prev = wx.TextCtrl(panel, value="previous, go up")
+        self.txt_cmd_prev.SetHint("Comma-separated words/phrases")
+        self.txt_cmd_prev.SetToolTip("Comma-separated keywords that trigger PREV")
+
+        grid_cmd.Add(lbl_next, 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_cmd.Add(self.txt_cmd_next, 1, wx.EXPAND)
+        grid_cmd.Add(lbl_prev, 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_cmd.Add(self.txt_cmd_prev, 1, wx.EXPAND)
+
+        note = wx.StaticText(panel, label="Vosk model: small-en-us-0.15 (Apache 2.0)")
+        sbs_cmd.Add(grid_cmd, 0, wx.EXPAND | wx.ALL, 8)
+        sbs_cmd.Add(note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        outer.Add(sbs_cmd, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+
+        log_header = wx.BoxSizer(wx.HORIZONTAL)
+        log_label = wx.StaticText(panel, label="Activity")
+        log_label.SetFont(get_app_font(1))
+        self.btn_clear_log = wx.Button(panel, label="Clear", size=(80, -1))
+        self.btn_clear_log.Bind(wx.EVT_BUTTON, lambda e: self.txt_log.SetValue(""))
+        log_header.Add(log_label, 1, wx.ALIGN_CENTER_VERTICAL)
+        log_header.Add(self.btn_clear_log, 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.txt_log = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY)
-        vbox.Add(self.txt_log, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
+        outer.Add(log_header, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        outer.Add(self.txt_log, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 8)
 
-        self.btn_toggle = wx.Button(panel, label="Start Listening")
+        footer = wx.BoxSizer(wx.HORIZONTAL)
+        self.btn_toggle = wx.Button(panel, label="Start Listening", size=(-1, 36))
         self.btn_toggle.Bind(wx.EVT_BUTTON, self.on_toggle)
-        vbox.Add(self.btn_toggle, 0, wx.EXPAND | wx.ALL, 15)
+        footer.Add(self.btn_toggle, 1, wx.EXPAND)
+        outer.Add(footer, 0, wx.EXPAND | wx.ALL, 10)
 
-        panel.SetSizer(vbox)
+        panel.SetSizer(outer)
 
     def refresh_mics(self):
         self.combo_mics.Clear()
-        self.device_map = {}  # index -> device_info
+        self.device_map = {}
 
-        info = self.pa.get_host_api_info_by_index(0)
-        numdevices = info.get('deviceCount')
+        try:
+            info = self.pa.get_host_api_info_by_index(0)
+            numdevices = info.get('deviceCount')
+        except Exception:
+            numdevices = 0
 
         idx = 0
         for i in range(0, numdevices):
-            if (self.pa.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')) > 0:
-                name = self.pa.get_device_info_by_host_api_device_index(0, i).get('name')
-                try:
-                    pass
-                except:
-                    pass
-
-                label = f"{i}: {name}"
-                self.combo_mics.Append(label)
-                self.device_map[idx] = i
-                idx += 1
+            try:
+                di = self.pa.get_device_info_by_host_api_device_index(0, i)
+                if (di.get('maxInputChannels', 0)) > 0:
+                    name = di.get('name', 'Unknown')
+                    label = f"{name}"
+                    self.combo_mics.Append(label)
+                    self.device_map[idx] = i
+                    idx += 1
+            except Exception:
+                continue
 
         if self.combo_mics.GetCount() > 0:
             self.combo_mics.SetSelection(0)
@@ -176,31 +227,40 @@ class VoiceControllerFrame(wx.Frame):
             self.stop_listening()
 
     def start_listening(self):
-        port_str = self.txt_port.GetValue()
-        token = self.txt_token.GetValue()
+        port_str = self.txt_port.GetValue().strip()
+        token = self.txt_token.GetValue().strip()
         if not port_str.isdigit() or not token:
-            wx.MessageBox("if not port_str.isdigit() or not token", "Error")
+            wx.MessageBox("Please enter a valid Port and Token.", "Error")
             return
 
         next_words = [w.strip().lower() for w in self.txt_cmd_next.GetValue().split(",") if w.strip()]
         prev_words = [w.strip().lower() for w in self.txt_cmd_prev.GetValue().split(",") if w.strip()]
 
         if not next_words or not prev_words:
-            wx.MessageBox("not next_words or not prev_words", "Error")
+            wx.MessageBox("Please provide keywords for both Next and Previous.", "Error")
             return
 
         selection = self.combo_mics.GetSelection()
         if selection == wx.NOT_FOUND:
-            wx.MessageBox("wx.NOT_FOUND", "Error")
+            wx.MessageBox("Please select a microphone device.", "Error")
             return
         device_index = self.device_map[selection]
 
+        model_path = DEFAULT_MODEL_PATH
+        if not os.path.isabs(model_path):
+            model_path = _resource_path(*model_path.replace("\\", "/").split("/"))
+        if not os.path.exists(model_path):
+            wx.MessageBox(f"Vosk model not found:\n{model_path}", "Error")
+            return
+
         self.is_running = True
         self.btn_toggle.SetLabel("Stop")
+        self.lbl_status.SetLabel("Listening")
         self.txt_port.Disable()
         self.txt_token.Disable()
         self.txt_cmd_next.Disable()
         self.txt_cmd_prev.Disable()
+        self.combo_mics.Disable()
 
         self.thread = threading.Thread(
             target=self.run_recognition,
@@ -212,10 +272,12 @@ class VoiceControllerFrame(wx.Frame):
     def stop_listening(self):
         self.is_running = False
         self.btn_toggle.SetLabel("Start Listening")
+        self.lbl_status.SetLabel("Idle")
         self.txt_port.Enable()
         self.txt_token.Enable()
         self.txt_cmd_next.Enable()
         self.txt_cmd_prev.Enable()
+        self.combo_mics.Enable()
         self.log("Stop Listening")
 
     def send_udp_command(self, port, token, cmd):
@@ -228,13 +290,18 @@ class VoiceControllerFrame(wx.Frame):
             self.log(f"{e}")
 
     def run_recognition(self, port, token, next_words, prev_words, device_idx):
+        stream = None
+        p = None
         try:
             all_words = list(set(next_words + prev_words))
             all_words.append("[unk]")
             grammar_json = json.dumps(all_words)
 
-            self.log(f"Grammar Mode...")
-            model = Model(DEFAULT_MODEL_PATH)
+            self.log("Grammar Mode...")
+            model_path = DEFAULT_MODEL_PATH
+            if not os.path.isabs(model_path):
+                model_path = _resource_path(*model_path.replace("\\", "/").split("/"))
+            model = Model(model_path)
 
             rec = KaldiRecognizer(model, 16000, grammar_json)
 
@@ -243,8 +310,7 @@ class VoiceControllerFrame(wx.Frame):
                             input=True, input_device_index=device_idx,
                             frames_per_buffer=4000)
 
-            self.log(f"ID: {device_idx})")
-
+            self.log(f"Mic: {device_idx}")
             stream.start_stream()
 
             while self.is_running:
@@ -254,7 +320,7 @@ class VoiceControllerFrame(wx.Frame):
 
                 if rec.AcceptWaveform(data):
                     res = json.loads(rec.Result())
-                    text = res.get('text', '')
+                    text = res.get('text', '').strip().lower()
 
                     if text:
                         self.log(f"'{text}'")
@@ -269,10 +335,15 @@ class VoiceControllerFrame(wx.Frame):
             wx.CallAfter(self.stop_listening)
         finally:
             try:
-                stream.stop_stream()
-                stream.close()
-                p.terminate()
-            except:
+                if stream is not None:
+                    stream.stop_stream()
+                    stream.close()
+            except Exception:
+                pass
+            try:
+                if p is not None:
+                    p.terminate()
+            except Exception:
                 pass
 
 
