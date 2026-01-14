@@ -9,7 +9,7 @@ Python.
 > 
 > **Version 1.3.4** Add customizable keyboard shortcuts. Add GUI control on uStrength of shaders. Add a folder tab in the sidebar. Gallery and cache performance optimized.
 > 
-> **Version 1.3.5** UI/UX enhancements. Bugs fixed.
+> **Version 1.3.6** Add support for external controlled page tuning, and add an example app of voice command. UI/UX enhancements. Bugs fixed.
 
 ---
 
@@ -37,13 +37,13 @@ Python.
 ## Installation
 
 1. From sauce (latest dev):
-   1. Install Python 3.12 and uv, `uv sync`.
-   2. [Download](https://www.libvips.org/install.html) and put the libvips shared library *.dll files inside `./src`.
+   1. Install Python 3.12 and uv, `uv --project . sync`.
+   2. [Download](https://www.libvips.org/install.html) and put the libvips shared library *.dll files inside `.\src`.
    3. Sync dependencies with `uv`.
-   4. Build with `cd ./src` and `../build.bat` on Windows x64. (Run the build
+   4. Build with `.\build.bat` on Windows x64. (Run the build
       script inside /src folder.)
    5. (Notes: upgrade pymupdf will fail the compilation, and this is a Nuitka issue.)
-   6. Optional: `uv --project .\extctrl\voice sync`, then build.
+   6. Optional: `uv --project .\extctrl\voice sync`, then build with `.\build_ext.bat`.
 
 2. Pre-compiled binary (stable): portable `.exe` files is provided on the **Releases** page.
 
