@@ -141,6 +141,13 @@ MANUAL_TREE = [
             <p><b>Background Color</b></p>
             <p>Click <b>View</b>, then <b>Background Color</b> to pick a new color for the area behind the pages.</p>
         """, []),
+        ("External Controller", """
+            <h3>Control page turning with external programs</h3>
+            <p>To use it, click <b>Navigate</b>, then click <b>External Control</b>.</p>
+            <p>Connect using the port and the token at the bottom status bar of wxReader.</p>
+            <p><b>Communicate</b></p>
+            <p>Send a UDP packet to 127.0.0.1 on the active port using the message format <b>TOKEN|COMMAND</b> (for example, Ab1!23|NEXT).<br> Available COMMANDs: "NEXT" or "PREV".</p>
+        """, []),
     ]),
 
     ("Tools and Processing", None, [
