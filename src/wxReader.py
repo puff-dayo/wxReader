@@ -208,7 +208,8 @@ class MainFrame(wx.Frame):
         self.splitter.SetSashGravity(0.0)
         self.splitter.Unsplit(self.sidebar)
 
-        self.CreateStatusBar(1)
+        self.status_bar = self.CreateStatusBar(1)
+        self.status_bar.SetFont(get_app_font())
 
         filters_dir = os.path.join(os.path.dirname(__file__), "filters")
         self.gl_filters = GLFilterTool(self, filters_dir)

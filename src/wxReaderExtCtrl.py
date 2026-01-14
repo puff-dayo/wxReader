@@ -1,3 +1,4 @@
+import random
 import socket
 import threading
 import wx
@@ -26,9 +27,25 @@ class ControlServer:
 
         self.actual_port = port if port != 0 else None
 
-    def _generate_secure_token(self, length=6):
-        alphabet = string.ascii_letters + string.digits + "!@#$%^&*()_+"
-        return ''.join(secrets.choice(alphabet) for _ in range(length))
+    @staticmethod
+    def _generate_secure_token(length=6):
+        lowercase = string.ascii_lowercase
+        uppercase = string.ascii_uppercase
+        special = "!@#$%^&*()_+"
+        all_characters = lowercase + uppercase + string.digits + special
+
+        token_list = [
+            secrets.choice(lowercase),
+            secrets.choice(uppercase),
+            secrets.choice(special)
+        ]
+
+        remaining_length = length - 3
+        for _ in range(remaining_length):
+            token_list.append(secrets.choice(all_characters))
+
+        random.shuffle(token_list)
+        return "".join(token_list)
 
     def get_token(self):
         return self.token
