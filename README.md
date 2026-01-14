@@ -1,7 +1,9 @@
 # wxReader
 
-**wxReader** is a lightweight, high-performance document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), libvips (pyvips), and
+**wxReader** is a ~lightweight, high-performance~ document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), libvips (pyvips), and
 Python.
+
+**wxReaderVoiceCtrl** is a hands-free external controller app for wxReader, recognizing **voice command** by vosk and pyaudio. Its GUI is also built with wxWidgets (wxPython).
 
 > **Version ~1.2** Supports OpenGL shaders with some built-in options, and you can add your own custom shaders. New Gallery mode, built-in help manual.
 > 
@@ -16,8 +18,9 @@ Python.
 ## Features
 
 <div style="display: flex; justify-content: space-between;">
-  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_1.png?raw=true" width="49%">
-  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_2.png?raw=true" width="49%">
+  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_1.png?raw=true" width="35%">
+  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_2.png?raw=true" width="35%">
+  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/3.png?raw=true" width="28%">
 </div>
 
 | Feature                 | Description                                                                                              |
@@ -31,6 +34,7 @@ Python.
 | **Gallery Mode**        | View all thumbnails or frontpages of all books inside a same folder like a gallery.                      |
 | **File History**        | Automatically saves recent files and reading progress on close.                                          |
 | **Interaction**         | Drag-and-drop file loading and full keyboard operation support.                                          |
+| **External control**    | (Default off.) Send command+token to a local UDP port to do page turning.                                |
 
 ---
 
@@ -51,6 +55,4 @@ Python.
 
 ## TODO
 
-- [ ] add a feature to automatically set the background color to an immersive dark mode based on current pages
-- [ ] scale UI (add to `get_app_font(size)`) (planned on v1.3.5)
 - [ ] keys for navigation can conflict with input fields
