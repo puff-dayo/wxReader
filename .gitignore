@@ -2,6 +2,9 @@
 todo.md
 wxReader.cfg
 /.venv/
+/extctrl/voice/.venv
+/extctrl/voice/model
+/extctrl/voice/.idea
 /.idea/
 /__pycache__
 screenshot/1.png
