@@ -15,6 +15,7 @@ import cv2
 import wx
 
 import warnings
+
 warnings.filterwarnings(
     "ignore",
     message=r".*SymbolDatabase\.GetPrototype\(\) is deprecated.*",
@@ -23,7 +24,6 @@ warnings.filterwarnings(
 )
 
 from eyetrax import GazeEstimator, run_9_point_calibration, make_kalman
-
 
 DEFAULT_MODEL_PATH = "gaze_model.pkl"
 DEFAULT_IP = "127.0.0.1"
@@ -47,6 +47,7 @@ WS_EX_TRANSPARENT = 0x00000020
 WS_EX_NOACTIVATE = 0x08000000
 LWA_COLORKEY = 0x00000001
 
+
 def _base_dir():
     if getattr(sys, "frozen", False):
         return os.path.dirname(os.path.abspath(sys.executable))
@@ -55,6 +56,7 @@ def _base_dir():
 
 def _resource_path(*parts):
     return os.path.join(_base_dir(), *parts)
+
 
 @lru_cache(maxsize=1)
 def get_app_icon():
@@ -72,6 +74,7 @@ def get_app_icon():
         print(f"Failed to create icon: {e}")
 
     return wx.NullIcon
+
 
 @lru_cache(maxsize=6)
 def get_app_font(add_size=0):
@@ -133,7 +136,17 @@ class DetectParams:
     smoothing_window: int = 10
     roi_frames: int = 3
     roi_hint_margin_px: int = 140
-    filter_mode: str = "ma"
+    filter_mode: str = "Kalman"
+
+
+@dataclass
+class ROIRatios:
+    l_x0: float = ROI_L_X0_RATIO
+    l_x1: float = ROI_L_X1_RATIO
+    r_x0: float = ROI_R_X0_RATIO
+    r_x1: float = ROI_R_X1_RATIO
+    y0: float = ROI_Y0_RATIO
+    y1: float = ROI_Y1_RATIO
 
 
 def list_available_cameras(max_index: int = 10):
@@ -151,7 +164,7 @@ def list_available_cameras(max_index: int = 10):
 
 
 class OverlayFrame(wx.Frame):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, roi: ROIRatios | None = None):
         style = wx.FRAME_NO_TASKBAR | wx.STAY_ON_TOP | wx.BORDER_NONE
         super().__init__(parent, title="EyeTrack Overlay", style=style)
 
@@ -170,6 +183,8 @@ class OverlayFrame(wx.Frame):
         self.success_flash_until = 0.0
         self.success_side = None
 
+        self.roi = roi if roi is not None else ROIRatios()
+
         self.Bind(wx.EVT_PAINT, self.on_paint)
 
         self.timer = wx.Timer(self)
@@ -181,16 +196,30 @@ class OverlayFrame(wx.Frame):
         hwnd = self.GetHandle()
         set_window_click_through_and_colorkey(hwnd, COLORKEY_R, COLORKEY_G, COLORKEY_B)
 
+    def set_roi_ratios(self, roi: ROIRatios):
+        with self._lock:
+            self.roi = ROIRatios(
+                l_x0=float(roi.l_x0),
+                l_x1=float(roi.l_x1),
+                r_x0=float(roi.r_x0),
+                r_x1=float(roi.r_x1),
+                y0=float(roi.y0),
+                y1=float(roi.y1),
+            )
+
     def get_roi_rects(self):
         sw, sh = self.screen_w, self.screen_h
-        y0 = int(sh * ROI_Y0_RATIO)
-        y1 = int(sh * ROI_Y1_RATIO)
+        with self._lock:
+            roi = self.roi
 
-        lx0 = int(sw * ROI_L_X0_RATIO)
-        lx1 = int(sw * ROI_L_X1_RATIO)
+        y0 = int(sh * roi.y0)
+        y1 = int(sh * roi.y1)
 
-        rx0 = int(sw * ROI_R_X0_RATIO)
-        rx1 = int(sw * ROI_R_X1_RATIO)
+        lx0 = int(sw * roi.l_x0)
+        lx1 = int(sw * roi.l_x1)
+
+        rx0 = int(sw * roi.r_x0)
+        rx1 = int(sw * roi.r_x1)
 
         left = (lx0, y0, lx1 - lx0, y1 - y0)
         right = (rx0, y0, rx1 - rx0, y1 - y0)
@@ -270,7 +299,7 @@ class OverlayFrame(wx.Frame):
 
 class MainFrame(wx.Frame):
     def __init__(self):
-        super().__init__(None, title="wxReader EyeTrack Commander", size=(820, 620))
+        super().__init__(None, title="wxReader EyeTrack Commander", size=(640, 768))
         panel = wx.Panel(self)
 
         self.SetFont(get_app_font(0))
@@ -285,6 +314,9 @@ class MainFrame(wx.Frame):
 
         self.params_lock = threading.Lock()
         self.params = DetectParams()
+
+        self.roi_lock = threading.Lock()
+        self.roi = ROIRatios()
 
         self.kalman_filter = None
         self.kalman_mode = False
@@ -302,15 +334,27 @@ class MainFrame(wx.Frame):
 
         self.device_map = {}
 
-        vbox = wx.BoxSizer(wx.VERTICAL)
+        left_panel = wx.Panel(panel)
+        self.main_panel = panel
+        self.left_panel = left_panel
+
+        root = wx.BoxSizer(wx.VERTICAL)
+        panel.SetSizer(root)
+
+        root.Add(left_panel, 1, wx.EXPAND | wx.ALL, 10)
+
+        left_panel.SetMinSize((600, -1))
+
+        vbox_left = wx.BoxSizer(wx.VERTICAL)
+        left_panel.SetSizer(vbox_left)
 
         header = wx.BoxSizer(wx.HORIZONTAL)
-        title = wx.StaticText(panel, label="EyeTrack Commander")
+        title = wx.StaticText(left_panel, label="EyeTrack Commander")
         title.SetFont(get_app_font(3))
-        self.lbl_status = wx.StaticText(panel, label="Idle")
-        header.Add(title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 10)
-        header.Add(self.lbl_status, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
-        vbox.Add(header, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
+        self.lbl_status = wx.StaticText(left_panel, label="Idle")
+        header.Add(title, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 6)
+        header.Add(self.lbl_status, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
+        vbox_left.Add(header, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 6)
 
         cams = list_available_cameras(10)
         if not cams:
@@ -318,25 +362,25 @@ class MainFrame(wx.Frame):
         self.cams = cams
 
         row_cam = wx.BoxSizer(wx.HORIZONTAL)
-        row_cam.Add(wx.StaticText(panel, label="Camera:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.combo_cam = wx.ComboBox(panel, choices=[f"Camera {i}" for i in cams], style=wx.CB_READONLY)
+        row_cam.Add(wx.StaticText(left_panel, label="Camera:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.combo_cam = wx.ComboBox(left_panel, choices=[f"Camera {i}" for i in cams], style=wx.CB_READONLY)
         self.combo_cam.SetSelection(0)
         row_cam.Add(self.combo_cam, 1, wx.EXPAND)
-        vbox.Add(row_cam, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        vbox_left.Add(row_cam, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
         top_row = wx.BoxSizer(wx.HORIZONTAL)
 
-        sb_conn = wx.StaticBox(panel, label="Connection")
+        sb_conn = wx.StaticBox(left_panel, label="Connection")
         sbs_conn = wx.StaticBoxSizer(sb_conn, wx.VERTICAL)
 
         grid_conn = wx.FlexGridSizer(2, 2, 6, 8)
         grid_conn.AddGrowableCol(1, 1)
 
-        lbl_port = wx.StaticText(panel, label="Port")
-        self.txt_port = wx.TextCtrl(panel, value="", size=(120, -1))
+        lbl_port = wx.StaticText(left_panel, label="Port")
+        self.txt_port = wx.TextCtrl(left_panel, value="", size=(120, -1))
 
-        lbl_token = wx.StaticText(panel, label="Token")
-        self.txt_token = wx.TextCtrl(panel, value="")
+        lbl_token = wx.StaticText(left_panel, label="Token")
+        self.txt_token = wx.TextCtrl(left_panel, value="")
 
         grid_conn.Add(lbl_port, 0, wx.ALIGN_CENTER_VERTICAL)
         grid_conn.Add(self.txt_port, 1, wx.EXPAND)
@@ -346,12 +390,12 @@ class MainFrame(wx.Frame):
         sbs_conn.Add(grid_conn, 0, wx.EXPAND | wx.ALL, 8)
         top_row.Add(sbs_conn, 1, wx.EXPAND | wx.RIGHT, 10)
 
-        sb_model = wx.StaticBox(panel, label="Model")
+        sb_model = wx.StaticBox(left_panel, label="Model")
         sbs_model = wx.StaticBoxSizer(sb_model, wx.VERTICAL)
 
         row_model = wx.BoxSizer(wx.HORIZONTAL)
-        self.txt_model = wx.TextCtrl(panel, value=self.model_path)
-        self.btn_browse = wx.Button(panel, label="Load model...", size=(120, -1))
+        self.txt_model = wx.TextCtrl(left_panel, value=self.model_path)
+        self.btn_browse = wx.Button(left_panel, label="Load model...", size=(120, -1))
         self.btn_browse.Bind(wx.EVT_BUTTON, self.on_load_model)
         row_model.Add(self.txt_model, 1, wx.EXPAND | wx.RIGHT, 8)
         row_model.Add(self.btn_browse, 0)
@@ -359,96 +403,214 @@ class MainFrame(wx.Frame):
 
         top_row.Add(sbs_model, 1, wx.EXPAND)
 
-        vbox.Add(top_row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        vbox_left.Add(top_row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
-        box_params = wx.StaticBox(panel, label="Detection Parameters")
-        sizer_params = wx.StaticBoxSizer(box_params, wx.VERTICAL)
+        self.cp_params = wx.CollapsiblePane(
+            left_panel,
+            label="Detection Parameters",
+            style=wx.CP_DEFAULT_STYLE | wx.CP_NO_TLW_RESIZE
+        )
+        self.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_collapsible_changed, self.cp_params)
+
+        params_pane = self.cp_params.GetPane()
+        sizer_params = wx.BoxSizer(wx.VERTICAL)
 
         grid = wx.FlexGridSizer(rows=0, cols=4, vgap=8, hgap=10)
         grid.AddGrowableCol(1, 1)
         grid.AddGrowableCol(3, 1)
 
-        grid.Add(wx.StaticText(panel, label="Smoothing window (N):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.spin_smoothing = wx.SpinCtrl(panel, min=1, max=30, initial=self.params.smoothing_window)
+        grid.Add(wx.StaticText(params_pane, label="Smoothing window (N):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.spin_smoothing = wx.SpinCtrl(params_pane, min=1, max=30, initial=self.params.smoothing_window)
         grid.Add(self.spin_smoothing, 0, wx.EXPAND)
 
-        grid.Add(wx.StaticText(panel, label="ROI frames:"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.spin_dwell = wx.SpinCtrl(panel, min=1, max=20, initial=self.params.roi_frames)
+        grid.Add(wx.StaticText(params_pane, label="ROI frames:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.spin_dwell = wx.SpinCtrl(params_pane, min=1, max=20, initial=self.params.roi_frames)
         grid.Add(self.spin_dwell, 0, wx.EXPAND)
 
-        grid.Add(wx.StaticText(panel, label="Double blink window (sec):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.spin_double = wx.SpinCtrlDouble(panel, min=0.2, max=3.0, inc=0.05, initial=self.params.double_blink_window_sec)
+        grid.Add(wx.StaticText(params_pane, label="Double blink window (sec):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.spin_double = wx.SpinCtrlDouble(
+            params_pane,
+            min=0.2,
+            max=3.0,
+            inc=0.05,
+            initial=self.params.double_blink_window_sec
+        )
         self.spin_double.SetDigits(2)
         grid.Add(self.spin_double, 0, wx.EXPAND)
 
-        grid.Add(wx.StaticText(panel, label="Last gaze valid (sec):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.spin_gaze_valid = wx.SpinCtrlDouble(panel, min=0.05, max=1.5, inc=0.05, initial=self.params.last_gaze_valid_sec)
+        grid.Add(wx.StaticText(params_pane, label="Last gaze valid (sec):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.spin_gaze_valid = wx.SpinCtrlDouble(
+            params_pane,
+            min=0.05,
+            max=1.5,
+            inc=0.05,
+            initial=self.params.last_gaze_valid_sec
+        )
         self.spin_gaze_valid.SetDigits(2)
         grid.Add(self.spin_gaze_valid, 0, wx.EXPAND)
 
-        grid.Add(wx.StaticText(panel, label="ROI hint margin (px):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.spin_hint = wx.SpinCtrl(panel, min=0, max=800, initial=self.params.roi_hint_margin_px)
+        grid.Add(wx.StaticText(params_pane, label="ROI hint margin (px):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.spin_hint = wx.SpinCtrl(params_pane, min=0, max=800, initial=self.params.roi_hint_margin_px)
         grid.Add(self.spin_hint, 0, wx.EXPAND)
 
-        grid.Add(wx.StaticText(panel, label="Filter:"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.combo_filter = wx.ComboBox(panel, choices=["MovingAvg", "Kalman"], style=wx.CB_READONLY)
+        grid.Add(wx.StaticText(params_pane, label="Filter:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.combo_filter = wx.ComboBox(params_pane, choices=["Kalman", "MovingAvg"], style=wx.CB_READONLY)
         self.combo_filter.SetSelection(0)
         grid.Add(self.combo_filter, 0, wx.EXPAND)
 
-        grid.Add(wx.StaticText(panel, label=""), 0)
-        self.btn_apply_params = wx.Button(panel, label="Apply parameters")
+        grid.Add(wx.StaticText(params_pane, label=""), 0)
+        self.btn_apply_params = wx.Button(params_pane, label="Apply parameters")
         self.btn_apply_params.Bind(wx.EVT_BUTTON, self.on_apply_params)
         grid.Add(self.btn_apply_params, 0, wx.EXPAND)
 
         sizer_params.Add(grid, 0, wx.EXPAND | wx.ALL, 10)
-        vbox.Add(sizer_params, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        params_pane.SetSizer(sizer_params)
+
+        vbox_left.Add(self.cp_params, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        self.cp_params.Collapse(True)
+
+        self.cp_roi = wx.CollapsiblePane(
+            left_panel,
+            label="ROI Ratios",
+            style=wx.CP_DEFAULT_STYLE | wx.CP_NO_TLW_RESIZE
+        )
+        self.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_collapsible_changed, self.cp_roi)
+
+        roi_pane = self.cp_roi.GetPane()
+        sizer_roi = wx.BoxSizer(wx.VERTICAL)
+
+        grid_roi = wx.FlexGridSizer(rows=0, cols=4, vgap=8, hgap=10)
+        grid_roi.AddGrowableCol(1, 1)
+        grid_roi.AddGrowableCol(3, 1)
+
+        self.spin_roi_lx0 = wx.SpinCtrlDouble(roi_pane, min=0.0, max=1.0, inc=0.001, initial=self.roi.l_x0)
+        self.spin_roi_lx1 = wx.SpinCtrlDouble(roi_pane, min=0.0, max=1.0, inc=0.001, initial=self.roi.l_x1)
+        self.spin_roi_rx0 = wx.SpinCtrlDouble(roi_pane, min=0.0, max=1.0, inc=0.001, initial=self.roi.r_x0)
+        self.spin_roi_rx1 = wx.SpinCtrlDouble(roi_pane, min=0.0, max=1.0, inc=0.001, initial=self.roi.r_x1)
+        self.spin_roi_y0 = wx.SpinCtrlDouble(roi_pane, min=0.0, max=1.0, inc=0.001, initial=self.roi.y0)
+        self.spin_roi_y1 = wx.SpinCtrlDouble(roi_pane, min=0.0, max=1.0, inc=0.001, initial=self.roi.y1)
+
+        for s in [
+            self.spin_roi_lx0,
+            self.spin_roi_lx1,
+            self.spin_roi_rx0,
+            self.spin_roi_rx1,
+            self.spin_roi_y0,
+            self.spin_roi_y1,
+        ]:
+            s.SetDigits(3)
+
+        grid_roi.Add(wx.StaticText(roi_pane, label="ROI_L_X0_RATIO:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_roi.Add(self.spin_roi_lx0, 0, wx.EXPAND)
+
+        grid_roi.Add(wx.StaticText(roi_pane, label="ROI_L_X1_RATIO:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_roi.Add(self.spin_roi_lx1, 0, wx.EXPAND)
+
+        grid_roi.Add(wx.StaticText(roi_pane, label="ROI_R_X0_RATIO:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_roi.Add(self.spin_roi_rx0, 0, wx.EXPAND)
+
+        grid_roi.Add(wx.StaticText(roi_pane, label="ROI_R_X1_RATIO:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_roi.Add(self.spin_roi_rx1, 0, wx.EXPAND)
+
+        grid_roi.Add(wx.StaticText(roi_pane, label="ROI_Y0_RATIO:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_roi.Add(self.spin_roi_y0, 0, wx.EXPAND)
+
+        grid_roi.Add(wx.StaticText(roi_pane, label="ROI_Y1_RATIO:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid_roi.Add(self.spin_roi_y1, 0, wx.EXPAND)
+
+        self.btn_apply_roi = wx.Button(roi_pane, label="Apply ROI ratios")
+        self.btn_apply_roi.Bind(wx.EVT_BUTTON, self.on_apply_roi)
+
+        sizer_roi.Add(grid_roi, 0, wx.EXPAND | wx.ALL, 10)
+        sizer_roi.Add(self.btn_apply_roi, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+        roi_pane.SetSizer(sizer_roi)
+
+        vbox_left.Add(self.cp_roi, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        self.cp_roi.Collapse(True)
 
         row_btn = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.btn_calib = wx.Button(panel, label="Calibrate (9-point)", size=(160, 36))
+        self.btn_calib = wx.Button(left_panel, label="Calibrate (9-point)", size=(160, 36))
         self.btn_calib.Bind(wx.EVT_BUTTON, self.on_calibrate)
         row_btn.Add(self.btn_calib, 0, wx.RIGHT, 10)
 
-        self.btn_start = wx.Button(panel, label="Start tracking", size=(160, 36))
+        self.btn_start = wx.Button(left_panel, label="Start tracking", size=(160, 36))
         self.btn_start.Bind(wx.EVT_BUTTON, self.on_start)
         row_btn.Add(self.btn_start, 0, wx.RIGHT, 10)
 
-        self.btn_stop = wx.Button(panel, label="Stop", size=(120, 36))
+        self.btn_stop = wx.Button(left_panel, label="Stop", size=(120, 36))
         self.btn_stop.Bind(wx.EVT_BUTTON, self.on_stop)
         self.btn_stop.Disable()
         row_btn.Add(self.btn_stop, 0, wx.RIGHT, 10)
 
-        self.btn_exit = wx.Button(panel, label="Exit", size=(120, 36))
+        self.btn_exit = wx.Button(left_panel, label="Exit", size=(120, 36))
         self.btn_exit.Bind(wx.EVT_BUTTON, self.on_exit)
         row_btn.Add(self.btn_exit, 0)
 
-        vbox.Add(row_btn, 0, wx.ALL, 10)
+        vbox_left.Add(row_btn, 0, wx.ALL, 10)
+
+        self.txt_status = wx.StaticText(left_panel, label="Status: model not loaded")
+        vbox_left.Add(self.txt_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+        vbox_left.Add(wx.StaticLine(left_panel), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
         log_header = wx.BoxSizer(wx.HORIZONTAL)
-        log_label = wx.StaticText(panel, label="Activity")
+        log_label = wx.StaticText(left_panel, label="Activity")
         log_label.SetFont(get_app_font(1))
-        self.btn_clear_log = wx.Button(panel, label="Clear", size=(80, -1))
+        self.btn_clear_log = wx.Button(left_panel, label="Clear", size=(80, -1))
         self.btn_clear_log.Bind(wx.EVT_BUTTON, lambda e: self.txt_log.SetValue(""))
         log_header.Add(log_label, 1, wx.ALIGN_CENTER_VERTICAL)
         log_header.Add(self.btn_clear_log, 0, wx.ALIGN_CENTER_VERTICAL)
-        vbox.Add(log_header, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        vbox_left.Add(log_header, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
-        self.txt_log = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY)
-        vbox.Add(self.txt_log, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 8)
+        self.txt_log = wx.TextCtrl(left_panel, style=wx.TE_MULTILINE | wx.TE_READONLY)
+        vbox_left.Add(self.txt_log, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
-        self.txt_status = wx.StaticText(panel, label="Status: model not loaded")
-        vbox.Add(self.txt_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
-
-        panel.SetSizer(vbox)
+        panel.Layout()
 
         self.refresh_model_state(auto_try_load=False)
 
         self.Centre()
-
         msw_set_theme(self)
+
+    def on_collapsible_changed(self, evt):
+        self.left_panel.Layout()
+        self.main_panel.Layout()
+        self.SendSizeEvent()
 
     def log(self, msg: str):
         wx.CallAfter(self.txt_log.AppendText, f"{msg}\n")
+
+    def on_apply_roi(self, evt):
+        lx0 = float(self.spin_roi_lx0.GetValue())
+        lx1 = float(self.spin_roi_lx1.GetValue())
+        rx0 = float(self.spin_roi_rx0.GetValue())
+        rx1 = float(self.spin_roi_rx1.GetValue())
+        y0 = float(self.spin_roi_y0.GetValue())
+        y1 = float(self.spin_roi_y1.GetValue())
+
+        ok = True
+        if not (0.0 <= lx0 < lx1 <= 1.0):
+            ok = False
+        if not (0.0 <= rx0 < rx1 <= 1.0):
+            ok = False
+        if not (0.0 <= y0 < y1 <= 1.0):
+            ok = False
+
+        if not ok:
+            wx.MessageBox("Invalid ROI ratios. Ensure X0 < X1 and Y0 < Y1 and all in [0..1].", "Error",
+                          wx.OK | wx.ICON_ERROR)
+            return
+
+        with self.roi_lock:
+            self.roi = ROIRatios(l_x0=lx0, l_x1=lx1, r_x0=rx0, r_x1=rx1, y0=y0, y1=y1)
+
+        if self.overlay is not None:
+            wx.CallAfter(self.overlay.set_roi_ratios, self.roi)
+
+        self.txt_status.SetLabel("Status: ROI ratios updated")
+        self.log(f"ROI updated: L({lx0:.3f}-{lx1:.3f}) R({rx0:.3f}-{rx1:.3f}) Y({y0:.3f}-{y1:.3f})")
 
     def get_selected_camera_index(self) -> int:
         idx = self.combo_cam.GetSelection()
@@ -456,12 +618,15 @@ class MainFrame(wx.Frame):
 
     def roi_rects(self):
         sw, sh = wx.GetDisplaySize()
-        y0 = int(sh * ROI_Y0_RATIO)
-        y1 = int(sh * ROI_Y1_RATIO)
-        lx0 = int(sw * ROI_L_X0_RATIO)
-        lx1 = int(sw * ROI_L_X1_RATIO)
-        rx0 = int(sw * ROI_R_X0_RATIO)
-        rx1 = int(sw * ROI_R_X1_RATIO)
+        with self.roi_lock:
+            roi = self.roi
+
+        y0 = int(sh * roi.y0)
+        y1 = int(sh * roi.y1)
+        lx0 = int(sw * roi.l_x0)
+        lx1 = int(sw * roi.l_x1)
+        rx0 = int(sw * roi.r_x0)
+        rx1 = int(sw * roi.r_x1)
         return (lx0, y0, lx1, y1), (rx0, y0, rx1, y1)
 
     def point_in_rect(self, x: float, y: float, rect) -> bool:
@@ -551,10 +716,10 @@ class MainFrame(wx.Frame):
 
     def on_load_model(self, evt):
         with wx.FileDialog(
-            self,
-            "Select model (.pkl)",
-            wildcard="Pickle files (*.pkl)|*.pkl|All files (*.*)|*.*",
-            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+                self,
+                "Select model (.pkl)",
+                wildcard="Pickle files (*.pkl)|*.pkl|All files (*.*)|*.*",
+                style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
         ) as dlg:
             if dlg.ShowModal() == wx.ID_CANCEL:
                 return
@@ -662,7 +827,9 @@ class MainFrame(wx.Frame):
         self.stop_event.clear()
 
         if self.overlay is None:
-            self.overlay = OverlayFrame(self)
+            with self.roi_lock:
+                roi_copy = self.roi
+            self.overlay = OverlayFrame(self, roi=roi_copy)
 
         self.btn_start.Disable()
         self.btn_stop.Enable()
@@ -736,8 +903,6 @@ class MainFrame(wx.Frame):
         self.in_left_streak = 0
         self.in_right_streak = 0
 
-        left_roi, right_roi = self.roi_rects()
-
         while not self.stop_event.is_set():
             ret, frame = cap.read()
             if not ret:
@@ -752,11 +917,14 @@ class MainFrame(wx.Frame):
                     smoothing_window=self.params.smoothing_window,
                     roi_frames=self.params.roi_frames,
                     roi_hint_margin_px=self.params.roi_hint_margin_px,
+                    filter_mode=self.params.filter_mode,
                 )
 
             if self.xy_buffer.maxlen != max(1, params.smoothing_window):
                 old = list(self.xy_buffer)
                 self.xy_buffer = deque(old, maxlen=max(1, params.smoothing_window))
+
+            left_roi, right_roi = self.roi_rects()
 
             features, blink = self.estimator.extract_features(frame)
 
