@@ -10,6 +10,5 @@ dependencies = [
     "wxpython>=4.2.4",
     "mediapipe==0.10.14",
     "pywinstyles>=1.8",
-    "nuitka>=2.8.9",
-    "imageio>=2.37.2",
+    "pyinstaller>=6.18.0",
 ]

@@ -9,6 +9,8 @@ from ctypes import wintypes
 from dataclasses import dataclass
 from collections import deque
 import socket
+from pathlib import Path
+
 import pywinstyles
 
 import cv2
@@ -48,14 +50,14 @@ WS_EX_NOACTIVATE = 0x08000000
 LWA_COLORKEY = 0x00000001
 
 
-def _base_dir():
+def _base_dir() -> Path:
     if getattr(sys, "frozen", False):
-        return os.path.dirname(os.path.abspath(sys.executable))
-    return os.path.dirname(os.path.abspath(__file__))
+        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+    return Path(__file__).resolve().parent
 
 
-def _resource_path(*parts):
-    return os.path.join(_base_dir(), *parts)
+def _resource_path(*parts) -> str:
+    return str(_base_dir().joinpath(*parts))
 
 
 @lru_cache(maxsize=1)
@@ -454,7 +456,7 @@ class MainFrame(wx.Frame):
         grid.Add(self.spin_hint, 0, wx.EXPAND)
 
         grid.Add(wx.StaticText(params_pane, label="Filter:"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.combo_filter = wx.ComboBox(params_pane, choices=["Kalman", "MovingAvg"], style=wx.CB_READONLY)
+        self.combo_filter = wx.ComboBox(params_pane, choices=["MovingAvg", "Kalman"], style=wx.CB_READONLY)
         self.combo_filter.SetSelection(0)
         grid.Add(self.combo_filter, 0, wx.EXPAND)
 
