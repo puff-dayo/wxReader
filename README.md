@@ -47,7 +47,7 @@ Python.
    4. Build with `.\build.bat` on Windows x64. (Run the build
       script inside /src folder.)
    5. (Notes: upgrade pymupdf will fail the compilation, and this is a Nuitka issue.)
-   6. Optional: `uv --project .\extctrl\voice sync`, then build with `.\build_ext.bat`.
+   6. Optional: `uv --project .\extctrl\voice sync`, `uv --project .\extctrl\eye_track sync`, then build with `.\build_ext.bat`.
 
 2. Pre-compiled binary (stable): portable `.exe` files is provided on the **Releases** page.
 

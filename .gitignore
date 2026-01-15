@@ -5,6 +5,9 @@ wxReader.cfg
 /extctrl/voice/.venv
 /extctrl/voice/model
 /extctrl/voice/.idea
+/extctrl/eye_track/.venv
+/extctrl/eye_track/model
+/extctrl/eye_track/.idea
 /.idea/
 /__pycache__
 screenshot/1.png
@@ -16,3 +19,5 @@ test.py
 /analysis/
 *.dll
 src/result.json
+*.pkl
+build_ext2.bat
