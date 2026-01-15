@@ -22,7 +22,7 @@ warnings.filterwarnings(
     module=r"google\.protobuf\.symbol_database",
 )
 
-from eyetrax import GazeEstimator, run_9_point_calibration
+from eyetrax import GazeEstimator, run_9_point_calibration, make_kalman
 
 
 DEFAULT_MODEL_PATH = "gaze_model.pkl"
@@ -133,6 +133,7 @@ class DetectParams:
     smoothing_window: int = 10
     roi_frames: int = 3
     roi_hint_margin_px: int = 140
+    filter_mode: str = "ma"
 
 
 def list_available_cameras(max_index: int = 10):
@@ -285,6 +286,9 @@ class MainFrame(wx.Frame):
         self.params_lock = threading.Lock()
         self.params = DetectParams()
 
+        self.kalman_filter = None
+        self.kalman_mode = False
+
         self.blink_times_L = deque(maxlen=6)
         self.blink_times_R = deque(maxlen=6)
         self.last_blink_flag = False
@@ -360,7 +364,7 @@ class MainFrame(wx.Frame):
         box_params = wx.StaticBox(panel, label="Detection Parameters")
         sizer_params = wx.StaticBoxSizer(box_params, wx.VERTICAL)
 
-        grid = wx.FlexGridSizer(rows=3, cols=4, vgap=8, hgap=10)
+        grid = wx.FlexGridSizer(rows=0, cols=4, vgap=8, hgap=10)
         grid.AddGrowableCol(1, 1)
         grid.AddGrowableCol(3, 1)
 
@@ -385,6 +389,11 @@ class MainFrame(wx.Frame):
         grid.Add(wx.StaticText(panel, label="ROI hint margin (px):"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.spin_hint = wx.SpinCtrl(panel, min=0, max=800, initial=self.params.roi_hint_margin_px)
         grid.Add(self.spin_hint, 0, wx.EXPAND)
+
+        grid.Add(wx.StaticText(panel, label="Filter:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.combo_filter = wx.ComboBox(panel, choices=["MovingAvg", "Kalman"], style=wx.CB_READONLY)
+        self.combo_filter.SetSelection(0)
+        grid.Add(self.combo_filter, 0, wx.EXPAND)
 
         grid.Add(wx.StaticText(panel, label=""), 0)
         self.btn_apply_params = wx.Button(panel, label="Apply parameters")
@@ -417,7 +426,7 @@ class MainFrame(wx.Frame):
 
         log_header = wx.BoxSizer(wx.HORIZONTAL)
         log_label = wx.StaticText(panel, label="Activity")
-        log_label.SetFont(wx.Font(get_app_font(1)))
+        log_label.SetFont(get_app_font(1))
         self.btn_clear_log = wx.Button(panel, label="Clear", size=(80, -1))
         self.btn_clear_log.Bind(wx.EVT_BUTTON, lambda e: self.txt_log.SetValue(""))
         log_header.Add(log_label, 1, wx.ALIGN_CENTER_VERTICAL)
@@ -526,12 +535,15 @@ class MainFrame(wx.Frame):
                 self.btn_start.Disable()
 
     def on_apply_params(self, evt):
+        mode = self.combo_filter.GetStringSelection()
+
         with self.params_lock:
             self.params.smoothing_window = int(self.spin_smoothing.GetValue())
             self.params.roi_frames = int(self.spin_dwell.GetValue())
             self.params.double_blink_window_sec = float(self.spin_double.GetValue())
             self.params.last_gaze_valid_sec = float(self.spin_gaze_valid.GetValue())
             self.params.roi_hint_margin_px = int(self.spin_hint.GetValue())
+            self.params.filter_mode = "kalman" if mode == "Kalman" else "ma"
         self.txt_status.SetLabel(
             "Status: parameters updated"
             + (" (tracking running)" if self.tracking_thread and self.tracking_thread.is_alive() else "")
@@ -598,6 +610,36 @@ class MainFrame(wx.Frame):
                 wx.CallAfter(self.lbl_status.SetLabel, "Idle")
 
         threading.Thread(target=calib_job, daemon=True).start()
+
+    def reset_filter_state(self, use_kalman: bool):
+        self.kalman_mode = bool(use_kalman)
+        self.kalman_filter = make_kalman() if use_kalman else None
+
+    def kalman_step(self, x: float, y: float):
+        kf = self.kalman_filter
+        if kf is None:
+            self.kalman_filter = make_kalman()
+            kf = self.kalman_filter
+
+        for args in [(x, y), ([x, y],), ((x, y),)]:
+            try:
+                out = kf(*args) if callable(kf) else None
+                if out is None:
+                    continue
+                if isinstance(out, (list, tuple)) and len(out) >= 2:
+                    return float(out[0]), float(out[1])
+            except Exception:
+                continue
+
+        try:
+            if hasattr(kf, "update"):
+                out = kf.update(x, y)
+                if isinstance(out, (list, tuple)) and len(out) >= 2:
+                    return float(out[0]), float(out[1])
+        except Exception:
+            pass
+
+        return x, y
 
     def on_start(self, evt):
         self.on_apply_params(None)
@@ -683,7 +725,10 @@ class MainFrame(wx.Frame):
 
         with self.params_lock:
             smoothing = self.params.smoothing_window
+            use_kalman = (self.params.filter_mode == "kalman")
+
         self.xy_buffer = deque(maxlen=max(1, smoothing))
+        self.reset_filter_state(use_kalman)
 
         self.last_xy = None
         self.last_xy_time = 0.0
@@ -721,14 +766,22 @@ class MainFrame(wx.Frame):
                     x = float(x)
                     y = float(y)
 
-                    self.xy_buffer.append((x, y))
-                    avg_x = sum(p[0] for p in self.xy_buffer) / len(self.xy_buffer)
-                    avg_y = sum(p[1] for p in self.xy_buffer) / len(self.xy_buffer)
-
-                    self.last_xy = (avg_x, avg_y)
-                    self.last_xy_time = now
+                    if params.filter_mode == "kalman":
+                        if not self.kalman_mode:
+                            self.reset_filter_state(True)
+                        fx, fy = self.kalman_step(x, y)
+                        self.last_xy = (fx, fy)
+                        self.last_xy_time = now
+                    else:
+                        if self.kalman_mode:
+                            self.reset_filter_state(False)
+                        self.xy_buffer.append((x, y))
+                        avg_x = sum(p[0] for p in self.xy_buffer) / len(self.xy_buffer)
+                        avg_y = sum(p[1] for p in self.xy_buffer) / len(self.xy_buffer)
+                        self.last_xy = (avg_x, avg_y)
+                        self.last_xy_time = now
                 except Exception:
-                    pass
+                    print(Exception)
 
             in_left = False
             in_right = False
