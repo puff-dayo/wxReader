@@ -36,8 +36,8 @@ Python.
 **Accessibility features**: The two independent external control programs, **wxReaderVoiceCtrl** and **wxReaderEyeTrackCtrl**, respectively provides offline voice-activated page turning commands and offline eye gesture based page-turning via computer camera recognition, triggered by “blinking twice while looking at a designated area of the screen.” (The are fully offline and requires a not-potato CPU.)
 
 <div style="display: flex; justify-content: space-between;">
-    <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/3.png?raw=true" width="49%">
-    <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/4.png?raw=true" width="49%">
+    <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/3.png?raw=true" width="32%">
+    <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/4.png?raw=true" width="65%">
 </div>
 
 ---
