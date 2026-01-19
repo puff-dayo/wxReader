@@ -168,47 +168,81 @@ class PDFView(wx.ScrolledWindow):
     # --------------------------
     # Threading Logic
     # --------------------------
+    def _process_image_data(self, data: bytes, width: int, height: int) -> bytes:
+        if not self.custom_filter:
+            return data
+
+        try:
+            arr = np.frombuffer(data, dtype=np.uint8).reshape((height, width, 3))
+            arr = arr.copy()
+
+            if self.main_frame and hasattr(self.main_frame, "gl_filters"):
+                out = self.main_frame.gl_filters.apply(self.custom_filter, arr)
+                if out is not None:
+                    arr[:] = out
+
+            return arr.tobytes()
+
+        except Exception as e:
+            print(f"Background processing error: {e}")
+            return data
+
     def _worker_loop(self):
         while True:
             task = self.render_queue.get()
             try:
                 page_idx, zoom, provider = task
+
+                if provider != self.content_provider or abs(zoom - self.zoom) > 0.01:
+                    continue
                 if not provider.is_valid:
                     continue
 
-                result = provider.render_to_data(page_idx, zoom)
+                raw_result = provider.render_to_data(page_idx, zoom)
+                if not raw_result:
+                    continue
 
-                wx.CallAfter(self._on_worker_result, page_idx, zoom, result, provider)
+                width, height, data = raw_result
+
+                try:
+                    arr = np.frombuffer(data, dtype=np.uint8).reshape((height, width, 3)).copy()
+                except Exception as e:
+                    print(f"Numpy conversion error: {e}")
+                    continue
+
+                wx.CallAfter(self._on_worker_result, page_idx, zoom, width, height, arr, provider)
+
             except Exception as e:
                 print(f"Worker error: {e}")
             finally:
                 self.render_queue.task_done()
 
-    def _on_worker_result(self, page_idx, zoom, result, task_provider):
+    def _on_worker_result(self, page_idx, zoom, width, height, arr, task_provider):
         if task_provider != self.content_provider:
+            return
+        if abs(self.zoom - zoom) > 0.01:
             return
 
         cache_key = (page_idx, int(zoom * 10000))
         if cache_key in self._requested_pages:
             self._requested_pages.remove(cache_key)
 
-        if not result or not self.content_provider:
-            return
+        if self.custom_filter and self.main_frame and hasattr(self.main_frame, "gl_filters"):
+            try:
+                out = self.main_frame.gl_filters.apply(self.custom_filter, arr)
+                if out is not None:
+                    arr[:] = out
+            except Exception as e:
+                print(f"GL Filter error on main thread: {e}")
 
-        if abs(self.zoom - zoom) > 0.01:
-            return
-
-        width, height, data = result
-
-        img = wx.Image(width, height, data)
+        img = wx.Image(width, height, arr.tobytes())
         bmp = wx.Bitmap(img)
-
-        bmp = self._apply_processing(bmp)
 
         self._bmp_cache[cache_key] = bmp
 
         if self._is_page_visible(page_idx):
-            self.Refresh()
+            self.Refresh(eraseBackground=False)
+
 
     def _is_page_visible(self, page_index):
         return any(p_idx == page_index for p_idx, _ in self._current_bitmaps)
@@ -231,23 +265,32 @@ class PDFView(wx.ScrolledWindow):
         if len(self._bmp_cache) >= self.MAX_CACHE_SIZE:
             self._bmp_cache.popitem(last=False)
 
-        # Blank page index: -1
         if page_index < 0:
             ref_idx = max(0, min(self.page, self.content_provider.page_count - 1))
             w_pt, h_pt = self.content_provider.get_page_size(ref_idx)
             w_px = int(w_pt * zoom)
             h_px = int(h_pt * zoom)
 
-            img = wx.Image(w_px, h_px)
-            img.SetRGB(wx.Rect(0, 0, w_px, h_px), 255, 255, 255)
-            bmp = wx.Bitmap(img)
+            size = w_px * h_px * 3
+            white_data = b'\xff' * size
 
-            bmp = self._apply_processing(bmp)
+            processed_data = self._process_image_data(white_data, w_px, h_px)
+
+            img = wx.Image(w_px, h_px, processed_data)
+            bmp = wx.Bitmap(img)
             self._bmp_cache[cache_key] = bmp
             return bmp
 
-        bmp = self.content_provider.render_page_to_bitmap(page_index, zoom)
-        bmp = self._apply_processing(bmp)
+        res = self.content_provider.render_to_data(page_index, zoom)
+        if not res:
+            return wx.NullBitmap
+
+        w, h, data = res
+
+        processed_data = self._process_image_data(data, w, h)
+
+        img = wx.Image(w, h, processed_data)
+        bmp = wx.Bitmap(img)
 
         self._bmp_cache[cache_key] = bmp
         return bmp
@@ -361,35 +404,6 @@ class PDFView(wx.ScrolledWindow):
         if abs(z - self.zoom) > 1e-9:
             self.zoom = z
             self._ensure_cache_zoom()
-
-    def _apply_processing(self, bmp: wx.Bitmap) -> wx.Bitmap:
-        if self.custom_filter is None:
-            return bmp
-
-        img = bmp.ConvertToImage()
-        w, h = img.GetWidth(), img.GetHeight()
-        if w <= 0 or h <= 0:
-            return bmp
-
-        try:
-            buf = img.GetDataBuffer()
-            arr = np.frombuffer(memoryview(buf), dtype=np.uint8).reshape((h, w, 3))
-        except Exception:
-            # Fallback
-            print(f"WARNING: Fallback to slow processing. {Exception}")
-            arr = np.frombuffer(img.GetData(), dtype=np.uint8).reshape((h, w, 3)).copy()
-
-        if self.custom_filter and self.main_frame and hasattr(self.main_frame, "gl_filters"):
-            try:
-                out = self.main_frame.gl_filters.apply(self.custom_filter, arr)
-                arr[:] = out
-            except Exception as e:
-                print(f"GLSL filter failed: {e}")
-
-        if not hasattr(img, "GetDataBuffer"):
-            img.SetData(arr.tobytes())
-
-        return wx.Bitmap(img)
 
     def _start_pre_rendering(self):
         if not self.content_provider:
