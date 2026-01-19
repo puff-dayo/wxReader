@@ -1,5 +1,4 @@
 @echo off
-set CCFLAGS=/arch:AVX2
 
 uv --project .\extctrl\voice run python -m nuitka ^
   --mode=standalone ^
