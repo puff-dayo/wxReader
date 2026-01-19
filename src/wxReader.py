@@ -22,7 +22,7 @@ from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageE
 from wxReaderGlUtil import GLFilterTool
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
-from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContentProvider
+from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContentProvider, SevenZipContentProvider
 from wxReaderString import *
 from wxReaderKeyBinds import DEFAULT_KEYBINDS, get_menu_label
 from wxReaderView import PDFView
@@ -845,8 +845,7 @@ class MainFrame(wx.Frame):
             elif ext in {".zip", ".cbz"}:
                 self.content_provider = ArchiveContentProvider(path)
             else:
-                show_toast(self, f"Unsupported file type: {ext}", True)
-                return
+                self.content_provider = SevenZipContentProvider(path)
 
         except Exception as e:
             show_toast(self, f"Error opening file: {e}", True)

@@ -1,4 +1,5 @@
 import abc
+import io
 import os
 import threading
 
@@ -6,6 +7,10 @@ import fitz  # PyMuPDF
 import pyvips
 import pyzipper
 import wx
+
+import py7zr
+
+from wxReaderString import IMAGE_EXTENSIONS
 
 
 class ContentProvider(abc.ABC):
@@ -218,10 +223,9 @@ class ArchiveContentProvider(ContentProvider):
         except Exception:
             all_files = []
 
-        image_extensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
         self.image_list = sorted([
             f for f in all_files
-            if not f.startswith('__MACOSX') and os.path.splitext(f)[1].lower() in image_extensions
+            if not f.startswith('__MACOSX') and os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
         ])
 
         if self.image_list:
@@ -432,6 +436,348 @@ class ArchiveContentProvider(ContentProvider):
         try:
             first_image_name = self.image_list[0]
             image_data = self.zip_file.read(first_image_name)
+
+            vips_img = self._data_to_vips_image(image_data)
+            if not vips_img:
+                return None
+
+            thumb = vips_img.thumbnail_image(thumb_width, height=thumb_height, crop='centre')
+
+            return thumb.width, thumb.height, thumb.write_to_memory()
+
+        except Exception as e:
+            print(f"[ERROR] pyvips failed to get thumbnail for {self.path}: {e}")
+            return None
+
+class SevenZipContentProvider(ContentProvider):
+    _cached_passwords = None
+
+    def __init__(self, path: str):
+        super().__init__(path)
+
+        self.sz_file = None
+        self._password = None
+
+        def _open_with_password(pwd: str | None):
+            if pwd is None:
+                return py7zr.SevenZipFile(self.path, mode='r')
+            return py7zr.SevenZipFile(self.path, mode='r', password=pwd)
+
+        try:
+            self.sz_file = _open_with_password(None)
+        except Exception as e:
+            print(f"[ERROR] 7z open failed: {e}")
+            self.sz_file = None
+
+        all_files = []
+        if self.sz_file:
+            try:
+                all_files = self.sz_file.getnames()
+            except Exception as e:
+                print(f"[ERROR] 7z getnames failed: {e}")
+                all_files = []
+
+        self.image_list = sorted([
+            f for f in all_files
+            if not f.startswith('__MACOSX') and os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
+        ])
+
+        if self.sz_file and self.image_list:
+            test_file = self.image_list[0]
+            try:
+                self._read_file(test_file)
+            except Exception as e:
+                print(f"[ERROR] 7z read test file failed: {e}")
+
+                try:
+                    self.sz_file.close()
+                except Exception:
+                    pass
+                self.sz_file = None
+
+                if SevenZipContentProvider._cached_passwords is None:
+                    SevenZipContentProvider._cached_passwords = []
+                    if os.path.exists('./pswd.txt'):
+                        try:
+                            with open('./pswd.txt', 'r', encoding='utf-8') as f:
+                                for line in f:
+                                    pwd = line.strip()
+                                    if pwd:
+                                        SevenZipContentProvider._cached_passwords.append(pwd)
+                        except Exception as e:
+                            print(f"[ERROR] failed to load password file: {e}")
+
+                for pwd in SevenZipContentProvider._cached_passwords:
+                    try:
+                        self.sz_file = _open_with_password(pwd)
+                        self._read_file(test_file)
+                        self._password = pwd
+                        break
+                    except Exception as e:
+                        print(f"[ERROR] 7z password failed ({pwd}): {e}")
+                        try:
+                            if self.sz_file:
+                                self.sz_file.close()
+                        except Exception:
+                            pass
+                        self.sz_file = None
+
+        self._size_cache = {}
+        self._img_cache: dict[int, pyvips.Image] = {}
+        self._img_cache_limit = 32
+
+        self.high_quality_render = 0
+
+    def _read_file(self, name: str) -> bytes:
+        if not self.sz_file:
+            raise RuntimeError("7z not opened")
+
+        if hasattr(self.sz_file, "read"):
+            data_map = self.sz_file.read([name])
+            v = data_map.get(name)
+            if v is None:
+                raise RuntimeError(f"missing entry: {name}")
+            return v.read()
+
+        import py7zr.io
+
+        class _MemIO(py7zr.io.Py7zIO):
+            def __init__(self):
+                self.buf = io.BytesIO()
+                self.length = 0
+                self.lock = threading.Lock()
+
+            def write(self, data):
+                with self.lock:
+                    self.buf.write(data)
+                    self.length += len(data)
+
+            def read(self, size=None):
+                with self.lock:
+                    return self.buf.getvalue() if size is None else self.buf.getvalue()[:size]
+
+            def seek(self, offset, whence=0):
+                with self.lock:
+                    return self.buf.seek(offset, whence)
+
+            def flush(self):
+                return
+
+            def size(self):
+                return self.length
+
+            def getvalue(self):
+                with self.lock:
+                    return self.buf.getvalue()
+
+        class _MemFactory(py7zr.io.WriterFactory):
+            def __init__(self):
+                self.products = {}
+
+            def create(self, filename: str):
+                product = _MemIO()
+                self.products[filename] = product
+                return product
+
+        try:
+            if hasattr(self.sz_file, "reset"):
+                self.sz_file.reset()
+        except Exception:
+            pass
+
+        factory = _MemFactory()
+        self.sz_file.extract(targets=[name], factory=factory)
+
+        io_obj = factory.products.get(name)
+        if not io_obj:
+            raise RuntimeError(f"missing entry: {name}")
+
+        return io_obj.getvalue()
+
+    def get_toc(self) -> list:
+        if not self.is_valid:
+            return []
+        toc = [[1, f.replace("\\", "/").split("/")[-1], i + 1] for i, f in enumerate(self.image_list)]
+        return toc
+
+    def _data_to_vips_image(self, data: bytes) -> pyvips.Image | None:
+        try:
+            image = pyvips.Image.new_from_buffer(data, "")
+
+            if image.hasalpha():
+                image = image.flatten(background=[255, 255, 255])
+
+            if image.bands == 1:
+                image = image.bandjoin([image, image])
+
+            if image.interpretation != 'srgb':
+                image = image.colourspace('srgb')
+
+            if image.format != 'uchar':
+                image = image.cast('uchar')
+
+            return image
+        except pyvips.Error as e:
+            print(f"[ERROR] pyvips decode failed: {e}")
+            return None
+
+    def _load_original_image(self, page_index: int) -> pyvips.Image | None:
+        if page_index in self._img_cache:
+            return self._img_cache[page_index]
+
+        if not (0 <= page_index < self.page_count):
+            return None
+
+        image_name = self.image_list[page_index]
+        try:
+            image_data = self._read_file(image_name)
+            img = self._data_to_vips_image(image_data)
+
+            if img is None:
+                return None
+
+            if len(self._img_cache) >= self._img_cache_limit:
+                first_key = next(iter(self._img_cache.keys()))
+                del self._img_cache[first_key]
+
+            self._img_cache[page_index] = img
+            return img
+        except Exception as e:
+            print(f"[ERROR] Failed to load image {image_name}: {e}")
+            return None
+
+    def render_to_data(self, page_index: int, zoom: float) -> tuple[int, int, bytes] | None:
+        src_vips = self._load_original_image(page_index)
+        if not src_vips:
+            return None
+
+        w, h = src_vips.width, src_vips.height
+        target_w = max(1, int(round(w * zoom)))
+        target_h = max(1, int(round(h * zoom)))
+
+        if target_w == w and target_h == h:
+            final_vips = src_vips
+        else:
+            if self.high_quality_render == 2:
+                if zoom < 1.0:
+                    blur_sigma = (1.0 / zoom) * 0.45
+                    final_vips = src_vips.gaussblur(blur_sigma).resize(zoom, kernel='linear')
+                else:
+                    final_vips = src_vips.resize(zoom, kernel='lanczos3')
+            elif self.high_quality_render == 1:
+                final_vips = src_vips.resize(zoom, kernel='lanczos3')
+            else:
+                final_vips = src_vips.resize(zoom, kernel='linear')
+
+        try:
+            memory_buffer = final_vips.write_to_memory()
+            return final_vips.width, final_vips.height, memory_buffer
+        except Exception as e:
+            print(f"pyvips render error: {e}")
+            return None
+
+    def render_page_to_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
+        src_vips = self._load_original_image(page_index)
+        if not src_vips:
+            return wx.Bitmap(1, 1)
+
+        w, h = src_vips.width, src_vips.height
+        target_w = max(1, int(round(w * zoom)))
+        target_h = max(1, int(round(h * zoom)))
+
+        if target_w == w and target_h == h:
+            final_vips = src_vips
+        else:
+            if self.high_quality_render == 2:
+                if zoom < 1.0:
+                    blur_sigma = (1.0 / zoom) * 0.45
+                    final_vips = src_vips.gaussblur(blur_sigma).resize(zoom, kernel='linear')
+                else:
+                    final_vips = src_vips.resize(zoom, kernel='lanczos3')
+            elif self.high_quality_render == 1:
+                final_vips = src_vips.resize(zoom, kernel='lanczos3')
+            else:
+                final_vips = src_vips.resize(zoom, kernel='linear')
+
+        try:
+            memory_buffer = final_vips.write_to_memory()
+            return wx.Bitmap.FromBuffer(final_vips.width, final_vips.height, memory_buffer)
+        except Exception as e:
+            print(f"pyvips conversion to wx.Bitmap error: {e}")
+            return wx.Bitmap(1, 1)
+
+    @property
+    def is_valid(self) -> bool:
+        return self.sz_file is not None
+
+    def close(self):
+        self._img_cache.clear()
+        self._size_cache.clear()
+        if self.sz_file:
+            try:
+                self.sz_file.close()
+            except Exception:
+                pass
+        self.sz_file = None
+
+    @property
+    def page_count(self) -> int:
+        return len(self.image_list)
+
+    @property
+    def is_reflowable(self) -> bool:
+        return False
+
+    def get_page_size(self, page_index: int) -> tuple[float, float]:
+        if page_index in self._size_cache:
+            return self._size_cache[page_index]
+
+        if not (0 <= page_index < self.page_count):
+            return (1, 1)
+
+        try:
+            image_name = self.image_list[page_index]
+            image_data = self._read_file(image_name)
+            with pyvips.Image.new_from_buffer(image_data, "") as vips_img:
+                size = (vips_img.width, vips_img.height)
+
+            self._size_cache[page_index] = size
+            return size
+        except Exception as e:
+            print(f"[ERROR] pyvips failed to get page size: {e}")
+            return (1, 1)
+
+    def get_page_images(self, page_index: int) -> list[dict]:
+        if not self.is_valid or not (0 <= page_index < self.page_count):
+            return []
+
+        try:
+            image_name = self.image_list[page_index]
+            image_data = self._read_file(image_name)
+
+            width, height = 0, 0
+            try:
+                with pyvips.Image.new_from_buffer(image_data, "") as vips_img:
+                    width, height = vips_img.width, vips_img.height
+            except Exception as e:
+                print(f"[ERROR] pyvips failed to read image data for metadata: {e}")
+
+            return [{
+                "bytes": image_data,
+                "ext": os.path.splitext(image_name)[1].lstrip('.'),
+                "width": width, "height": height
+            }]
+        except Exception as e:
+            print(f"[ERROR] failed to read page: {e}")
+            return []
+
+    def get_thumbnail(self, thumb_width: int, thumb_height: int) -> tuple[int, int, bytes] | None:
+        if not self.is_valid or self.page_count == 0:
+            return None
+
+        try:
+            first_image_name = self.image_list[0]
+            image_data = self._read_file(first_image_name)
 
             vips_img = self._data_to_vips_image(image_data)
             if not vips_img:

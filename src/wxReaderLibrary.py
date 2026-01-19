@@ -6,6 +6,8 @@ import time
 
 import wx
 
+from wxReaderString import SUPPORTED_EXTENSIONS
+from wxReaderProvider import SevenZipContentProvider
 from wxReaderProvider import PdfContentProvider, ArchiveContentProvider
 from wxReaderIcon import get_app_icon
 
@@ -26,6 +28,8 @@ def process_cover_with_provider(file_path, thumb_width, thumb_height):
             provider = PdfContentProvider(file_path)
         elif ext in {".zip", ".cbz"}:
             provider = ArchiveContentProvider(file_path)
+        elif ext in {".7z"}:
+            provider = SevenZipContentProvider(file_path)
         else:
             return file_path, 0, 0, None
 
@@ -140,7 +144,7 @@ class LibraryFrame(wx.Frame):
 
         self.manager_thread = None
         self.result_queue = queue.Queue()
-        self.supported_exts = {".pdf", ".epub", ".mobi", ".fb2", ".zip", ".cbz"}
+        self.supported_exts = SUPPORTED_EXTENSIONS
 
         self.thumb_panels = []
         self.item_map = {}
