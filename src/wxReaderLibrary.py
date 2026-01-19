@@ -127,7 +127,9 @@ class LibraryManagerThread(threading.Thread):
 
             for future in concurrent.futures.as_completed(future_to_file):
                 if not self.running:
-                    executor.shutdown(wait=False, cancel_futures=True)
+                    for f in future_to_file:
+                        f.cancel()
+                    executor.shutdown(wait=False)
                     return
                 try:
                     res = future.result()
@@ -250,13 +252,14 @@ class LibraryFrame(wx.Frame):
             valid_files = []
             metadata = {}
 
-            for f in all_files:
-                ext = os.path.splitext(f)[1].lower()
-                if ext in self.supported_exts:
-                    full_path = os.path.join(directory, f)
-                    if os.path.isfile(full_path):
-                        valid_files.append(full_path)
-                        metadata[full_path] = os.path.getmtime(full_path)
+            with os.scandir(directory) as it:
+                for entry in it:
+                    if entry.is_file():
+                        ext = os.path.splitext(entry.name)[1].lower()
+                        if ext in self.supported_exts:
+                            full_path = entry.path
+                            valid_files.append(full_path)
+                            metadata[full_path] = entry.stat().st_mtime
 
             if sort_mode == 0:
                 valid_files.sort(key=lambda x: os.path.basename(x).lower())
@@ -286,7 +289,7 @@ class LibraryFrame(wx.Frame):
         self.Raise()
 
     def _batch_create_placeholders(self):
-        BATCH_SIZE = 10
+        BATCH_SIZE = 50
         count = 0
 
         self.scrolled.Freeze()
@@ -305,14 +308,17 @@ class LibraryFrame(wx.Frame):
         finally:
             self.scrolled.Thaw()
 
-        if count > 0:
-            self.scrolled.Layout()
-            self.scrolled.FitInside()
+        # if count > 0:
+        #     self.scrolled.Layout()
+        #     self.scrolled.FitInside()
 
         if self.creation_index < len(self.files_to_create):
             self.gauge.SetValue(self.creation_index)
             wx.CallLater(1, self._batch_create_placeholders)
         else:
+            self.scrolled.Layout()
+            self.scrolled.FitInside()
+
             self.status_lbl.SetLabel("Generating covers...")
             self.processed_count = 0
             self.gauge.SetValue(0)
@@ -351,7 +357,7 @@ class LibraryFrame(wx.Frame):
 
     def on_update_timer(self, evt):
         start_time = time.time()
-        TIME_BUDGET = 0.15
+        TIME_BUDGET = 0.040
         updates_made = False
 
         try:
