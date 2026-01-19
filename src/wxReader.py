@@ -13,7 +13,6 @@ import threading
 
 import wx
 import wx.lib.agw.flatmenu as FM
-import pyvips
 
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
@@ -261,7 +260,7 @@ class MainFrame(wx.Frame):
         last = cfg.get("last_file", "")
 
         if last and os.path.isfile(last):
-            wx.CallAfter(self._load_file, last)
+            wx.CallLater(300, self._load_file, last)
         # END Load Config
 
         # --- Events ---
@@ -1114,6 +1113,7 @@ class MainFrame(wx.Frame):
 
     def _generate_preview(self, data: bytes, w_orig: int, h_orig: int) -> wx.Bitmap:
         try:
+            import pyvips
             img = pyvips.Image.new_from_buffer(data, "")
 
             if img.hasalpha():
