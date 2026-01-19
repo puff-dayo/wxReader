@@ -28,6 +28,9 @@ from wxReaderView import PDFView
 from wxReaderToast import show_toast
 from wxReaderExtCtrl import ControlServer
 
+GWL_STYLE = -16
+TVS_NOTOOLTIPS = 0x0080
+
 
 class FileDropTarget(wx.FileDropTarget):
     def __init__(self, frame):
@@ -153,6 +156,7 @@ class MainFrame(wx.Frame):
         # 2.2 Directory control
         self.dir_ctrl = wx.GenericDirCtrl(self.files_panel, dir=os.getcwd(), filter=SUPPORTED_WILDCARDS,
                                           style=wx.DIRCTRL_SHOW_FILTERS | wx.DIRCTRL_3D_INTERNAL)
+        self.dir_tree = self.dir_ctrl.GetTreeCtrl()
 
         files_sizer.Add(self.dir_ctrl, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 0)
         self.files_panel.SetSizer(files_sizer)
@@ -282,6 +286,8 @@ class MainFrame(wx.Frame):
 
         self._update_ui()
         self.Raise()
+
+        self.Bind(wx.EVT_ACTIVATE, self.on_window_activate)
 
         wx.CallAfter(self._post_startup_tasks)
 
@@ -725,7 +731,39 @@ class MainFrame(wx.Frame):
                 self.view.go_to_page(data)
                 self._update_ui()
 
+    def _toggle_tree_tooltips(self, enable: bool):
+        if not hasattr(self, 'dir_ctrl') or not self.dir_ctrl:
+            return
+
+        try:
+            tree = self.dir_ctrl.GetTreeCtrl()
+            hwnd = tree.GetHandle()
+
+            current_style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
+
+            if enable:
+                new_style = current_style & ~TVS_NOTOOLTIPS
+            else:
+                new_style = current_style | TVS_NOTOOLTIPS
+
+            if new_style != current_style:
+                ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
+
+                # SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED
+                ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x27)
+        except Exception:
+            print(Exception)
+
+    def on_window_activate(self, evt):
+        is_active = evt.GetActive()
+        self._toggle_tree_tooltips(is_active)
+        evt.Skip()
+
     def on_fv_hover(self, evt):
+        if not self.IsActive():
+            evt.Skip()
+            return
+
         pos = evt.GetPosition()
         item_index = self.fv_listbox.HitTest(pos)
 
