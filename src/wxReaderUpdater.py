@@ -7,6 +7,10 @@ import threading
 from wxReaderString import APP_VERSION, GITHUB_REPO_OWNER, GITHUB_REPO_NAME
 from wxReaderIcon import get_app_font, msw_set_theme, get_app_icon
 
+import gettext
+t = gettext.translation('messages', localedir='locale', fallback=True)
+_ = t.gettext
+
 
 class UpdateChecker:
     def __init__(self, parent_frame, silent_on_no_update=False):
@@ -56,7 +60,7 @@ class UpdateChecker:
         dlg.Destroy()
 
     def _show_no_update_dialog(self):
-        wx.MessageBox(f"You are using the latest version (v{APP_VERSION}).", "Up to date", wx.ICON_INFORMATION)
+        wx.MessageBox(_("You are using the latest version (v{}).").format(APP_VERSION), _("Up to date"), wx.ICON_INFORMATION)
 
 
 class NewVersionDialog(wx.Dialog):
@@ -75,16 +79,20 @@ class NewVersionDialog(wx.Dialog):
 
         self.SetFont(get_app_font())
 
-        lbl_header = wx.StaticText(panel, label=f"A new version is available!")
+        lbl_header = wx.StaticText(panel, label=_("A new version is available!"))
         lbl_header.SetFont(get_app_font(2))
         lbl_header.SetForegroundColour(wx.Colour("#2e7d32"))
 
-        lbl_info = wx.StaticText(panel, label=f"Current: v{current_ver}  ➜  New: v{new_version}")
+        msg = _("Current: v{current}  ➜  New: v{new}").format(
+            current=current_ver,
+            new=new_version
+        )
+        lbl_info = wx.StaticText(panel, label=msg)
 
         v_sizer.Add(lbl_header, 0, wx.ALL | wx.CENTER, 15)
         v_sizer.Add(lbl_info, 0, wx.BOTTOM | wx.CENTER, 10)
 
-        lbl_notes = wx.StaticText(panel, label="Release Notes:")
+        lbl_notes = wx.StaticText(panel, label=_("Release Notes:"))
         v_sizer.Add(lbl_notes, 0, wx.LEFT, 20)
 
         self.txt_notes = wx.TextCtrl(panel, value=notes, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_BESTWRAP)
@@ -94,8 +102,8 @@ class NewVersionDialog(wx.Dialog):
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.btn_ignore = wx.Button(panel, wx.ID_CANCEL, "Ignore")
-        self.btn_download = wx.Button(panel, label="View Release Page")
+        self.btn_ignore = wx.Button(panel, wx.ID_CANCEL, _("Ignore"))
+        self.btn_download = wx.Button(panel, label=_("View Release Page"))
         self.btn_download.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD, wx.ART_BUTTON, (16, 16)))
 
         btn_sizer.Add(self.btn_ignore, 0, wx.RIGHT, 10)

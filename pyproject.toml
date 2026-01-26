@@ -23,3 +23,8 @@ analysis = [
     "radon>=6.0.1",
     "viztracer>=1.1.1",
 ]
+
+[dependency-groups]
+dev = [
+    "babel>=2.17.0",
+]

@@ -1,0 +1,146 @@
+# Chinese (Simplified, Singapore) translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+# setsuna-dayo <no@email.hehe>, 2026.
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-01-26 20:29+0800\n"
+"PO-Revision-Date: 2026-01-26 21:18+0800\n"
+"Last-Translator: setsuna-dayo <no@email.hehe>\n"
+"Language-Team: info\n"
+"Language: zh\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Virtaal 0.7.1\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: wxReader.py:123
+msgid "Search Outline"
+msgstr "搜索大纲"
+
+#: wxReader.py:133
+msgid "Outline"
+msgstr "文件大纲"
+
+#: wxReader.py:142
+msgid "Dir Up"
+msgstr "向上"
+
+#: wxReader.py:145
+msgid "Locate"
+msgstr "定位"
+
+#: wxReader.py:148 wxReader.py:179
+msgid "Gallery"
+msgstr "画廊"
+
+#: wxReader.py:168
+msgid "File Browser"
+msgstr "文件导览"
+
+#: wxReader.py:177
+msgid "Refresh"
+msgstr "刷新"
+
+#: wxReader.py:184
+msgid "Newest"
+msgstr "最新"
+
+#: wxReader.py:185
+msgid "Oldest"
+msgstr "最旧"
+
+#: wxReader.py:204
+msgid "Folder List"
+msgstr "资料夹列表"
+
+#: wxReader.py:336
+msgid "&Open..."
+msgstr "打开(&O)"
+
+#: wxReader.py:337
+msgid "&Close"
+msgstr "关闭(&C)"
+
+#: wxReader.py:342
+msgid "&Gallery Mode"
+msgstr "画廊模式(&G)"
+
+#: wxReader.py:347
+msgid "Recent Files..."
+msgstr "最近文件…"
+
+#: wxReader.py:352
+msgid "Edit pswd.txt"
+msgstr "编辑密码簿"
+
+#: wxReader.py:357
+msgid "Preferences"
+msgstr "偏好设置"
+
+#: wxReader.py:360
+msgid "E&xit"
+msgstr "退出(&X)"
+
+#: wxReader.py:362
+msgid "&File"
+msgstr "文件(&F)"
+
+#: wxReader.py:368
+msgid "Show &Sidebar"
+msgstr "显示侧边栏(&S)"
+
+#: wxReader.py:371
+msgid "Switch Sidebar Tab"
+msgstr "切换侧栏分页"
+
+#: wxReader.py:377
+msgid "Single Page View"
+msgstr "单页视图"
+
+#: wxReader.py:378
+msgid "Two Page View"
+msgstr "双页视图"
+
+#: wxReader.py:382
+msgid "Add Blank Page at Start"
+msgstr "添加空白起始页"
+
+#: wxReader.py:391
+msgid "Page &Direction"
+msgstr "排页方向(&D)"
+
+#: wxReaderUpdater.py:63
+#, python-brace-format
+msgid "You are using the latest version (v{})."
+msgstr "你正在使用最新版(v{})."
+
+#: wxReaderUpdater.py:63
+msgid "Up to date"
+msgstr "已是最新"
+
+#: wxReaderUpdater.py:82
+msgid "A new version is available!"
+msgstr "一个新版本是可用的！"
+
+#: wxReaderUpdater.py:86
+#, python-brace-format
+msgid "Current: v{current}  ➜  New: v{new}"
+msgstr "当前：v{current} -> 新的：v{new}"
+
+#: wxReaderUpdater.py:95
+msgid "Release Notes:"
+msgstr "发行笔记："
+
+#: wxReaderUpdater.py:105
+msgid "Ignore"
+msgstr "无视"
+
+#: wxReaderUpdater.py:106
+msgid "View Release Page"
+msgstr "查看发行页面"

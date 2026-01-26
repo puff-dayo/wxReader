@@ -28,6 +28,9 @@ from wxReaderView import PDFView
 from wxReaderToast import show_toast
 from wxReaderExtCtrl import ControlServer
 
+def _(text):
+    return wx.GetTranslation(text)
+
 GWL_STYLE = -16
 TVS_NOTOOLTIPS = 0x0080
 
@@ -116,7 +119,7 @@ class MainFrame(wx.Frame):
         toc_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.sidebar_search = wx.SearchCtrl(self.toc_panel, style=wx.TE_PROCESS_ENTER)
-        self.sidebar_search.SetDescriptiveText("Search Outline")
+        self.sidebar_search.SetDescriptiveText(_("Search Outline"))
 
         self.sidebar_tree = wx.TreeCtrl(self.toc_panel, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT |
                                                               wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_NO_LINES | wx.TR_TWIST_BUTTONS)
@@ -126,7 +129,7 @@ class MainFrame(wx.Frame):
         toc_sizer.Add(self.sidebar_tree, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 0)
         self.toc_panel.SetSizer(toc_sizer)
 
-        self.sidebar_nb.AddPage(self.toc_panel, "Outline")
+        self.sidebar_nb.AddPage(self.toc_panel, _("Outline"))
 
         # 2. Browser
         self.files_panel = wx.Panel(self.sidebar_nb)
@@ -135,13 +138,13 @@ class MainFrame(wx.Frame):
         # 2.1 Buttons
         btn_sizer = wx.GridSizer(1, 3, 0, 5)
 
-        self.btn_go_up = wx.Button(self.files_panel, label="Dir Up")
+        self.btn_go_up = wx.Button(self.files_panel, label=_("Dir Up"))
         self.btn_go_up.SetBitmap(get_icon(wx.ART_GO_UP))
 
-        self.btn_sync_file = wx.Button(self.files_panel, label="Locate")
+        self.btn_sync_file = wx.Button(self.files_panel, label=_("Locate"))
         self.btn_sync_file.SetBitmap(get_icon(wx.ART_HELP_PAGE))
 
-        self.btn_open_library = wx.Button(self.files_panel, label="Gallery")
+        self.btn_open_library = wx.Button(self.files_panel, label=_("Gallery"))
         self.btn_open_library.SetBitmap(get_icon_v2(wx.ART_FIND))
 
         for btn in [self.btn_go_up, self.btn_sync_file, self.btn_open_library]:
@@ -161,7 +164,7 @@ class MainFrame(wx.Frame):
         files_sizer.Add(self.dir_ctrl, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 0)
         self.files_panel.SetSizer(files_sizer)
 
-        self.sidebar_nb.AddPage(self.files_panel, "File Browser")
+        self.sidebar_nb.AddPage(self.files_panel, _("File Browser"))
 
         # 3. Folder List
         self.fv_panel = wx.Panel(self.sidebar_nb)
@@ -170,15 +173,15 @@ class MainFrame(wx.Frame):
         # 3.1 Toolbar Line
         fv_toolbar_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.btn_fv_refresh = wx.Button(self.fv_panel, label="Refresh")
+        self.btn_fv_refresh = wx.Button(self.fv_panel, label=_("Refresh"))
 
-        self.btn_fv_gallery = wx.Button(self.fv_panel, label="Gallery")
+        self.btn_fv_gallery = wx.Button(self.fv_panel, label=_("Gallery"))
 
         self.fv_sort_choice = wx.Choice(self.fv_panel, choices=[
             "A-Z",
             "Z-A",
-            "Newest",
-            "Oldest"
+            _("Newest"),
+            _("Oldest")
         ])
         self.fv_sort_choice.SetSelection(2)
 
@@ -197,7 +200,7 @@ class MainFrame(wx.Frame):
         fv_sizer.Add(self.fv_listbox, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
         self.fv_panel.SetSizer(fv_sizer)
-        self.sidebar_nb.AddPage(self.fv_panel, "Folder List")
+        self.sidebar_nb.AddPage(self.fv_panel, _("Folder List"))
 
         # END Sidebar
         self.sidebar_main_sizer.Add(self.sidebar_nb, 1, wx.EXPAND)
@@ -329,53 +332,53 @@ class MainFrame(wx.Frame):
         # --- File ---
         m_file = FM.FlatMenu()
 
-        m_open = _add_item(m_file, wx.ID_OPEN, get_menu_label("&Open...", "open"), wx.ART_FILE_OPEN)
-        m_close = _add_item(m_file, wx.ID_CLOSE, get_menu_label("&Close", "close"))
+        m_open = _add_item(m_file, wx.ID_OPEN, get_menu_label(_("&Open..."), "open"), wx.ART_FILE_OPEN)
+        m_close = _add_item(m_file, wx.ID_CLOSE, get_menu_label(_("&Close"), "close"))
 
         m_file.AppendSeparator()
 
         self.id_library = wx.NewIdRef()
-        _add_item(m_file, self.id_library, "&Gallery Mode")
+        _add_item(m_file, self.id_library, _("&Gallery Mode"))
 
         m_file.AppendSeparator()
 
         self.id_recent_dialog = wx.NewIdRef()
-        _add_item(m_file, self.id_recent_dialog, "Recent Files...")
+        _add_item(m_file, self.id_recent_dialog, _("Recent Files..."))
 
         m_file.AppendSeparator()
 
         self.id_pswdmng = wx.NewIdRef()
-        _add_item(m_file, self.id_pswdmng, "Edit pswd.txt")
+        _add_item(m_file, self.id_pswdmng, _("Edit pswd.txt"))
 
         m_file.AppendSeparator()
 
         self.id_key_binds_editor = wx.NewIdRef()
-        _add_item(m_file, self.id_key_binds_editor, "Preferences")
+        _add_item(m_file, self.id_key_binds_editor, _("Preferences"))
 
         m_file.AppendSeparator()
-        m_exit = _add_item(m_file, wx.ID_EXIT, "E&xit", wx.ART_QUIT)
+        m_exit = _add_item(m_file, wx.ID_EXIT, _("E&xit"), wx.ART_QUIT)
 
-        self.menubar.Append(m_file, "&File")
+        self.menubar.Append(m_file, _("&File"))
 
         # --- View ---
         m_view = FM.FlatMenu()
 
         self.id_sidebar_toggle = wx.NewIdRef()
-        _add_item(m_view, self.id_sidebar_toggle, get_menu_label("Show &Sidebar", "toggle_sidebar"), kind=wx.ITEM_CHECK)
+        _add_item(m_view, self.id_sidebar_toggle, get_menu_label(_("Show &Sidebar"), "toggle_sidebar"), kind=wx.ITEM_CHECK)
 
         self.id_switch_tab = wx.NewIdRef()
-        _add_item(m_view, self.id_switch_tab, get_menu_label("Switch Sidebar Tab", "switch_tab"))
+        _add_item(m_view, self.id_switch_tab, get_menu_label(_("Switch Sidebar Tab"), "switch_tab"))
 
         m_view.AppendSeparator()
 
         self.id_single_page = wx.NewIdRef()
         self.id_two_page = wx.NewIdRef()
-        m_view.AppendRadioItem(self.id_single_page, get_menu_label("Single Page View", "single_page"))
-        m_view.AppendRadioItem(self.id_two_page, get_menu_label("Two Page View", "two_page"))
+        m_view.AppendRadioItem(self.id_single_page, get_menu_label(_("Single Page View"), "single_page"))
+        m_view.AppendRadioItem(self.id_two_page, get_menu_label(_("Two Page View"), "two_page"))
         m_view.AppendSeparator()
 
         self.id_pad_start = wx.NewIdRef()
-        _add_item(m_view, self.id_pad_start, "Add Blank Page at Start", kind=wx.ITEM_CHECK)
+        _add_item(m_view, self.id_pad_start, _("Add Blank Page at Start"), kind=wx.ITEM_CHECK)
         m_view.AppendSeparator()
 
         m_dir = FM.FlatMenu()
@@ -384,7 +387,7 @@ class MainFrame(wx.Frame):
         m_dir.AppendRadioItem(self.id_ltr, "Left-to-Right")
         m_dir.AppendRadioItem(self.id_rtl, "Right-to-Left")
 
-        item_dir = FM.FlatMenuItem(m_view, wx.ID_ANY, "Page &Direction", "", wx.ITEM_NORMAL, m_dir)
+        item_dir = FM.FlatMenuItem(m_view, wx.ID_ANY, _("Page &Direction"), "", wx.ITEM_NORMAL, m_dir)
         m_view.AppendItem(item_dir)
 
         m_view.AppendSeparator()
@@ -1467,6 +1470,12 @@ class WxPDFReaderApp(wx.App):
 
     def OnInit(self):
         self.global_font = get_app_font()
+
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        locale_dir = os.path.join(base_path, 'locale')
+        self.locale = wx.Locale(wx.LANGUAGE_CHINESE_SINGAPORE)
+        self.locale.AddCatalogLookupPathPrefix(locale_dir)
+        self.locale.AddCatalog('messages')
 
         frame = MainFrame()
 

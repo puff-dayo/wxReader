@@ -1,0 +1,7 @@
+////////////uv run pybabel extract -F babel.cfg -o locale/base.pot .
+////////////uv run pybabel init -i locale/base.pot -d locale -l zh_SG
+
+Update:
+uv run pybabel extract -F babel.cfg -o locale/base.pot .
+uv run pybabel update -i locale/base.pot -d locale
+uv run pybabel compile -d locale

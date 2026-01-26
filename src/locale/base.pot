@@ -1,0 +1,145 @@
+# Translations template for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-01-26 20:29+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: wxReader.py:123
+msgid "Search Outline"
+msgstr ""
+
+#: wxReader.py:133
+msgid "Outline"
+msgstr ""
+
+#: wxReader.py:142
+msgid "Dir Up"
+msgstr ""
+
+#: wxReader.py:145
+msgid "Locate"
+msgstr ""
+
+#: wxReader.py:148 wxReader.py:179
+msgid "Gallery"
+msgstr ""
+
+#: wxReader.py:168
+msgid "File Browser"
+msgstr ""
+
+#: wxReader.py:177
+msgid "Refresh"
+msgstr ""
+
+#: wxReader.py:184
+msgid "Newest"
+msgstr ""
+
+#: wxReader.py:185
+msgid "Oldest"
+msgstr ""
+
+#: wxReader.py:204
+msgid "Folder List"
+msgstr ""
+
+#: wxReader.py:336
+msgid "&Open..."
+msgstr ""
+
+#: wxReader.py:337
+msgid "&Close"
+msgstr ""
+
+#: wxReader.py:342
+msgid "&Gallery Mode"
+msgstr ""
+
+#: wxReader.py:347
+msgid "Recent Files..."
+msgstr ""
+
+#: wxReader.py:352
+msgid "Edit pswd.txt"
+msgstr ""
+
+#: wxReader.py:357
+msgid "Preferences"
+msgstr ""
+
+#: wxReader.py:360
+msgid "E&xit"
+msgstr ""
+
+#: wxReader.py:362
+msgid "&File"
+msgstr ""
+
+#: wxReader.py:368
+msgid "Show &Sidebar"
+msgstr ""
+
+#: wxReader.py:371
+msgid "Switch Sidebar Tab"
+msgstr ""
+
+#: wxReader.py:377
+msgid "Single Page View"
+msgstr ""
+
+#: wxReader.py:378
+msgid "Two Page View"
+msgstr ""
+
+#: wxReader.py:382
+msgid "Add Blank Page at Start"
+msgstr ""
+
+#: wxReader.py:391
+msgid "Page &Direction"
+msgstr ""
+
+#: wxReaderUpdater.py:63
+#, python-brace-format
+msgid "You are using the latest version (v{})."
+msgstr ""
+
+#: wxReaderUpdater.py:63
+msgid "Up to date"
+msgstr ""
+
+#: wxReaderUpdater.py:82
+msgid "A new version is available!"
+msgstr ""
+
+#: wxReaderUpdater.py:86
+#, python-brace-format
+msgid "Current: v{current}  ➜  New: v{new}"
+msgstr ""
+
+#: wxReaderUpdater.py:95
+msgid "Release Notes:"
+msgstr ""
+
+#: wxReaderUpdater.py:105
+msgid "Ignore"
+msgstr ""
+
+#: wxReaderUpdater.py:106
+msgid "View Release Page"
+msgstr ""
+
