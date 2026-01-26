@@ -106,6 +106,8 @@ class MainFrame(wx.Frame):
         self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3D)
         self.splitter.SetMinimumPaneSize(50)
 
+        self.lang_to_change = None
+
         # START Sidebar
 
         # 0. Sidebar Container
@@ -355,6 +357,13 @@ class MainFrame(wx.Frame):
         self.id_key_binds_editor = wx.NewIdRef()
         _add_item(m_file, self.id_key_binds_editor, _("Preferences"))
 
+        m_lang = FM.FlatMenu()
+        self.id_lang_enus = wx.NewIdRef()
+        self.id_lang_zhsg = wx.NewIdRef()
+        m_lang.AppendRadioItem(self.id_lang_enus, "English")
+        m_lang.AppendRadioItem(self.id_lang_zhsg, "新加坡中文")
+        m_file.AppendMenu(wx.ID_ANY, _("Languages..."), m_lang)
+
         m_file.AppendSeparator()
         m_exit = _add_item(m_file, wx.ID_EXIT, _("E&xit"), wx.ART_QUIT)
 
@@ -562,6 +571,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_open_pswdmng, id=self.id_pswdmng)
         self.Bind(wx.EVT_MENU, self.on_edit_keys, id=self.id_key_binds_editor)
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), m_exit)
+
+        self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_enus)
+        self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_zhsg)
 
         # View
         self.Bind(wx.EVT_MENU, self.on_toggle_sidebar, id=self.id_sidebar_toggle)
@@ -1415,6 +1427,14 @@ class MainFrame(wx.Frame):
         msw_set_theme(dlg)
         dlg.Show()
 
+    def on_lang_change(self, event):
+        event_id = event.GetId()
+        show_toast(self, message=_("Restart is required."))
+        if event_id == self.id_lang_enus:
+            self.lang_to_change = wx.LANGUAGE_ENGLISH
+        elif event_id == self.id_lang_zhsg:
+            self.lang_to_change = wx.LANGUAGE_CHINESE_SINGAPORE
+
     def on_close(self, evt):
         if self.content_provider and self.view:
             self.file_progress[self.content_provider.path] = self.view.page
@@ -1440,6 +1460,9 @@ class MainFrame(wx.Frame):
             cfg.update(current_cfg)
 
             cfg["keybinds"] = self.keybinds
+
+            if self.lang_to_change is not None:
+                cfg["app_language"] = str(self.lang_to_change)
 
             if not self.IsIconized():
                 is_maximized = self.IsMaximized()
@@ -1471,9 +1494,19 @@ class WxPDFReaderApp(wx.App):
     def OnInit(self):
         self.global_font = get_app_font()
 
+        lang = wx.LANGUAGE_ENGLISH
+
+        cfg = load_config()
+        if "app_language" in cfg:
+            lang = cfg.get("app_language", False)
+            try:
+                lang = int(lang)
+            except Exception:
+                print(Exception)
+
         base_path = os.path.dirname(os.path.abspath(__file__))
         locale_dir = os.path.join(base_path, 'locale')
-        self.locale = wx.Locale(wx.LANGUAGE_CHINESE_SINGAPORE)
+        self.locale = wx.Locale(lang)
         self.locale.AddCatalogLookupPathPrefix(locale_dir)
         self.locale.AddCatalog('messages')
 
