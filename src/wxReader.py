@@ -393,8 +393,8 @@ class MainFrame(wx.Frame):
         m_dir = FM.FlatMenu()
         self.id_ltr = wx.NewIdRef()
         self.id_rtl = wx.NewIdRef()
-        m_dir.AppendRadioItem(self.id_ltr, "Left-to-Right")
-        m_dir.AppendRadioItem(self.id_rtl, "Right-to-Left")
+        m_dir.AppendRadioItem(self.id_ltr, _("Left-to-Right"))
+        m_dir.AppendRadioItem(self.id_rtl, _("Right-to-Left"))
 
         item_dir = FM.FlatMenuItem(m_view, wx.ID_ANY, _("Page &Direction"), "", wx.ITEM_NORMAL, m_dir)
         m_view.AppendItem(item_dir)
@@ -407,31 +407,31 @@ class MainFrame(wx.Frame):
         self.id_fit_page = wx.NewIdRef()
         self.id_zoom_manual = wx.NewIdRef()
 
-        _add_item(m_view, self.id_zoom_in, get_menu_label("Zoom &In", "zoom_in"))
-        _add_item(m_view, self.id_zoom_out, get_menu_label("Zoom &Out", "zoom_out"))
+        _add_item(m_view, self.id_zoom_in, get_menu_label(_("Zoom &In"), "zoom_in"))
+        _add_item(m_view, self.id_zoom_out, get_menu_label(_("Zoom &Out"), "zoom_out"))
         m_view.AppendSeparator()
 
-        m_view.AppendRadioItem(self.id_fit_width, get_menu_label("Fit &Width", "fit_width"))
-        m_view.AppendRadioItem(self.id_fit_page, get_menu_label("Fit &Page", "fit_page"))
-        m_view.AppendRadioItem(self.id_zoom_manual, "Manual Zoom")
+        m_view.AppendRadioItem(self.id_fit_width, get_menu_label(_("Fit &Width"), "fit_width"))
+        m_view.AppendRadioItem(self.id_fit_page, get_menu_label(_("Fit &Page"), "fit_page"))
+        m_view.AppendRadioItem(self.id_zoom_manual, _("Manual Zoom"))
         m_view.AppendSeparator()
 
         self.id_setmg = wx.NewIdRef()
-        _add_item(m_view, self.id_setmg, "Set Margin and Gap")
+        _add_item(m_view, self.id_setmg, _("Set Margin and Gap"))
 
         m_view.AppendSeparator()
         self.id_bg = wx.NewIdRef()
-        _add_item(m_view, self.id_bg, "Background Color…")
+        _add_item(m_view, self.id_bg, _("Background Color…"))
 
         m_view.AppendSeparator()
         self.id_font_increase = wx.NewIdRef()
         self.id_font_decrease = wx.NewIdRef()
-        _add_item(m_view, self.id_font_increase, "Larger Font\tCtrl+Shift++")
-        _add_item(m_view, self.id_font_decrease, "Smaller Font\tCtrl+Shift+-")
+        _add_item(m_view, self.id_font_increase, _("Larger Font") + "\tCtrl+Shift++")
+        _add_item(m_view, self.id_font_decrease, _("Smaller Font") + "\tCtrl+Shift+-")
 
         m_view.AppendSeparator()
         self.id_fullscreen = wx.NewIdRef()
-        _add_item(m_view, self.id_fullscreen, get_menu_label("Full &Screen", "fullscreen"), kind=wx.ITEM_CHECK)
+        _add_item(m_view, self.id_fullscreen, get_menu_label(_("Full &Screen"), "fullscreen"), kind=wx.ITEM_CHECK)
 
         m_view.AppendSeparator()
 
@@ -441,18 +441,18 @@ class MainFrame(wx.Frame):
         self.id_quality_mq = wx.NewIdRef()
         self.id_quality_lq = wx.NewIdRef()
 
-        m_quality.AppendRadioItem(self.id_quality_hq, "DeMoiré")
-        m_quality.AppendRadioItem(self.id_quality_mq, "Lanczos")
-        m_quality.AppendRadioItem(self.id_quality_lq, "Bilinear")
+        m_quality.AppendRadioItem(self.id_quality_hq, _("DeMoiré"))
+        m_quality.AppendRadioItem(self.id_quality_mq, _("Lanczos"))
+        m_quality.AppendRadioItem(self.id_quality_lq, _("Bilinear"))
 
         item_lq = m_quality.FindItem(self.id_quality_lq)
         if item_lq:
             item_lq.Check(True)
 
-        item_quality = FM.FlatMenuItem(m_view, wx.ID_ANY, "Render Quality", "", wx.ITEM_NORMAL, m_quality)
+        item_quality = FM.FlatMenuItem(m_view, wx.ID_ANY, _("Render Quality"), "", wx.ITEM_NORMAL, m_quality)
         m_view.AppendItem(item_quality)
 
-        self.menubar.Append(m_view, "&View")
+        self.menubar.Append(m_view, _("&View"))
 
         # --- Navigate ---
         m_nav = FM.FlatMenu()
@@ -461,44 +461,44 @@ class MainFrame(wx.Frame):
         self.id_next = wx.NewIdRef()
         self.id_goto = wx.NewIdRef()
 
-        _add_item(m_nav, self.id_prev, get_menu_label("Previous Page", "prev_page"), wx.ART_GO_BACK)
-        _add_item(m_nav, self.id_next, get_menu_label("Next Page", "next_page"), wx.ART_GO_FORWARD)
-        _add_item(m_nav, self.id_goto, get_menu_label("&Go to Page...", "goto_page"))
+        _add_item(m_nav, self.id_prev, get_menu_label(_("Previous Page"), "prev_page"), wx.ART_GO_BACK)
+        _add_item(m_nav, self.id_next, get_menu_label(_("Next Page"), "next_page"), wx.ART_GO_FORWARD)
+        _add_item(m_nav, self.id_goto, get_menu_label(_("&Go to Page..."), "goto_page"))
 
         m_nav.AppendSeparator()
 
         self.id_extctrl_toggle = wx.NewIdRef()
-        self.menu_extctrl = _add_item(m_nav, self.id_extctrl_toggle, "External Control", kind=wx.ITEM_CHECK)
+        self.menu_extctrl = _add_item(m_nav, self.id_extctrl_toggle, _("External Control"), kind=wx.ITEM_CHECK)
         self.menu_extctrl.Check(False)
 
         m_nav.AppendSeparator()
 
         self.id_search = wx.NewIdRef()
-        _add_item(m_nav, self.id_search, get_menu_label("&Find...", "find"), wx.ART_FIND)
+        _add_item(m_nav, self.id_search, get_menu_label(_("&Find..."), "find"), wx.ART_FIND)
 
         self.id_show_toc_dialog = wx.NewIdRef()
-        _add_item(m_nav, self.id_show_toc_dialog, get_menu_label("Show TOC Dialog...", "show_toc"))
+        _add_item(m_nav, self.id_show_toc_dialog, get_menu_label(_("Show TOC Dialog..."), "show_toc"))
 
-        self.menubar.Append(m_nav, "&Navigate")
+        self.menubar.Append(m_nav, _("&Navigate"))
 
         # --- Process ---
         m_process = FM.FlatMenu()
 
         self.id_extract_text = wx.NewIdRef()
-        _add_item(m_process, self.id_extract_text, get_menu_label("Extract Page Text", "extract_text"))
+        _add_item(m_process, self.id_extract_text, get_menu_label(_("Extract Page Text"), "extract_text"))
 
         self.id_extract_images = wx.NewIdRef()
-        _add_item(m_process, self.id_extract_images, get_menu_label("Extract Page Images", "extract_images"))
+        _add_item(m_process, self.id_extract_images, get_menu_label(_("Extract Page Images"), "extract_images"))
 
         m_process.AppendSeparator()
 
         self.id_filter_settings = wx.NewIdRef()
-        _add_item(m_process, self.id_filter_settings, "Shader Settings...", wx.ART_EXECUTABLE_FILE)
+        _add_item(m_process, self.id_filter_settings, _("Shader Settings..."), wx.ART_EXECUTABLE_FILE)
 
         m_process.AppendSeparator()
 
         self.id_custom_none = wx.NewIdRef()
-        _add_item(m_process, self.id_custom_none, "None / Turn Off", kind=wx.ITEM_CHECK)
+        _add_item(m_process, self.id_custom_none, _("None / Turn Off"), kind=wx.ITEM_CHECK)
         self.Bind(wx.EVT_MENU, lambda e: self._select_custom_filter(None), id=self.id_custom_none)
 
         self.filter_menu_map = {}
@@ -544,20 +544,20 @@ class MainFrame(wx.Frame):
 
         self._populate_custom_filters_menu = _populate_custom_filters_menu
 
-        self.menubar.Append(m_process, "&Process")
+        self.menubar.Append(m_process, _("&Process"))
 
         # --- Help ---
         m_help = FM.FlatMenu()
-        m_about = _add_item(m_help, wx.ID_ABOUT, "&About", wx.ART_INFORMATION)
-        self.menubar.Append(m_help, "&Info")
+        m_about = _add_item(m_help, wx.ID_ABOUT, _("&About"), wx.ART_INFORMATION)
+        self.menubar.Append(m_help, _("&Info"))
 
         self.id_check_update = wx.NewIdRef()
-        _add_item(m_help, self.id_check_update, "Check for Updates...")
+        _add_item(m_help, self.id_check_update, _("Check for Updates..."))
 
         m_help.AppendSeparator()
 
         self.id_manual = wx.NewIdRef()
-        _add_item(m_help, self.id_manual, "&Help Topics", "help")
+        _add_item(m_help, self.id_manual, _("&Help Topics"), "help")
 
         # --- Integration ---
         self.GetSizer().Insert(0, self.menubar, 0, wx.EXPAND)

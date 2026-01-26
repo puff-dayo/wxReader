@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-01-26 20:29+0800\n"
-"PO-Revision-Date: 2026-01-26 21:18+0800\n"
+"POT-Creation-Date: 2026-01-27 05:04+0800\n"
+"PO-Revision-Date: 2026-01-27 05:05+0800\n"
 "Last-Translator: setsuna-dayo <no@email.hehe>\n"
 "Language-Team: info\n"
 "Language: zh\n"
@@ -19,101 +19,241 @@ msgstr ""
 "X-Generator: Virtaal 0.7.1\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: wxReader.py:123
+#: wxReader.py:124
 msgid "Search Outline"
 msgstr "搜索大纲"
 
-#: wxReader.py:133
+#: wxReader.py:134
 msgid "Outline"
 msgstr "文件大纲"
 
-#: wxReader.py:142
+#: wxReader.py:143
 msgid "Dir Up"
 msgstr "向上"
 
-#: wxReader.py:145
+#: wxReader.py:146
 msgid "Locate"
 msgstr "定位"
 
-#: wxReader.py:148 wxReader.py:179
+#: wxReader.py:149 wxReader.py:180
 msgid "Gallery"
 msgstr "画廊"
 
-#: wxReader.py:168
+#: wxReader.py:169
 msgid "File Browser"
 msgstr "文件导览"
 
-#: wxReader.py:177
+#: wxReader.py:178
 msgid "Refresh"
 msgstr "刷新"
 
-#: wxReader.py:184
+#: wxReader.py:185
 msgid "Newest"
 msgstr "最新"
 
-#: wxReader.py:185
+#: wxReader.py:186
 msgid "Oldest"
 msgstr "最旧"
 
-#: wxReader.py:204
+#: wxReader.py:205
 msgid "Folder List"
 msgstr "资料夹列表"
 
-#: wxReader.py:336
+#: wxReader.py:337
 msgid "&Open..."
 msgstr "打开(&O)"
 
-#: wxReader.py:337
+#: wxReader.py:338
 msgid "&Close"
 msgstr "关闭(&C)"
 
-#: wxReader.py:342
+#: wxReader.py:343
 msgid "&Gallery Mode"
 msgstr "画廊模式(&G)"
 
-#: wxReader.py:347
+#: wxReader.py:348
 msgid "Recent Files..."
 msgstr "最近文件…"
 
-#: wxReader.py:352
+#: wxReader.py:353
 msgid "Edit pswd.txt"
 msgstr "编辑密码簿"
 
-#: wxReader.py:357
+#: wxReader.py:358
 msgid "Preferences"
 msgstr "偏好设置"
 
-#: wxReader.py:360
+#: wxReader.py:365
+msgid "Languages..."
+msgstr "语言…"
+
+#: wxReader.py:368
 msgid "E&xit"
 msgstr "退出(&X)"
 
-#: wxReader.py:362
+#: wxReader.py:370
 msgid "&File"
 msgstr "文件(&F)"
 
-#: wxReader.py:368
+#: wxReader.py:376
 msgid "Show &Sidebar"
 msgstr "显示侧边栏(&S)"
 
-#: wxReader.py:371
+#: wxReader.py:379
 msgid "Switch Sidebar Tab"
 msgstr "切换侧栏分页"
 
-#: wxReader.py:377
+#: wxReader.py:385
 msgid "Single Page View"
 msgstr "单页视图"
 
-#: wxReader.py:378
+#: wxReader.py:386
 msgid "Two Page View"
 msgstr "双页视图"
 
-#: wxReader.py:382
+#: wxReader.py:390
 msgid "Add Blank Page at Start"
 msgstr "添加空白起始页"
 
-#: wxReader.py:391
+#: wxReader.py:396
+msgid "Left-to-Right"
+msgstr "从左往右"
+
+#: wxReader.py:397
+msgid "Right-to-Left"
+msgstr "从右往左"
+
+#: wxReader.py:399
 msgid "Page &Direction"
 msgstr "排页方向(&D)"
+
+#: wxReader.py:410
+msgid "Zoom &In"
+msgstr "放大(&I)"
+
+#: wxReader.py:411
+msgid "Zoom &Out"
+msgstr "缩小(&O)"
+
+#: wxReader.py:414
+msgid "Fit &Width"
+msgstr "匹配页宽(&W)"
+
+#: wxReader.py:415
+msgid "Fit &Page"
+msgstr "匹配全页(P)"
+
+#: wxReader.py:416
+msgid "Manual Zoom"
+msgstr "手动缩放"
+
+#: wxReader.py:420
+msgid "Set Margin and Gap"
+msgstr "设置页间距和边距"
+
+#: wxReader.py:424
+msgid "Background Color…"
+msgstr "背景颜色…"
+
+#: wxReader.py:429
+msgid "Larger Font"
+msgstr "字体更大"
+
+#: wxReader.py:430
+msgid "Smaller Font"
+msgstr "字体更小"
+
+#: wxReader.py:434
+msgid "Full &Screen"
+msgstr "全屏(&S)"
+
+#: wxReader.py:444
+msgid "DeMoiré"
+msgstr "去摩尔纹"
+
+#: wxReader.py:445
+msgid "Lanczos"
+msgstr "兰乔斯法"
+
+#: wxReader.py:446
+msgid "Bilinear"
+msgstr "双线性法"
+
+#: wxReader.py:452
+msgid "Render Quality"
+msgstr "渲染质量"
+
+#: wxReader.py:455
+msgid "&View"
+msgstr "查看(&V)"
+
+#: wxReader.py:464
+msgid "Previous Page"
+msgstr "向前翻页"
+
+#: wxReader.py:465
+msgid "Next Page"
+msgstr "向后翻页"
+
+#: wxReader.py:466
+msgid "&Go to Page..."
+msgstr "去往页码(&G)"
+
+#: wxReader.py:471
+msgid "External Control"
+msgstr "外部控制"
+
+#: wxReader.py:477
+msgid "&Find..."
+msgstr "查找(&F)"
+
+#: wxReader.py:480
+msgid "Show TOC Dialog..."
+msgstr "显示大纲目录"
+
+#: wxReader.py:482
+msgid "&Navigate"
+msgstr "导航(&N)"
+
+#: wxReader.py:488
+msgid "Extract Page Text"
+msgstr "提取文字"
+
+#: wxReader.py:491
+msgid "Extract Page Images"
+msgstr "提取图片"
+
+#: wxReader.py:496
+msgid "Shader Settings..."
+msgstr "着色器设置…"
+
+#: wxReader.py:501
+msgid "None / Turn Off"
+msgstr "无 / 关闭"
+
+#: wxReader.py:547
+msgid "&Process"
+msgstr "处理(&P)"
+
+#: wxReader.py:551
+msgid "&About"
+msgstr "关于(&A)"
+
+#: wxReader.py:552
+msgid "&Info"
+msgstr "信息(&I)"
+
+#: wxReader.py:555
+msgid "Check for Updates..."
+msgstr "检查更新…"
+
+#: wxReader.py:560
+msgid "&Help Topics"
+msgstr "帮助主题(&H)"
+
+#: wxReader.py:1432
+msgid "Restart is required."
+msgstr "重新启动是需要的。"
 
 #: wxReaderUpdater.py:63
 #, python-brace-format
