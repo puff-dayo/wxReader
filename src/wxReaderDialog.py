@@ -12,14 +12,17 @@ from wxReaderIcon import get_app_font, msw_set_theme
 from wxReaderKeyBinds import DEFAULT_KEYBINDS
 from wxReaderToast import show_toast
 
+def _(text):
+    return wx.GetTranslation(text)
+
 
 class KeyCaptureDialog(wx.Dialog):
     def __init__(self, parent, action_name):
-        super().__init__(parent, title="Press a key...", size=(300, 150))
+        super().__init__(parent, title=_("Press a key..."), size=(300, 150))
         self.SetFont(get_app_font())
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        lbl = wx.StaticText(self, label=f"Press new key for:\n'{action_name}'")
+        lbl = wx.StaticText(self, label=_("Press new key for")+f":\n'{action_name}'")
         lbl.SetFont(get_app_font(4))
         sizer.Add(lbl, 1, wx.ALIGN_CENTER | wx.ALL, 20)
 
@@ -108,20 +111,20 @@ class KeymapDialog(wx.Dialog):
         }
 
         self.list_ctrl = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
-        self.list_ctrl.InsertColumn(0, "Action", width=250)
-        self.list_ctrl.InsertColumn(1, "Shortcut", width=150)
+        self.list_ctrl.InsertColumn(0, _("Action"), width=250)
+        self.list_ctrl.InsertColumn(1, _("Shortcut"), width=150)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.list_ctrl, 1, wx.EXPAND | wx.ALL, 10)
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        btn_edit = wx.Button(self, label="Edit Key")
-        btn_clear = wx.Button(self, label="Clear Key")
-        btn_reset = wx.Button(self, label="Reset Defaults")
+        btn_edit = wx.Button(self, label=_("Edit Key"))
+        btn_clear = wx.Button(self, label=_("Clear Key"))
+        btn_reset = wx.Button(self, label=_("Reset Defaults"))
 
-        btn_save = wx.Button(self, wx.ID_OK, label="Save")
-        btn_cancel = wx.Button(self, wx.ID_CANCEL, label="Cancel")
+        btn_save = wx.Button(self, wx.ID_OK, label=_("Save"))
+        btn_cancel = wx.Button(self, wx.ID_CANCEL, label=_("Cancel"))
 
         btn_sizer.Add(btn_edit, 0, wx.RIGHT, 5)
         btn_sizer.Add(btn_clear, 0, wx.RIGHT, 5)
@@ -181,7 +184,7 @@ class KeymapDialog(wx.Dialog):
             self._populate_list()
 
     def on_reset(self, evt):
-        if wx.MessageBox("Reset all shortcuts to default?", "Confirm", wx.YES_NO) == wx.YES:
+        if wx.MessageBox(_("Reset all shortcuts to default?"), _("Confirm"), wx.YES_NO) == wx.YES:
             self.keybinds = DEFAULT_KEYBINDS.copy()
             self._populate_list()
 
@@ -191,7 +194,7 @@ class KeymapDialog(wx.Dialog):
 
 class TOCDialog(wx.Dialog):
     def __init__(self, parent, toc_list, current_page_idx, on_navigate_callback):
-        super().__init__(parent, title="Table of Contents", size=(450, 650),
+        super().__init__(parent, title=_("Table of Contents"), size=(450, 650),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
         self.SetFont(get_app_font())
@@ -208,7 +211,7 @@ class TOCDialog(wx.Dialog):
         search_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.search_ctrl = wx.SearchCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.search_ctrl.ShowCancelButton(True)
-        self.search_ctrl.SetDescriptiveText("Filter sections...")
+        self.search_ctrl.SetDescriptiveText(_("Filter sections..."))
         search_sizer.Add(self.search_ctrl, 1, wx.EXPAND | wx.ALL, 8)
         main_sizer.Add(search_sizer, 0, wx.EXPAND)
 
@@ -222,11 +225,11 @@ class TOCDialog(wx.Dialog):
         # 3. Action Buttons
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.info_lbl = wx.StaticText(self, label=f"{len(toc_list)} sections")
+        self.info_lbl = wx.StaticText(self, label=f"{len(toc_list)}" + _("sections"))
         self.info_lbl.SetForegroundColour(wx.Colour(100, 100, 100))
         btn_sizer.Add(self.info_lbl, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 10)
 
-        btn_close = wx.Button(self, wx.ID_CANCEL, "Close")
+        btn_close = wx.Button(self, wx.ID_CANCEL, _("Close"))
         btn_sizer.Add(btn_close, 0, wx.LEFT, 10)
 
         main_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.ALL, 10)
@@ -314,8 +317,8 @@ class TextExtractionDialog(wx.Dialog):
 
         # Buttons
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        btn_copy = wx.Button(self, label="Copy All")
-        btn_close = wx.Button(self, wx.ID_CANCEL, "Close")
+        btn_copy = wx.Button(self, label=_("Copy All"))
+        btn_close = wx.Button(self, wx.ID_CANCEL, _("Close"))
 
         btn_sizer.Add(btn_copy, 0, wx.RIGHT, 10)
         btn_sizer.Add(btn_close, 0)
@@ -331,9 +334,9 @@ class TextExtractionDialog(wx.Dialog):
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(self.text_ctrl.GetValue()))
             wx.TheClipboard.Close()
-            show_toast(self, "Text copied to clipboard!")
+            show_toast(self, _("Text copied to clipboard!"))
         else:
-            show_toast(self, "Could not open clipboard.", True)
+            show_toast(self, _("Could not open clipboard."), True)
 
 
 class ImageExtractionDialog(wx.Dialog):
@@ -346,7 +349,7 @@ class ImageExtractionDialog(wx.Dialog):
             "ext": str (e.g. 'jpeg', 'png')
           }
         """
-        super().__init__(parent, title="Extract Images", size=(700, 500),
+        super().__init__(parent, title=_("Extract Images"), size=(700, 500),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
         self.SetFont(get_app_font())
@@ -363,7 +366,7 @@ class ImageExtractionDialog(wx.Dialog):
         if choices:
             self.list_box.SetSelection(0)
 
-        left_sizer.Add(wx.StaticText(self, label="Detected Images:"), 0, wx.ALL, 5)
+        left_sizer.Add(wx.StaticText(self, label=_("Detected Images:")), 0, wx.ALL, 5)
         left_sizer.Add(self.list_box, 1, wx.EXPAND | wx.ALL, 5)
 
         # Right: Preview
@@ -377,14 +380,14 @@ class ImageExtractionDialog(wx.Dialog):
         scroll_sizer.Add(self.preview_bmp, 0, wx.ALL, 10)
         self.scroll_win.SetSizer(scroll_sizer)
 
-        right_sizer.Add(wx.StaticText(self, label="Preview:"), 0, wx.ALL, 5)
+        right_sizer.Add(wx.StaticText(self, label=_("Preview:")), 0, wx.ALL, 5)
         right_sizer.Add(self.scroll_win, 1, wx.EXPAND | wx.ALL, 5)
 
         # Buttons
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.btn_copy = wx.Button(self, label="Copy")
-        self.btn_save = wx.Button(self, label="Save to...")
-        btn_close = wx.Button(self, wx.ID_CANCEL, "Close")
+        self.btn_copy = wx.Button(self, label=_("Copy"))
+        self.btn_save = wx.Button(self, label=_("Save to..."))
+        btn_close = wx.Button(self, wx.ID_CANCEL, _("Close"))
 
         btn_sizer.Add(self.btn_copy, 0, wx.RIGHT, 10)
         btn_sizer.Add(self.btn_save, 0, wx.RIGHT, 10)
@@ -427,9 +430,9 @@ class ImageExtractionDialog(wx.Dialog):
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(bmp_obj)
             wx.TheClipboard.Close()
-            show_toast(self, "Image copied to clipboard.")
+            show_toast(self, _("Image copied to clipboard."))
         else:
-            show_toast(self, "Could not open clipboard.", True)
+            show_toast(self, _("Could not open clipboard."), True)
 
     def on_save(self, evt):
         if self.current_sel < 0 or self.current_sel >= len(self.image_list):
@@ -440,21 +443,21 @@ class ImageExtractionDialog(wx.Dialog):
         default_name = f"extracted_image_{self.current_sel + 1}.{ext}"
         wildcard = f"{ext.upper()} files (*.{ext})|*.{ext}|All files (*.*)|*.*"
 
-        with wx.FileDialog(self, "Save Image", defaultFile=default_name,
+        with wx.FileDialog(self, _("Save Image"), defaultFile=default_name,
                            wildcard=wildcard, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as dlg:
             if dlg.ShowModal() == wx.ID_OK:
                 path = dlg.GetPath()
                 try:
                     with open(path, "wb") as f:
                         f.write(img_data['bytes'])
-                    show_toast(self, f"Saved to {path}")
+                    show_toast(self, _("Saved to") + f"{path}")
                 except Exception as e:
-                    show_toast(self, f"Failed to save file:\n{e}", True)
+                    show_toast(self, _("Failed to save file")+f":\n{e}", True)
 
 
 class SearchDialog(wx.Dialog):
     def __init__(self, parent, pdf_doc, navigation_callback):
-        super().__init__(parent, title="Search Document", size=(600, 450),
+        super().__init__(parent, title=_("Search Document"), size=(600, 450),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
         self.SetFont(get_app_font())
@@ -469,9 +472,9 @@ class SearchDialog(wx.Dialog):
         top_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.search_input = wx.SearchCtrl(panel, style=wx.TE_PROCESS_ENTER)
-        self.search_input.SetDescriptiveText("Type text to search...")
+        self.search_input.SetDescriptiveText(_("Type text to search..."))
 
-        self.btn_find = wx.Button(panel, label="Find")
+        self.btn_find = wx.Button(panel, label=_("Find"))
 
         top_sizer.Add(self.search_input, 1, wx.EXPAND | wx.RIGHT, 5)
         top_sizer.Add(self.btn_find, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -480,13 +483,13 @@ class SearchDialog(wx.Dialog):
 
         # results list
         self.result_list = wx.ListCtrl(panel, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.LC_VRULES | wx.LC_HRULES)
-        self.result_list.InsertColumn(0, "Page", width=60)
-        self.result_list.InsertColumn(1, "Context Snippet", width=480)
+        self.result_list.InsertColumn(0, _("Page"), width=60)
+        self.result_list.InsertColumn(1, _("Context Snippet"), width=480)
 
         main_sizer.Add(self.result_list, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
 
         # status bar
-        self.lbl_status = wx.StaticText(panel, label="Ready")
+        self.lbl_status = wx.StaticText(panel, label=_("Ready"))
         main_sizer.Add(self.lbl_status, 0, wx.EXPAND | wx.ALL, 10)
 
         panel.SetSizer(main_sizer)
@@ -506,7 +509,7 @@ class SearchDialog(wx.Dialog):
             return
 
         self.result_list.DeleteAllItems()
-        self.lbl_status.SetLabel("Searching...")
+        self.lbl_status.SetLabel(_("Searching..."))
         self.btn_find.Disable()
 
         wx.Yield()
@@ -553,7 +556,7 @@ class SearchDialog(wx.Dialog):
             except Exception as e:
                 print(f"Search error on page {i}: {e}")
 
-        self.lbl_status.SetLabel(f"Search complete. Found {results_count} matches.")
+        self.lbl_status.SetLabel(_("Search complete. Found:") + f"{results_count}")
         self.btn_find.Enable()
         self.search_input.SetFocus()
 
@@ -575,7 +578,7 @@ class SetMarginGapDialog(wx.Dialog):
 
         # Margin
         hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        label1 = wx.StaticText(self, label="Margin:")
+        label1 = wx.StaticText(self, label=_("Margin:"))
         hbox1.Add(label1, flag=wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, border=8)
         self.margin_ctrl = wx.TextCtrl(self, value=default_margin)
         hbox1.Add(self.margin_ctrl, proportion=1)
@@ -583,7 +586,7 @@ class SetMarginGapDialog(wx.Dialog):
 
         # Gap
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        label2 = wx.StaticText(self, label="Gap:")
+        label2 = wx.StaticText(self, label=_("Gap:"))
         hbox2.Add(label2, flag=wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, border=8)
         self.gap_ctrl = wx.TextCtrl(self, value=default_gap)
         hbox2.Add(self.gap_ctrl, proportion=1)
@@ -631,14 +634,14 @@ class ColorPreviewPanel(wx.Panel):
         dc.DrawRectangle(0, 0, w, h)
 
         dc.SetTextForeground(wx.WHITE if sum(self.old_color[:3]) < 382 else wx.BLACK)
-        dc.DrawText("Current", 5, 5)
+        dc.DrawText(_("Current"), 5, 5)
 
         dc.SetTextForeground(wx.WHITE if sum(self.new_color[:3]) < 382 else wx.BLACK)
-        dc.DrawText("New", 5, h // 2 + 5)
+        dc.DrawText(_("New"), 5, h // 2 + 5)
 
 
 class ModernColorDialog(wx.Dialog):
-    def __init__(self, parent, initial_color=wx.BLACK, title="Select Color"):
+    def __init__(self, parent, initial_color=wx.BLACK, title=_("Select Color")):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
         self.color = wx.Colour(initial_color)
@@ -793,7 +796,7 @@ class ModernColorDialog(wx.Dialog):
 
 class AboutDialog(wx.Dialog):
     def __init__(self, parent):
-        super().__init__(parent, title="About", style=wx.DEFAULT_DIALOG_STYLE)
+        super().__init__(parent, title=_("About"), style=wx.DEFAULT_DIALOG_STYLE)
 
         self.SetBackgroundColour(wx.WHITE)
         self.SetFont(get_app_font())
@@ -812,7 +815,7 @@ class AboutDialog(wx.Dialog):
         lbl_name.SetFont(get_app_font(4))
         main_sizer.Add(lbl_name, 0, wx.CENTER | wx.BOTTOM, 2)
 
-        lbl_ver = wx.StaticText(self, label=f"Version {APP_VERSION}")
+        lbl_ver = wx.StaticText(self, label=_("Version") + f" {APP_VERSION}")
         lbl_ver.SetForegroundColour(wx.Colour(100, 100, 100))
         main_sizer.Add(lbl_ver, 0, wx.CENTER)
 
@@ -841,7 +844,7 @@ class AboutDialog(wx.Dialog):
 
         main_sizer.AddSpacer(10)
 
-        link = adv.HyperlinkCtrl(self, label="Visit GitHub Repository", url="https://github.com/puff-dayo/wxReader/")
+        link = adv.HyperlinkCtrl(self, label=_("Visit GitHub Repository"), url="https://github.com/puff-dayo/wxReader/")
         main_sizer.Add(link, 0, wx.CENTER | wx.BOTTOM, 10)
 
         btn = wx.Button(self, wx.ID_OK, label="Close")
@@ -856,7 +859,7 @@ class AboutDialog(wx.Dialog):
 
 class RecentFilesDialog(wx.Dialog):
     def __init__(self, parent, recent_files):
-        super().__init__(parent, title="Recent Files", size=(700, 500),
+        super().__init__(parent, title=_("Recent Files"), size=(700, 500),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
         self.recent_files = list(recent_files)
@@ -872,7 +875,7 @@ class RecentFilesDialog(wx.Dialog):
 
         search_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.search_ctrl = wx.SearchCtrl(panel, style=wx.TE_PROCESS_ENTER)
-        self.search_ctrl.SetDescriptiveText("Search filename or path...")
+        self.search_ctrl.SetDescriptiveText(_("Search filename or path..."))
         self.search_ctrl.ShowCancelButton(True)
         search_sizer.Add(self.search_ctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         main_sizer.Add(search_sizer, 0, wx.EXPAND | wx.ALL, 10)
@@ -880,17 +883,17 @@ class RecentFilesDialog(wx.Dialog):
         self.dv_list = dv.DataViewListCtrl(panel, style=dv.DV_ROW_LINES | dv.DV_VERT_RULES | dv.DV_SINGLE)
 
         self.dv_list.AppendTextColumn("#", width=40, mode=dv.DATAVIEW_CELL_INERT, align=wx.ALIGN_CENTER)
-        self.dv_list.AppendTextColumn("Filename", width=250, mode=dv.DATAVIEW_CELL_INERT)
-        self.dv_list.AppendTextColumn("Location", width=400, mode=dv.DATAVIEW_CELL_INERT)
+        self.dv_list.AppendTextColumn(_("Filename"), width=250, mode=dv.DATAVIEW_CELL_INERT)
+        self.dv_list.AppendTextColumn(_("Location"), width=400, mode=dv.DATAVIEW_CELL_INERT)
 
         main_sizer.Add(self.dv_list, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 15)
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.btn_clear = wx.Button(panel, label="Forget All")
-        self.btn_remove = wx.Button(panel, label="Forget Item")
-        self.btn_open = wx.Button(panel, label="Open")
-        self.btn_close = wx.Button(panel, label="Close")
+        self.btn_clear = wx.Button(panel, label=_("Forget All"))
+        self.btn_remove = wx.Button(panel, label=_("Forget Item"))
+        self.btn_open = wx.Button(panel, label=_("Open"))
+        self.btn_close = wx.Button(panel, label=_("Close"))
 
         self.btn_open.SetDefault()
 
@@ -953,7 +956,7 @@ class RecentFilesDialog(wx.Dialog):
         path = self.get_selected_path()
         if path:
             if not os.path.exists(path):
-                show_toast(self, "File not found.", True)
+                show_toast(self, _("File not found."), True)
                 return
 
             self.file_to_open = path
@@ -971,7 +974,7 @@ class RecentFilesDialog(wx.Dialog):
 
     def on_clear(self, evt):
         if not self.recent_files: return
-        dlg = wx.MessageDialog(self, "Clear all recent files history?", "Confirm Clear", wx.YES_NO | wx.ICON_WARNING)
+        dlg = wx.MessageDialog(self, _("Clear all recent files history?"), _("Confirm Clear"), wx.YES_NO | wx.ICON_WARNING)
         if dlg.ShowModal() == wx.ID_YES:
             self.recent_files.clear()  # Update local copy
             self._populate_list()
@@ -983,7 +986,7 @@ class RecentFilesDialog(wx.Dialog):
 
 class PswdManagerDialog(wx.Dialog):
     def __init__(self, parent=None):
-        super().__init__(parent, title="Password Editor", size=(500, 600))
+        super().__init__(parent, title=_("Password Editor"), size=(500, 600))
 
         self.file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pswd.txt')
 
@@ -995,8 +998,8 @@ class PswdManagerDialog(wx.Dialog):
         panel = wx.Panel(self)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        desc_label = wx.StaticText(panel, label="Enter one password per line.")
-        warn_label = wx.StaticText(panel, label="WARNING: Passwords are stored in PLAIN TEXT.")
+        desc_label = wx.StaticText(panel, label=_("Enter one password per line."))
+        warn_label = wx.StaticText(panel, label=_("WARNING: Passwords are stored in PLAIN TEXT."))
         warn_label.SetForegroundColour(wx.Colour("#bb707c"))
 
         main_sizer.Add(desc_label, 0, wx.CENTRE | wx.TOP, 15)
@@ -1032,7 +1035,7 @@ class PswdManagerDialog(wx.Dialog):
                 content = f.read()
             self.text_editor.SetValue(content)
         except Exception as e:
-            show_toast(self, f"Failed to load file:\n{e}", True)
+            show_toast(self, _("Failed to load file")+f":\n{e}", True)
             print(e)
 
     def OnSave(self, event):
@@ -1043,12 +1046,12 @@ class PswdManagerDialog(wx.Dialog):
 
             self.EndModal(wx.ID_OK)
         except Exception as e:
-            show_toast(self, f"Failed to save file:\n{e}", True)
+            show_toast(self, _("Failed to save file")+f":\n{e}", True)
             print(e)
 
     def OnClose(self, event):
         if self.text_editor.IsModified():
-            res = wx.MessageBox("You have unsaved changes. Exit anyway?", "Confirm", wx.YES_NO | wx.ICON_WARNING)
+            res = wx.MessageBox(_("You have unsaved changes. Exit anyway?"), _("Confirm"), wx.YES_NO | wx.ICON_WARNING)
             if res == wx.NO:
                 return
 
@@ -1057,7 +1060,7 @@ class PswdManagerDialog(wx.Dialog):
 
 class FilterSettingsDialog(wx.Dialog):
     def __init__(self, parent, gl_tool, on_change):
-        super().__init__(parent, title="Shader Settings", size=(300, 170))
+        super().__init__(parent, title=_("Shader Settings"), size=(300, 170))
         self.gl_tool = gl_tool
         self.on_change = on_change
 

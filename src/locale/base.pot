@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-01-27 05:04+0800\n"
+"POT-Creation-Date: 2026-01-27 05:24+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -251,6 +251,243 @@ msgstr ""
 
 #: wxReader.py:1432
 msgid "Restart is required."
+msgstr ""
+
+#: wxReaderDialog.py:21
+msgid "Press a key..."
+msgstr ""
+
+#: wxReaderDialog.py:25
+msgid "Press new key for"
+msgstr ""
+
+#: wxReaderDialog.py:114
+msgid "Action"
+msgstr ""
+
+#: wxReaderDialog.py:115
+msgid "Shortcut"
+msgstr ""
+
+#: wxReaderDialog.py:122
+msgid "Edit Key"
+msgstr ""
+
+#: wxReaderDialog.py:123
+msgid "Clear Key"
+msgstr ""
+
+#: wxReaderDialog.py:124
+msgid "Reset Defaults"
+msgstr ""
+
+#: wxReaderDialog.py:126
+msgid "Save"
+msgstr ""
+
+#: wxReaderDialog.py:127
+msgid "Cancel"
+msgstr ""
+
+#: wxReaderDialog.py:187
+msgid "Reset all shortcuts to default?"
+msgstr ""
+
+#: wxReaderDialog.py:187 wxReaderDialog.py:1054
+msgid "Confirm"
+msgstr ""
+
+#: wxReaderDialog.py:197
+msgid "Table of Contents"
+msgstr ""
+
+#: wxReaderDialog.py:214
+msgid "Filter sections..."
+msgstr ""
+
+#: wxReaderDialog.py:228
+msgid "sections"
+msgstr ""
+
+#: wxReaderDialog.py:232 wxReaderDialog.py:321 wxReaderDialog.py:390
+#: wxReaderDialog.py:896
+msgid "Close"
+msgstr ""
+
+#: wxReaderDialog.py:320
+msgid "Copy All"
+msgstr ""
+
+#: wxReaderDialog.py:337
+msgid "Text copied to clipboard!"
+msgstr ""
+
+#: wxReaderDialog.py:339 wxReaderDialog.py:435
+msgid "Could not open clipboard."
+msgstr ""
+
+#: wxReaderDialog.py:352
+msgid "Extract Images"
+msgstr ""
+
+#: wxReaderDialog.py:369
+msgid "Detected Images:"
+msgstr ""
+
+#: wxReaderDialog.py:383
+msgid "Preview:"
+msgstr ""
+
+#: wxReaderDialog.py:388
+msgid "Copy"
+msgstr ""
+
+#: wxReaderDialog.py:389
+msgid "Save to..."
+msgstr ""
+
+#: wxReaderDialog.py:433
+msgid "Image copied to clipboard."
+msgstr ""
+
+#: wxReaderDialog.py:446
+msgid "Save Image"
+msgstr ""
+
+#: wxReaderDialog.py:453
+msgid "Saved to"
+msgstr ""
+
+#: wxReaderDialog.py:455 wxReaderDialog.py:1049
+msgid "Failed to save file"
+msgstr ""
+
+#: wxReaderDialog.py:460
+msgid "Search Document"
+msgstr ""
+
+#: wxReaderDialog.py:475
+msgid "Type text to search..."
+msgstr ""
+
+#: wxReaderDialog.py:477
+msgid "Find"
+msgstr ""
+
+#: wxReaderDialog.py:486
+msgid "Page"
+msgstr ""
+
+#: wxReaderDialog.py:487
+msgid "Context Snippet"
+msgstr ""
+
+#: wxReaderDialog.py:492
+msgid "Ready"
+msgstr ""
+
+#: wxReaderDialog.py:512
+msgid "Searching..."
+msgstr ""
+
+#: wxReaderDialog.py:559
+msgid "Search complete. Found:"
+msgstr ""
+
+#: wxReaderDialog.py:581
+msgid "Margin:"
+msgstr ""
+
+#: wxReaderDialog.py:589
+msgid "Gap:"
+msgstr ""
+
+#: wxReaderDialog.py:637
+msgid "Current"
+msgstr ""
+
+#: wxReaderDialog.py:640
+msgid "New"
+msgstr ""
+
+#: wxReaderDialog.py:644
+msgid "Select Color"
+msgstr ""
+
+#: wxReaderDialog.py:799
+msgid "About"
+msgstr ""
+
+#: wxReaderDialog.py:818
+msgid "Version"
+msgstr ""
+
+#: wxReaderDialog.py:847
+msgid "Visit GitHub Repository"
+msgstr ""
+
+#: wxReaderDialog.py:862
+msgid "Recent Files"
+msgstr ""
+
+#: wxReaderDialog.py:878
+msgid "Search filename or path..."
+msgstr ""
+
+#: wxReaderDialog.py:886
+msgid "Filename"
+msgstr ""
+
+#: wxReaderDialog.py:887
+msgid "Location"
+msgstr ""
+
+#: wxReaderDialog.py:893
+msgid "Forget All"
+msgstr ""
+
+#: wxReaderDialog.py:894
+msgid "Forget Item"
+msgstr ""
+
+#: wxReaderDialog.py:895
+msgid "Open"
+msgstr ""
+
+#: wxReaderDialog.py:959
+msgid "File not found."
+msgstr ""
+
+#: wxReaderDialog.py:977
+msgid "Clear all recent files history?"
+msgstr ""
+
+#: wxReaderDialog.py:977
+msgid "Confirm Clear"
+msgstr ""
+
+#: wxReaderDialog.py:989
+msgid "Password Editor"
+msgstr ""
+
+#: wxReaderDialog.py:1001
+msgid "Enter one password per line."
+msgstr ""
+
+#: wxReaderDialog.py:1002
+msgid "WARNING: Passwords are stored in PLAIN TEXT."
+msgstr ""
+
+#: wxReaderDialog.py:1038
+msgid "Failed to load file"
+msgstr ""
+
+#: wxReaderDialog.py:1054
+msgid "You have unsaved changes. Exit anyway?"
+msgstr ""
+
+#: wxReaderDialog.py:1063
+msgid "Shader Settings"
 msgstr ""
 
 #: wxReaderUpdater.py:63

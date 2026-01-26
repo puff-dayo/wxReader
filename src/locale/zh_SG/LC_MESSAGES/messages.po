@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-01-27 05:04+0800\n"
-"PO-Revision-Date: 2026-01-27 05:05+0800\n"
+"POT-Creation-Date: 2026-01-27 05:24+0800\n"
+"PO-Revision-Date: 2026-01-27 05:33+0800\n"
 "Last-Translator: setsuna-dayo <no@email.hehe>\n"
 "Language-Team: info\n"
 "Language: zh\n"
@@ -254,6 +254,244 @@ msgstr "帮助主题(&H)"
 #: wxReader.py:1432
 msgid "Restart is required."
 msgstr "重新启动是需要的。"
+
+#: wxReaderDialog.py:21
+msgid "Press a key..."
+msgstr "按一个键…"
+
+#: wxReaderDialog.py:25
+msgid "Press new key for"
+msgstr "按一个键设定于"
+
+#: wxReaderDialog.py:114
+msgid "Action"
+msgstr "动作"
+
+#: wxReaderDialog.py:115
+msgid "Shortcut"
+msgstr "快捷键"
+
+#: wxReaderDialog.py:122
+msgid "Edit Key"
+msgstr "编辑"
+
+#: wxReaderDialog.py:123
+msgid "Clear Key"
+msgstr "清除"
+
+#: wxReaderDialog.py:124
+msgid "Reset Defaults"
+msgstr "重设默认"
+
+#: wxReaderDialog.py:126
+msgid "Save"
+msgstr "保存"
+
+#: wxReaderDialog.py:127
+msgid "Cancel"
+msgstr "取消"
+
+#: wxReaderDialog.py:187
+msgid "Reset all shortcuts to default?"
+msgstr "重置所有快捷方式到默认值？"
+
+#: wxReaderDialog.py:187 wxReaderDialog.py:1054
+msgid "Confirm"
+msgstr "确认"
+
+#: wxReaderDialog.py:197
+msgid "Table of Contents"
+msgstr "大纲目录"
+
+#: wxReaderDialog.py:214
+msgid "Filter sections..."
+msgstr "着色器设置…"
+
+#: wxReaderDialog.py:228
+msgid "sections"
+msgstr "片段"
+
+#: wxReaderDialog.py:232 wxReaderDialog.py:321 wxReaderDialog.py:390
+#: wxReaderDialog.py:896
+msgid "Close"
+msgstr "关闭"
+
+#: wxReaderDialog.py:320
+msgid "Copy All"
+msgstr "复制全部"
+
+#: wxReaderDialog.py:337
+msgid "Text copied to clipboard!"
+msgstr "文本已复制到剪贴板！"
+
+#: wxReaderDialog.py:339 wxReaderDialog.py:435
+msgid "Could not open clipboard."
+msgstr "无法访问剪贴板。"
+
+#: wxReaderDialog.py:352
+msgid "Extract Images"
+msgstr "提取图片"
+
+#: wxReaderDialog.py:369
+#, fuzzy
+msgid "Detected Images:"
+msgstr "探测到的图片："
+
+#: wxReaderDialog.py:383
+msgid "Preview:"
+msgstr "预览："
+
+#: wxReaderDialog.py:388
+msgid "Copy"
+msgstr "复制"
+
+#: wxReaderDialog.py:389
+msgid "Save to..."
+msgstr "保存到…"
+
+#: wxReaderDialog.py:433
+msgid "Image copied to clipboard."
+msgstr "图片已复制到剪贴板！"
+
+#: wxReaderDialog.py:446
+msgid "Save Image"
+msgstr "保存图片"
+
+#: wxReaderDialog.py:453
+msgid "Saved to"
+msgstr "保存到"
+
+#: wxReaderDialog.py:455 wxReaderDialog.py:1049
+msgid "Failed to save file"
+msgstr "保存文件失败"
+
+#: wxReaderDialog.py:460
+msgid "Search Document"
+msgstr "搜索文档"
+
+#: wxReaderDialog.py:475
+msgid "Type text to search..."
+msgstr "输入文字开始搜索…"
+
+#: wxReaderDialog.py:477
+msgid "Find"
+msgstr "查找"
+
+#: wxReaderDialog.py:486
+msgid "Page"
+msgstr "页"
+
+#: wxReaderDialog.py:487
+msgid "Context Snippet"
+msgstr "内容片段"
+
+#: wxReaderDialog.py:492
+msgid "Ready"
+msgstr "就绪"
+
+#: wxReaderDialog.py:512
+msgid "Searching..."
+msgstr "搜索…"
+
+#: wxReaderDialog.py:559
+msgid "Search complete. Found:"
+msgstr "搜索完成。找到："
+
+#: wxReaderDialog.py:581
+msgid "Margin:"
+msgstr "页边距："
+
+#: wxReaderDialog.py:589
+msgid "Gap:"
+msgstr "页间距："
+
+#: wxReaderDialog.py:637
+msgid "Current"
+msgstr "当前"
+
+#: wxReaderDialog.py:640
+msgid "New"
+msgstr "当前"
+
+#: wxReaderDialog.py:644
+msgid "Select Color"
+msgstr "选择颜色"
+
+#: wxReaderDialog.py:799
+msgid "About"
+msgstr "关于"
+
+#: wxReaderDialog.py:818
+msgid "Version"
+msgstr "版本号"
+
+#: wxReaderDialog.py:847
+msgid "Visit GitHub Repository"
+msgstr "访问 Github 仓库"
+
+#: wxReaderDialog.py:862
+msgid "Recent Files"
+msgstr "最近文件…"
+
+#: wxReaderDialog.py:878
+msgid "Search filename or path..."
+msgstr "搜索文件名或路径…"
+
+#: wxReaderDialog.py:886
+msgid "Filename"
+msgstr "文件"
+
+#: wxReaderDialog.py:887
+msgid "Location"
+msgstr "位置"
+
+#: wxReaderDialog.py:893
+msgid "Forget All"
+msgstr "忘记一切"
+
+#: wxReaderDialog.py:894
+msgid "Forget Item"
+msgstr "忘记项"
+
+#: wxReaderDialog.py:895
+msgid "Open"
+msgstr "打开"
+
+#: wxReaderDialog.py:959
+msgid "File not found."
+msgstr "找不到文件。"
+
+#: wxReaderDialog.py:977
+msgid "Clear all recent files history?"
+msgstr "清除所有最近文件历史？"
+
+#: wxReaderDialog.py:977
+msgid "Confirm Clear"
+msgstr "确认清除。"
+
+#: wxReaderDialog.py:989
+msgid "Password Editor"
+msgstr "密码簿编辑器"
+
+#: wxReaderDialog.py:1001
+msgid "Enter one password per line."
+msgstr "每行输入一个密码。"
+
+#: wxReaderDialog.py:1002
+msgid "WARNING: Passwords are stored in PLAIN TEXT."
+msgstr "警告：密码是用明文储存。"
+
+#: wxReaderDialog.py:1038
+msgid "Failed to load file"
+msgstr "加载文件失败"
+
+#: wxReaderDialog.py:1054
+msgid "You have unsaved changes. Exit anyway?"
+msgstr "你有未保存的更改。退出吗？"
+
+#: wxReaderDialog.py:1063
+msgid "Shader Settings"
+msgstr "着色器设置…"
 
 #: wxReaderUpdater.py:63
 #, python-brace-format
