@@ -1103,21 +1103,21 @@ class MainFrame(wx.Frame):
                 raw_text = self.content_provider.get_page_text(page_idx)
 
                 if raw_text:
-                    header = f"=== Page {page_idx + 1} ==="
+                    header = "=== "+_("Page") + f"{page_idx + 1} ==="
                     extracted_parts.append(f"{header}\n{raw_text}")
 
             full_text = "\n\n".join(extracted_parts)
             if not full_text.strip():
-                full_text = "<No text found on visible pages.>"
+                full_text = _("<No text found on visible pages.>")
 
-            dlg = TextExtractionDialog(self, full_text, title="Extracted Page Text")
+            dlg = TextExtractionDialog(self, text=full_text)
             msw_set_theme(dlg)
 
             dlg.ShowModal()
             dlg.Destroy()
 
         except Exception as e:
-            show_toast(self, f"Failed to extract text: {e}", True)
+            show_toast(self, _("Failed to extract text:")+f"{e}", True)
 
     def on_extract_images(self, evt):
         if not self.content_provider:
@@ -1149,14 +1149,14 @@ class MainFrame(wx.Frame):
 
         except Exception as e:
             wx.EndBusyCursor()
-            show_toast(self, f"Error extracting images: {e}", True)
+            show_toast(self, _("Error extracting images:")+ f"{e}", True)
             return
         finally:
             if wx.IsBusy():
                 wx.EndBusyCursor()
 
         if not found_images_data:
-            show_toast(self, "No images found on the visible page(s).")
+            show_toast(self, _("No images found on the visible page(s)."))
             return
 
         dlg = ImageExtractionDialog(self, found_images_data)
@@ -1209,7 +1209,7 @@ class MainFrame(wx.Frame):
 
     def on_goto_page(self, evt):
         if not self.content_provider: return
-        dlg = wx.TextEntryDialog(self, f"Enter page number (1-{self.content_provider.page_count}):", "Go to Page")
+        dlg = wx.TextEntryDialog(self, _("Enter page number")+f" (1-{self.content_provider.page_count}):", "Go to Page")
         msw_set_theme(dlg)
         if dlg.ShowModal() == wx.ID_OK:
             try:
@@ -1218,9 +1218,9 @@ class MainFrame(wx.Frame):
                     self.view.go_to_page(val - 1)
                     self._update_ui()
                 else:
-                    show_toast(self, "Page number out of range.")
+                    show_toast(self, _("Page number out of range."))
             except ValueError:
-                show_toast(self, "Invalid number.")
+                show_toast(self, _("Invalid number."))
         dlg.Destroy()
 
     def on_edit_keys(self, evt):
@@ -1243,7 +1243,7 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
     def on_setmg(self, evt):
-        dlg = SetMarginGapDialog(self, title="Set Margin and Gap")
+        dlg = SetMarginGapDialog(self, title=_("Set Margin and Gap"))
         msw_set_theme(dlg)
 
         if dlg.ShowModal() == wx.ID_OK:
@@ -1256,9 +1256,9 @@ class MainFrame(wx.Frame):
                     self.view.set_margin_gap(m=m_val, g=g_val)
                     self._update_ui()
                 else:
-                    show_toast(self, "Numbers must be between 0 and 999.", True)
+                    show_toast(self, _("Numbers must be between 0 and 999."), True)
             except ValueError:
-                show_toast(self, "Please enter integers only.", True)
+                show_toast(self, _("Please enter integers only."), True)
 
         dlg.Destroy()
 

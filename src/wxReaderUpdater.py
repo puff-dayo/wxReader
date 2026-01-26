@@ -4,6 +4,7 @@ import urllib.request
 import webbrowser
 import threading
 
+from wxReaderToast import show_toast
 from wxReaderString import APP_VERSION, GITHUB_REPO_OWNER, GITHUB_REPO_NAME
 from wxReaderIcon import get_app_font, msw_set_theme, get_app_icon
 
@@ -45,7 +46,7 @@ class UpdateChecker:
         except Exception as e:
             print(f"[Update Check Error] {e}")
             if not self.silent:
-                wx.CallAfter(wx.MessageBox, f"Failed to check for updates.\n{e}", "Error", wx.ICON_ERROR)
+                show_toast(self.parent, message=_("Failed to check for updates.")+f"\n{e}", is_error=True)
 
     def _parse_version(self, version_str):
         try:
@@ -60,12 +61,12 @@ class UpdateChecker:
         dlg.Destroy()
 
     def _show_no_update_dialog(self):
-        wx.MessageBox(_("You are using the latest version (v{}).").format(APP_VERSION), _("Up to date"), wx.ICON_INFORMATION)
+        show_toast(self.parent, message=_("You are using the latest version."), is_error=False)
 
 
 class NewVersionDialog(wx.Dialog):
     def __init__(self, parent, current_ver, new_version, url, notes):
-        super().__init__(parent, title="Update Available", size=(500, 400))
+        super().__init__(parent, title=_("Update Available"), size=(500, 400))
         self.url = url
 
         panel = wx.Panel(self)

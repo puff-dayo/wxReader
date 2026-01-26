@@ -12,6 +12,7 @@ from wxReaderIcon import get_app_font, msw_set_theme
 from wxReaderKeyBinds import DEFAULT_KEYBINDS
 from wxReaderToast import show_toast
 
+
 def _(text):
     return wx.GetTranslation(text)
 
@@ -22,7 +23,7 @@ class KeyCaptureDialog(wx.Dialog):
         self.SetFont(get_app_font())
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        lbl = wx.StaticText(self, label=_("Press new key for")+f":\n'{action_name}'")
+        lbl = wx.StaticText(self, label=_("Press new key for") + f":\n'{action_name}'")
         lbl.SetFont(get_app_font(4))
         sizer.Add(lbl, 1, wx.ALIGN_CENTER | wx.ALL, 20)
 
@@ -302,7 +303,7 @@ class TOCDialog(wx.Dialog):
 
 
 class TextExtractionDialog(wx.Dialog):
-    def __init__(self, parent, text, title="Page Text"):
+    def __init__(self, parent, text, title=_("Extracted Page Text")):
         super().__init__(parent, title=title, size=(600, 500),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
@@ -452,7 +453,7 @@ class ImageExtractionDialog(wx.Dialog):
                         f.write(img_data['bytes'])
                     show_toast(self, _("Saved to") + f"{path}")
                 except Exception as e:
-                    show_toast(self, _("Failed to save file")+f":\n{e}", True)
+                    show_toast(self, _("Failed to save file") + f":\n{e}", True)
 
 
 class SearchDialog(wx.Dialog):
@@ -974,7 +975,8 @@ class RecentFilesDialog(wx.Dialog):
 
     def on_clear(self, evt):
         if not self.recent_files: return
-        dlg = wx.MessageDialog(self, _("Clear all recent files history?"), _("Confirm Clear"), wx.YES_NO | wx.ICON_WARNING)
+        dlg = wx.MessageDialog(self, _("Clear all recent files history?"), _("Confirm Clear"),
+                               wx.YES_NO | wx.ICON_WARNING)
         if dlg.ShowModal() == wx.ID_YES:
             self.recent_files.clear()  # Update local copy
             self._populate_list()
@@ -1035,7 +1037,7 @@ class PswdManagerDialog(wx.Dialog):
                 content = f.read()
             self.text_editor.SetValue(content)
         except Exception as e:
-            show_toast(self, _("Failed to load file")+f":\n{e}", True)
+            show_toast(self, _("Failed to load file") + f":\n{e}", True)
             print(e)
 
     def OnSave(self, event):
@@ -1046,7 +1048,7 @@ class PswdManagerDialog(wx.Dialog):
 
             self.EndModal(wx.ID_OK)
         except Exception as e:
-            show_toast(self, _("Failed to save file")+f":\n{e}", True)
+            show_toast(self, _("Failed to save file") + f":\n{e}", True)
             print(e)
 
     def OnClose(self, event):

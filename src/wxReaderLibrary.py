@@ -6,10 +6,15 @@ import time
 
 import wx
 
-from wxReaderString import SUPPORTED_EXTENSIONS
-from wxReaderProvider import SevenZipContentProvider
-from wxReaderProvider import PdfContentProvider, ArchiveContentProvider
 from wxReaderIcon import get_app_icon
+from wxReaderProvider import PdfContentProvider, ArchiveContentProvider
+from wxReaderProvider import SevenZipContentProvider
+from wxReaderString import SUPPORTED_EXTENSIONS
+
+
+def _(text):
+    return wx.GetTranslation(text)
+
 
 THUMB_WIDTH = 140
 THUMB_HEIGHT = 200
@@ -46,8 +51,6 @@ def process_cover_with_provider(file_path, thumb_width, thumb_height):
             provider.close()
 
     return file_path, 0, 0, None
-
-
 
 
 class ThumbnailPanel(wx.Panel):
@@ -106,7 +109,6 @@ class ThumbnailPanel(wx.Panel):
         self.Refresh()
 
 
-
 class LibraryManagerThread(threading.Thread):
     def __init__(self, files, result_queue):
         super().__init__()
@@ -140,7 +142,7 @@ class LibraryManagerThread(threading.Thread):
 
 class LibraryFrame(wx.Frame):
     def __init__(self, parent, directory, open_callback=None):
-        super().__init__(parent, title="wxReader Gallery", size=(1200, 960))
+        super().__init__(parent, title=_("wxReader Gallery"), size=(1200, 960))
         self.directory = directory
         self.open_callback = open_callback
 
@@ -164,19 +166,19 @@ class LibraryFrame(wx.Frame):
         top_panel.SetBackgroundColour(BG_COLOR)
         top_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.combo_sort = wx.ComboBox(top_panel, choices=["Name (A-Z)", "Name (Z-A)",
-                                                          "Modified (Newest First)", "Modified (Oldest First)"],
+        self.combo_sort = wx.ComboBox(top_panel, choices=[_("Name (A-Z)"), _("Name (Z-A)"),
+                                                          _("Modified (Newest First)"), _("Modified (Oldest First)")],
                                       style=wx.CB_READONLY)
         self.combo_sort.SetSelection(1)
-        self.btn_refresh = wx.Button(top_panel, label="Refresh")
+        self.btn_refresh = wx.Button(top_panel, label=_("Refresh"))
 
-        top_sizer.Add(wx.StaticText(top_panel, label="Sort by: "), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        top_sizer.Add(wx.StaticText(top_panel, label=_("Sort by: ")), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         top_sizer.Add(self.combo_sort, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         top_sizer.Add(self.btn_refresh, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         top_sizer.AddStretchSpacer(1)
 
-        self.chk_stay_on_top = wx.CheckBox(top_panel, label="Stay on top")
+        self.chk_stay_on_top = wx.CheckBox(top_panel, label=_("Stay on top"))
         self.chk_stay_on_top.SetValue(False)
         top_sizer.Add(self.chk_stay_on_top, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
 
@@ -190,7 +192,7 @@ class LibraryFrame(wx.Frame):
         self.scrolled.SetSizer(self.gallery_sizer)
 
         self.gauge = wx.Gauge(self, range=100, size=(-1, 4))
-        self.status_lbl = wx.StaticText(self, label="Ready")
+        self.status_lbl = wx.StaticText(self, label=_("Ready"))
 
         main_sizer.Add(top_panel, 0, wx.EXPAND | wx.ALL, 5)
         main_sizer.Add(self.scrolled, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
@@ -236,7 +238,7 @@ class LibraryFrame(wx.Frame):
         self.file_metadata.clear()
         self.scrolled.Thaw()
 
-        self.status_lbl.SetLabel("Scanning directory...")
+        self.status_lbl.SetLabel(_("Scanning directory..."))
         self.gauge.Pulse()
 
         current_dir = self.directory
@@ -273,13 +275,14 @@ class LibraryFrame(wx.Frame):
             wx.CallAfter(self._on_scan_complete, valid_files, metadata)
 
         except Exception as e:
-            wx.CallAfter(self.status_lbl.SetLabel, f"Scan Error: {e}")
+            wx.CallAfter(self.status_lbl.SetLabel, _("Scan Error") + f": {e}")
 
     def _on_scan_complete(self, valid_files, metadata):
         self.file_metadata = metadata
         self.gauge.SetRange(len(valid_files))
         self.gauge.SetValue(0)
-        self.status_lbl.SetLabel(f"Found {len(valid_files)} files. Creating thumbnails...")
+        # self.status_lbl.SetLabel(f"Found {len(valid_files)} files. Creating thumbnails...")
+        self.status_lbl.SetLabel(_("Found {} files. Creating thumbnails...").format(len(valid_files)))
 
         self.files_to_create = valid_files[:]
         self.creation_index = 0
@@ -319,7 +322,7 @@ class LibraryFrame(wx.Frame):
             self.scrolled.Layout()
             self.scrolled.FitInside()
 
-            self.status_lbl.SetLabel("Generating covers...")
+            self.status_lbl.SetLabel(_("Generating covers..."))
             self.processed_count = 0
             self.gauge.SetValue(0)
 
@@ -377,11 +380,11 @@ class LibraryFrame(wx.Frame):
             if updates_made:
                 self.gauge.SetValue(self.processed_count)
                 if self.processed_count % 5 == 0:
-                    self.status_lbl.SetLabel(f"Loading thumbnails... {self.processed_count}/{self.gauge.GetRange()}")
+                    self.status_lbl.SetLabel(_("Loading thumbnails...")+f"{self.processed_count}/{self.gauge.GetRange()}")
 
             if self.processed_count >= self.gauge.GetRange() and self.result_queue.empty():
                 self.update_timer.Stop()
-                self.status_lbl.SetLabel("Done.")
+                self.status_lbl.SetLabel(_("Done."))
                 self.gauge.SetValue(self.gauge.GetRange())
         except Exception as e:
             print(f"[ERROR]: {e}")

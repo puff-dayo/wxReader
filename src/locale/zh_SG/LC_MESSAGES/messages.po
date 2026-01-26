@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-01-27 05:24+0800\n"
-"PO-Revision-Date: 2026-01-27 05:33+0800\n"
+"POT-Creation-Date: 2026-01-27 06:06+0800\n"
+"PO-Revision-Date: 2026-01-27 06:09+0800\n"
 "Last-Translator: setsuna-dayo <no@email.hehe>\n"
 "Language-Team: info\n"
 "Language: zh\n"
@@ -43,7 +43,7 @@ msgstr "画廊"
 msgid "File Browser"
 msgstr "文件导览"
 
-#: wxReader.py:178
+#: wxReader.py:178 wxReaderLibrary.py:173
 msgid "Refresh"
 msgstr "刷新"
 
@@ -147,7 +147,7 @@ msgstr "匹配全页(P)"
 msgid "Manual Zoom"
 msgstr "手动缩放"
 
-#: wxReader.py:420
+#: wxReader.py:420 wxReader.py:1246
 msgid "Set Margin and Gap"
 msgstr "设置页间距和边距"
 
@@ -251,274 +251,372 @@ msgstr "检查更新…"
 msgid "&Help Topics"
 msgstr "帮助主题(&H)"
 
+#: wxReader.py:1106 wxReaderDialog.py:487
+msgid "Page"
+msgstr "页"
+
+#: wxReader.py:1111
+msgid "<No text found on visible pages.>"
+msgstr "<可见页面上没有找到文本。>"
+
+#: wxReader.py:1120
+msgid "Failed to extract text:"
+msgstr "提取文本失败："
+
+#: wxReader.py:1152
+msgid "Error extracting images:"
+msgstr "提取图片失败："
+
+#: wxReader.py:1159
+msgid "No images found on the visible page(s)."
+msgstr "可见页面上没有找到图片。"
+
+#: wxReader.py:1212
+msgid "Enter page number"
+msgstr "输入页码"
+
+#: wxReader.py:1221
+msgid "Page number out of range."
+msgstr "页面超出范围。"
+
+#: wxReader.py:1223
+msgid "Invalid number."
+msgstr "请输入数字。"
+
+#: wxReader.py:1259
+msgid "Numbers must be between 0 and 999."
+msgstr "数字必须在 0~999 之间。"
+
+#: wxReader.py:1261
+msgid "Please enter integers only."
+msgstr "请输入数字。"
+
 #: wxReader.py:1432
 msgid "Restart is required."
 msgstr "重新启动是需要的。"
 
-#: wxReaderDialog.py:21
+#: wxReaderDialog.py:22
 msgid "Press a key..."
 msgstr "按一个键…"
 
-#: wxReaderDialog.py:25
+#: wxReaderDialog.py:26
 msgid "Press new key for"
 msgstr "按一个键设定于"
 
-#: wxReaderDialog.py:114
+#: wxReaderDialog.py:115
 msgid "Action"
 msgstr "动作"
 
-#: wxReaderDialog.py:115
+#: wxReaderDialog.py:116
 msgid "Shortcut"
 msgstr "快捷键"
 
-#: wxReaderDialog.py:122
+#: wxReaderDialog.py:123
 msgid "Edit Key"
 msgstr "编辑"
 
-#: wxReaderDialog.py:123
+#: wxReaderDialog.py:124
 msgid "Clear Key"
 msgstr "清除"
 
-#: wxReaderDialog.py:124
+#: wxReaderDialog.py:125
 msgid "Reset Defaults"
 msgstr "重设默认"
 
-#: wxReaderDialog.py:126
+#: wxReaderDialog.py:127
 msgid "Save"
 msgstr "保存"
 
-#: wxReaderDialog.py:127
+#: wxReaderDialog.py:128
 msgid "Cancel"
 msgstr "取消"
 
-#: wxReaderDialog.py:187
+#: wxReaderDialog.py:188
 msgid "Reset all shortcuts to default?"
 msgstr "重置所有快捷方式到默认值？"
 
-#: wxReaderDialog.py:187 wxReaderDialog.py:1054
+#: wxReaderDialog.py:188 wxReaderDialog.py:1056
 msgid "Confirm"
 msgstr "确认"
 
-#: wxReaderDialog.py:197
+#: wxReaderDialog.py:198
 msgid "Table of Contents"
 msgstr "大纲目录"
 
-#: wxReaderDialog.py:214
+#: wxReaderDialog.py:215
 msgid "Filter sections..."
 msgstr "着色器设置…"
 
-#: wxReaderDialog.py:228
+#: wxReaderDialog.py:229
 msgid "sections"
 msgstr "片段"
 
-#: wxReaderDialog.py:232 wxReaderDialog.py:321 wxReaderDialog.py:390
-#: wxReaderDialog.py:896
+#: wxReaderDialog.py:233 wxReaderDialog.py:322 wxReaderDialog.py:391
+#: wxReaderDialog.py:897
 msgid "Close"
 msgstr "关闭"
 
-#: wxReaderDialog.py:320
+#: wxReaderDialog.py:306
+msgid "Extracted Page Text"
+msgstr "从页面提取的文字"
+
+#: wxReaderDialog.py:321
 msgid "Copy All"
 msgstr "复制全部"
 
-#: wxReaderDialog.py:337
+#: wxReaderDialog.py:338
 msgid "Text copied to clipboard!"
 msgstr "文本已复制到剪贴板！"
 
-#: wxReaderDialog.py:339 wxReaderDialog.py:435
+#: wxReaderDialog.py:340 wxReaderDialog.py:436
 msgid "Could not open clipboard."
 msgstr "无法访问剪贴板。"
 
-#: wxReaderDialog.py:352
+#: wxReaderDialog.py:353
 msgid "Extract Images"
 msgstr "提取图片"
 
-#: wxReaderDialog.py:369
-#, fuzzy
+#: wxReaderDialog.py:370
 msgid "Detected Images:"
 msgstr "探测到的图片："
 
-#: wxReaderDialog.py:383
+#: wxReaderDialog.py:384
 msgid "Preview:"
 msgstr "预览："
 
-#: wxReaderDialog.py:388
+#: wxReaderDialog.py:389
 msgid "Copy"
 msgstr "复制"
 
-#: wxReaderDialog.py:389
+#: wxReaderDialog.py:390
 msgid "Save to..."
 msgstr "保存到…"
 
-#: wxReaderDialog.py:433
+#: wxReaderDialog.py:434
 msgid "Image copied to clipboard."
 msgstr "图片已复制到剪贴板！"
 
-#: wxReaderDialog.py:446
+#: wxReaderDialog.py:447
 msgid "Save Image"
 msgstr "保存图片"
 
-#: wxReaderDialog.py:453
+#: wxReaderDialog.py:454
 msgid "Saved to"
 msgstr "保存到"
 
-#: wxReaderDialog.py:455 wxReaderDialog.py:1049
+#: wxReaderDialog.py:456 wxReaderDialog.py:1051
 msgid "Failed to save file"
 msgstr "保存文件失败"
 
-#: wxReaderDialog.py:460
+#: wxReaderDialog.py:461
 msgid "Search Document"
 msgstr "搜索文档"
 
-#: wxReaderDialog.py:475
+#: wxReaderDialog.py:476
 msgid "Type text to search..."
 msgstr "输入文字开始搜索…"
 
-#: wxReaderDialog.py:477
+#: wxReaderDialog.py:478
 msgid "Find"
 msgstr "查找"
 
-#: wxReaderDialog.py:486
-msgid "Page"
-msgstr "页"
-
-#: wxReaderDialog.py:487
+#: wxReaderDialog.py:488
 msgid "Context Snippet"
 msgstr "内容片段"
 
-#: wxReaderDialog.py:492
+#: wxReaderDialog.py:493 wxReaderLibrary.py:195
 msgid "Ready"
 msgstr "就绪"
 
-#: wxReaderDialog.py:512
+#: wxReaderDialog.py:513
 msgid "Searching..."
 msgstr "搜索…"
 
-#: wxReaderDialog.py:559
+#: wxReaderDialog.py:560
 msgid "Search complete. Found:"
 msgstr "搜索完成。找到："
 
-#: wxReaderDialog.py:581
+#: wxReaderDialog.py:582
 msgid "Margin:"
 msgstr "页边距："
 
-#: wxReaderDialog.py:589
+#: wxReaderDialog.py:590
 msgid "Gap:"
 msgstr "页间距："
 
-#: wxReaderDialog.py:637
+#: wxReaderDialog.py:638
 msgid "Current"
 msgstr "当前"
 
-#: wxReaderDialog.py:640
+#: wxReaderDialog.py:641
 msgid "New"
-msgstr "当前"
+msgstr "目标"
 
-#: wxReaderDialog.py:644
+#: wxReaderDialog.py:645
 msgid "Select Color"
 msgstr "选择颜色"
 
-#: wxReaderDialog.py:799
+#: wxReaderDialog.py:800
 msgid "About"
 msgstr "关于"
 
-#: wxReaderDialog.py:818
+#: wxReaderDialog.py:819
 msgid "Version"
 msgstr "版本号"
 
-#: wxReaderDialog.py:847
+#: wxReaderDialog.py:848
 msgid "Visit GitHub Repository"
 msgstr "访问 Github 仓库"
 
-#: wxReaderDialog.py:862
+#: wxReaderDialog.py:863
 msgid "Recent Files"
 msgstr "最近文件…"
 
-#: wxReaderDialog.py:878
+#: wxReaderDialog.py:879
 msgid "Search filename or path..."
 msgstr "搜索文件名或路径…"
 
-#: wxReaderDialog.py:886
+#: wxReaderDialog.py:887
 msgid "Filename"
 msgstr "文件"
 
-#: wxReaderDialog.py:887
+#: wxReaderDialog.py:888
 msgid "Location"
 msgstr "位置"
 
-#: wxReaderDialog.py:893
+#: wxReaderDialog.py:894
 msgid "Forget All"
 msgstr "忘记一切"
 
-#: wxReaderDialog.py:894
+#: wxReaderDialog.py:895
 msgid "Forget Item"
 msgstr "忘记项"
 
-#: wxReaderDialog.py:895
+#: wxReaderDialog.py:896
 msgid "Open"
 msgstr "打开"
 
-#: wxReaderDialog.py:959
+#: wxReaderDialog.py:960
 msgid "File not found."
 msgstr "找不到文件。"
 
-#: wxReaderDialog.py:977
+#: wxReaderDialog.py:978
 msgid "Clear all recent files history?"
 msgstr "清除所有最近文件历史？"
 
-#: wxReaderDialog.py:977
+#: wxReaderDialog.py:978
 msgid "Confirm Clear"
 msgstr "确认清除。"
 
-#: wxReaderDialog.py:989
+#: wxReaderDialog.py:991
 msgid "Password Editor"
 msgstr "密码簿编辑器"
 
-#: wxReaderDialog.py:1001
+#: wxReaderDialog.py:1003
 msgid "Enter one password per line."
 msgstr "每行输入一个密码。"
 
-#: wxReaderDialog.py:1002
+#: wxReaderDialog.py:1004
 msgid "WARNING: Passwords are stored in PLAIN TEXT."
 msgstr "警告：密码是用明文储存。"
 
-#: wxReaderDialog.py:1038
+#: wxReaderDialog.py:1040
 msgid "Failed to load file"
 msgstr "加载文件失败"
 
-#: wxReaderDialog.py:1054
+#: wxReaderDialog.py:1056
 msgid "You have unsaved changes. Exit anyway?"
 msgstr "你有未保存的更改。退出吗？"
 
-#: wxReaderDialog.py:1063
+#: wxReaderDialog.py:1065
 msgid "Shader Settings"
 msgstr "着色器设置…"
 
-#: wxReaderUpdater.py:63
+#: wxReaderLibrary.py:145
+msgid "wxReader Gallery"
+msgstr "wxReader 画廊"
+
+#: wxReaderLibrary.py:169
+msgid "Name (A-Z)"
+msgstr "文件名(A-Z)"
+
+#: wxReaderLibrary.py:169
+msgid "Name (Z-A)"
+msgstr "文件名(Z-A)"
+
+#: wxReaderLibrary.py:170
+msgid "Modified (Newest First)"
+msgstr "修改日期(新到旧)"
+
+#: wxReaderLibrary.py:170
+msgid "Modified (Oldest First)"
+msgstr "修改日期(旧到新)"
+
+#: wxReaderLibrary.py:175
+msgid "Sort by: "
+msgstr "排序方式："
+
+#: wxReaderLibrary.py:181
+msgid "Stay on top"
+msgstr "置顶"
+
+#: wxReaderLibrary.py:241
+msgid "Scanning directory..."
+msgstr "正在扫描目录…"
+
+#: wxReaderLibrary.py:278
+msgid "Scan Error"
+msgstr "扫描错误"
+
+#: wxReaderLibrary.py:285
 #, python-brace-format
-msgid "You are using the latest version (v{})."
-msgstr "你正在使用最新版(v{})."
+msgid "Found {} files. Creating thumbnails..."
+msgstr "找到了 {} 个文件。生成缩略图…"
 
-#: wxReaderUpdater.py:63
-msgid "Up to date"
-msgstr "已是最新"
+#: wxReaderLibrary.py:325
+msgid "Generating covers..."
+msgstr "生成画廊封面中…"
 
-#: wxReaderUpdater.py:82
+#: wxReaderLibrary.py:383
+msgid "Loading thumbnails..."
+msgstr "加载缩略图…"
+
+#: wxReaderLibrary.py:387
+msgid "Done."
+msgstr "好了。"
+
+#: wxReaderUpdater.py:49
+msgid "Failed to check for updates."
+msgstr "检查更新失败。"
+
+#: wxReaderUpdater.py:64
+msgid "You are using the latest version."
+msgstr "你正在使用最新版."
+
+#: wxReaderUpdater.py:69
+msgid "Update Available"
+msgstr "更新是可用的"
+
+#: wxReaderUpdater.py:83
 msgid "A new version is available!"
 msgstr "一个新版本是可用的！"
 
-#: wxReaderUpdater.py:86
+#: wxReaderUpdater.py:87
 #, python-brace-format
 msgid "Current: v{current}  ➜  New: v{new}"
 msgstr "当前：v{current} -> 新的：v{new}"
 
-#: wxReaderUpdater.py:95
+#: wxReaderUpdater.py:96
 msgid "Release Notes:"
 msgstr "发行笔记："
 
-#: wxReaderUpdater.py:105
+#: wxReaderUpdater.py:106
 msgid "Ignore"
 msgstr "无视"
 
-#: wxReaderUpdater.py:106
+#: wxReaderUpdater.py:107
 msgid "View Release Page"
 msgstr "查看发行页面"
+
+#~ msgid "Up to date"
+#~ msgstr "已是最新"
