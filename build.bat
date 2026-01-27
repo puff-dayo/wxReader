@@ -16,6 +16,7 @@ uv --project . run python -m nuitka ^
   --include-data-file=.\src\libvips-42.dll=libvips-42.dll ^
   --include-data-file=.\src\libvips-cpp-42.dll=libvips-cpp-42.dll ^
   --include-data-dir=.\src\filters=filters ^
+  --include-data-dir=.\src\locale=locale ^
   .\src\wxReader.py
 
 echo.

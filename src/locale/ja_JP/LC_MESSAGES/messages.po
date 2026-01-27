@@ -1,0 +1,619 @@
+# Japanese (Japan) translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-01-27 06:06+0800\n"
+"PO-Revision-Date: 2026-01-27 22:16+0800\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja_JP\n"
+"Language-Team: ja_JP <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+
+#: wxReader.py:124
+msgid "Search Outline"
+msgstr "アウトラインを検索"
+
+#: wxReader.py:134
+msgid "Outline"
+msgstr "目次"
+
+#: wxReader.py:143
+msgid "Dir Up"
+msgstr "上へ"
+
+#: wxReader.py:146
+msgid "Locate"
+msgstr "場所"
+
+#: wxReader.py:149 wxReader.py:180
+msgid "Gallery"
+msgstr "一覧"
+
+#: wxReader.py:169
+msgid "File Browser"
+msgstr "ブラウザー"
+
+#: wxReader.py:178 wxReaderLibrary.py:173
+msgid "Refresh"
+msgstr "更新"
+
+#: wxReader.py:185
+msgid "Newest"
+msgstr "新しい順"
+
+#: wxReader.py:186
+msgid "Oldest"
+msgstr "古い順"
+
+#: wxReader.py:205
+msgid "Folder List"
+msgstr "フォルダー一覧"
+
+#: wxReader.py:337
+msgid "&Open..."
+msgstr "開く(&O)..."
+
+#: wxReader.py:338
+msgid "&Close"
+msgstr "閉じる(&C)"
+
+#: wxReader.py:343
+msgid "&Gallery Mode"
+msgstr "ギャラリーモード(&G)"
+
+#: wxReader.py:348
+msgid "Recent Files..."
+msgstr "最近使ったファイル…"
+
+#: wxReader.py:353
+msgid "Edit pswd.txt"
+msgstr "pswd.txt を編集"
+
+#: wxReader.py:358
+msgid "Preferences"
+msgstr "設定"
+
+#: wxReader.py:365
+msgid "Languages..."
+msgstr "言語…"
+
+#: wxReader.py:368
+msgid "E&xit"
+msgstr "終了(&X)"
+
+#: wxReader.py:370
+msgid "&File"
+msgstr "ファイル(&F)"
+
+#: wxReader.py:376
+msgid "Show &Sidebar"
+msgstr "サイドバーを表示(&S)"
+
+#: wxReader.py:379
+msgid "Switch Sidebar Tab"
+msgstr "サイドバーのタブを切り替え"
+
+#: wxReader.py:385
+msgid "Single Page View"
+msgstr "単一ページ表示"
+
+#: wxReader.py:386
+msgid "Two Page View"
+msgstr "見開き表示"
+
+#: wxReader.py:390
+msgid "Add Blank Page at Start"
+msgstr "先頭に空白ページを追加"
+
+#: wxReader.py:396
+msgid "Left-to-Right"
+msgstr "左から右"
+
+#: wxReader.py:397
+msgid "Right-to-Left"
+msgstr "右から左"
+
+#: wxReader.py:399
+msgid "Page &Direction"
+msgstr "ページ方向(&D)"
+
+#: wxReader.py:410
+msgid "Zoom &In"
+msgstr "拡大(&I)"
+
+#: wxReader.py:411
+msgid "Zoom &Out"
+msgstr "縮小(&O)"
+
+#: wxReader.py:414
+msgid "Fit &Width"
+msgstr "幅に合わせる(&W)"
+
+#: wxReader.py:415
+msgid "Fit &Page"
+msgstr "ページに合わせる(&P)"
+
+#: wxReader.py:416
+msgid "Manual Zoom"
+msgstr "手動ズーム"
+
+#: wxReader.py:420 wxReader.py:1246
+msgid "Set Margin and Gap"
+msgstr "余白と間隔を設定"
+
+#: wxReader.py:424
+msgid "Background Color…"
+msgstr "背景色…"
+
+#: wxReader.py:429
+msgid "Larger Font"
+msgstr "フォントを大きく"
+
+#: wxReader.py:430
+msgid "Smaller Font"
+msgstr "フォントを小さく"
+
+#: wxReader.py:434
+msgid "Full &Screen"
+msgstr "全画面表示(&S)"
+
+#: wxReader.py:444
+msgid "DeMoiré"
+msgstr "モアレ除去"
+
+#: wxReader.py:445
+msgid "Lanczos"
+msgstr "ランチョス"
+
+#: wxReader.py:446
+msgid "Bilinear"
+msgstr "バイリニア"
+
+#: wxReader.py:452
+msgid "Render Quality"
+msgstr "レンダリング品質"
+
+#: wxReader.py:455
+msgid "&View"
+msgstr "表示(&V)"
+
+#: wxReader.py:464
+msgid "Previous Page"
+msgstr "前のページ"
+
+#: wxReader.py:465
+msgid "Next Page"
+msgstr "次のページ"
+
+#: wxReader.py:466
+msgid "&Go to Page..."
+msgstr "ページへ移動(&G)..."
+
+#: wxReader.py:471
+msgid "External Control"
+msgstr "外部制御"
+
+#: wxReader.py:477
+msgid "&Find..."
+msgstr "検索(&F)..."
+
+#: wxReader.py:480
+msgid "Show TOC Dialog..."
+msgstr "目次を表示..."
+
+#: wxReader.py:482
+msgid "&Navigate"
+msgstr "ナビゲーション(&N)"
+
+#: wxReader.py:488
+msgid "Extract Page Text"
+msgstr "ページのテキストを抽出"
+
+#: wxReader.py:491
+msgid "Extract Page Images"
+msgstr "ページの画像を抽出"
+
+#: wxReader.py:496
+msgid "Shader Settings..."
+msgstr "シェーダー設定…"
+
+#: wxReader.py:501
+msgid "None / Turn Off"
+msgstr "なし / オフ"
+
+#: wxReader.py:547
+msgid "&Process"
+msgstr "処理(&P)"
+
+#: wxReader.py:551
+msgid "&About"
+msgstr "このソフトについて(&A)"
+
+#: wxReader.py:552
+msgid "&Info"
+msgstr "情報(&I)"
+
+#: wxReader.py:555
+msgid "Check for Updates..."
+msgstr "更新を確認…"
+
+#: wxReader.py:560
+msgid "&Help Topics"
+msgstr "ヘルプ トピック(&H)"
+
+#: wxReader.py:1106 wxReaderDialog.py:487
+msgid "Page"
+msgstr "ページ"
+
+#: wxReader.py:1111
+msgid "<No text found on visible pages.>"
+msgstr "<表示中のページにテキストが見つかりません。>"
+
+#: wxReader.py:1120
+msgid "Failed to extract text:"
+msgstr "テキストの抽出に失敗しました:"
+
+#: wxReader.py:1152
+msgid "Error extracting images:"
+msgstr "画像の抽出エラー:"
+
+#: wxReader.py:1159
+msgid "No images found on the visible page(s)."
+msgstr "表示中のページに画像が見つかりません。"
+
+#: wxReader.py:1212
+msgid "Enter page number"
+msgstr "ページ番号を入力"
+
+#: wxReader.py:1221
+msgid "Page number out of range."
+msgstr "ページ番号が範囲外です。"
+
+#: wxReader.py:1223
+msgid "Invalid number."
+msgstr "無効な番号です。"
+
+#: wxReader.py:1259
+msgid "Numbers must be between 0 and 999."
+msgstr "数値は 0〜999 の間で入力してください。"
+
+#: wxReader.py:1261
+msgid "Please enter integers only."
+msgstr "整数のみ入力してください。"
+
+#: wxReader.py:1432
+msgid "Restart is required."
+msgstr "再起動が必要です。"
+
+#: wxReaderDialog.py:22
+msgid "Press a key..."
+msgstr "キーを押してください…"
+
+#: wxReaderDialog.py:26
+msgid "Press new key for"
+msgstr "新しいキーを押してください:"
+
+#: wxReaderDialog.py:115
+msgid "Action"
+msgstr "操作"
+
+#: wxReaderDialog.py:116
+msgid "Shortcut"
+msgstr "ショートカット"
+
+#: wxReaderDialog.py:123
+msgid "Edit Key"
+msgstr "編集"
+
+#: wxReaderDialog.py:124
+msgid "Clear Key"
+msgstr "クリア"
+
+#: wxReaderDialog.py:125
+msgid "Reset Defaults"
+msgstr "既定に戻す"
+
+#: wxReaderDialog.py:127
+msgid "Save"
+msgstr "保存"
+
+#: wxReaderDialog.py:128
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: wxReaderDialog.py:188
+msgid "Reset all shortcuts to default?"
+msgstr "すべてのショートカットを既定に戻しますか？"
+
+#: wxReaderDialog.py:188 wxReaderDialog.py:1056
+msgid "Confirm"
+msgstr "確認"
+
+#: wxReaderDialog.py:198
+msgid "Table of Contents"
+msgstr "目次"
+
+#: wxReaderDialog.py:215
+msgid "Filter sections..."
+msgstr "セクションを絞り込み…"
+
+#: wxReaderDialog.py:229
+msgid "sections"
+msgstr "セクション"
+
+#: wxReaderDialog.py:233 wxReaderDialog.py:322 wxReaderDialog.py:391
+#: wxReaderDialog.py:897
+msgid "Close"
+msgstr "閉じる"
+
+#: wxReaderDialog.py:306
+msgid "Extracted Page Text"
+msgstr "抽出したページテキスト"
+
+#: wxReaderDialog.py:321
+msgid "Copy All"
+msgstr "すべてコピー"
+
+#: wxReaderDialog.py:338
+msgid "Text copied to clipboard!"
+msgstr "テキストをクリップボードにコピーしました！"
+
+#: wxReaderDialog.py:340 wxReaderDialog.py:436
+msgid "Could not open clipboard."
+msgstr "クリップボードを開けませんでした。"
+
+#: wxReaderDialog.py:353
+msgid "Extract Images"
+msgstr "画像を抽出"
+
+#: wxReaderDialog.py:370
+msgid "Detected Images:"
+msgstr "検出した画像:"
+
+#: wxReaderDialog.py:384
+msgid "Preview:"
+msgstr "プレビュー:"
+
+#: wxReaderDialog.py:389
+msgid "Copy"
+msgstr "コピー"
+
+#: wxReaderDialog.py:390
+msgid "Save to..."
+msgstr "名前を付けて保存…"
+
+#: wxReaderDialog.py:434
+msgid "Image copied to clipboard."
+msgstr "画像をクリップボードにコピーしました。"
+
+#: wxReaderDialog.py:447
+msgid "Save Image"
+msgstr "画像を保存"
+
+#: wxReaderDialog.py:454
+msgid "Saved to"
+msgstr "保存先:"
+
+#: wxReaderDialog.py:456 wxReaderDialog.py:1051
+msgid "Failed to save file"
+msgstr "ファイルの保存に失敗しました"
+
+#: wxReaderDialog.py:461
+msgid "Search Document"
+msgstr "文書を検索"
+
+#: wxReaderDialog.py:476
+msgid "Type text to search..."
+msgstr "検索するテキストを入力…"
+
+#: wxReaderDialog.py:478
+msgid "Find"
+msgstr "検索"
+
+#: wxReaderDialog.py:488
+msgid "Context Snippet"
+msgstr "周辺の抜粋"
+
+#: wxReaderDialog.py:493 wxReaderLibrary.py:195
+msgid "Ready"
+msgstr "準備完了"
+
+#: wxReaderDialog.py:513
+msgid "Searching..."
+msgstr "検索中…"
+
+#: wxReaderDialog.py:560
+msgid "Search complete. Found:"
+msgstr "検索が完了しました。見つかった件数:"
+
+#: wxReaderDialog.py:582
+msgid "Margin:"
+msgstr "余白:"
+
+#: wxReaderDialog.py:590
+msgid "Gap:"
+msgstr "間隔:"
+
+#: wxReaderDialog.py:638
+msgid "Current"
+msgstr "現在"
+
+#: wxReaderDialog.py:641
+msgid "New"
+msgstr "新規"
+
+#: wxReaderDialog.py:645
+msgid "Select Color"
+msgstr "色を選択"
+
+#: wxReaderDialog.py:800
+msgid "About"
+msgstr "このソフトについて"
+
+#: wxReaderDialog.py:819
+msgid "Version"
+msgstr "バージョン"
+
+#: wxReaderDialog.py:848
+msgid "Visit GitHub Repository"
+msgstr "GitHub リポジトリを開く"
+
+#: wxReaderDialog.py:863
+msgid "Recent Files"
+msgstr "最近使ったファイル…"
+
+#: wxReaderDialog.py:879
+msgid "Search filename or path..."
+msgstr "ファイル名またはパスを検索…"
+
+#: wxReaderDialog.py:887
+msgid "Filename"
+msgstr "ファイル名"
+
+#: wxReaderDialog.py:888
+msgid "Location"
+msgstr "場所"
+
+#: wxReaderDialog.py:894
+msgid "Forget All"
+msgstr "すべて消去"
+
+#: wxReaderDialog.py:895
+msgid "Forget Item"
+msgstr "この項目を消去"
+
+#: wxReaderDialog.py:896
+msgid "Open"
+msgstr "開く"
+
+#: wxReaderDialog.py:960
+msgid "File not found."
+msgstr "ファイルが見つかりません。"
+
+#: wxReaderDialog.py:978
+msgid "Clear all recent files history?"
+msgstr "最近使ったファイルの履歴をすべて消去しますか？"
+
+#: wxReaderDialog.py:978
+msgid "Confirm Clear"
+msgstr "消去の確認"
+
+#: wxReaderDialog.py:991
+msgid "Password Editor"
+msgstr "パスワードエディター"
+
+#: wxReaderDialog.py:1003
+msgid "Enter one password per line."
+msgstr "1 行に 1 つのパスワードを入力してください。"
+
+#: wxReaderDialog.py:1004
+msgid "WARNING: Passwords are stored in PLAIN TEXT."
+msgstr "警告: パスワードは平文で保存されます。"
+
+#: wxReaderDialog.py:1040
+msgid "Failed to load file"
+msgstr "ファイルの読み込みに失敗しました"
+
+#: wxReaderDialog.py:1056
+msgid "You have unsaved changes. Exit anyway?"
+msgstr "保存されていない変更があります。それでも終了しますか？"
+
+#: wxReaderDialog.py:1065
+msgid "Shader Settings"
+msgstr "シェーダー設定"
+
+#: wxReaderLibrary.py:145
+msgid "wxReader Gallery"
+msgstr "wxReader ギャラリー"
+
+#: wxReaderLibrary.py:169
+msgid "Name (A-Z)"
+msgstr "名前 (A-Z)"
+
+#: wxReaderLibrary.py:169
+msgid "Name (Z-A)"
+msgstr "名前 (Z-A)"
+
+#: wxReaderLibrary.py:170
+msgid "Modified (Newest First)"
+msgstr "更新日時 (新しい順)"
+
+#: wxReaderLibrary.py:170
+msgid "Modified (Oldest First)"
+msgstr "更新日時 (古い順)"
+
+#: wxReaderLibrary.py:175
+msgid "Sort by: "
+msgstr "並べ替え: "
+
+#: wxReaderLibrary.py:181
+msgid "Stay on top"
+msgstr "常に最前面"
+
+#: wxReaderLibrary.py:241
+msgid "Scanning directory..."
+msgstr "ディレクトリをスキャン中…"
+
+#: wxReaderLibrary.py:278
+msgid "Scan Error"
+msgstr "スキャンエラー"
+
+#: wxReaderLibrary.py:285
+#, python-brace-format
+msgid "Found {} files. Creating thumbnails..."
+msgstr "{} 個のファイルが見つかりました。サムネイルを作成中…"
+
+#: wxReaderLibrary.py:325
+msgid "Generating covers..."
+msgstr "カバーを生成中…"
+
+#: wxReaderLibrary.py:383
+msgid "Loading thumbnails..."
+msgstr "サムネイルを読み込み中…"
+
+#: wxReaderLibrary.py:387
+msgid "Done."
+msgstr "完了。"
+
+#: wxReaderUpdater.py:49
+msgid "Failed to check for updates."
+msgstr "更新の確認に失敗しました。"
+
+#: wxReaderUpdater.py:64
+msgid "You are using the latest version."
+msgstr "最新版を使用しています。"
+
+#: wxReaderUpdater.py:69
+msgid "Update Available"
+msgstr "更新があります"
+
+#: wxReaderUpdater.py:83
+msgid "A new version is available!"
+msgstr "新しいバージョンがあります！"
+
+#: wxReaderUpdater.py:87
+#, python-brace-format
+msgid "Current: v{current}  ➜  New: v{new}"
+msgstr "現在: v{current} ➜ 新: v{new}"
+
+#: wxReaderUpdater.py:96
+msgid "Release Notes:"
+msgstr "リリースノート:"
+
+#: wxReaderUpdater.py:106
+msgid "Ignore"
+msgstr "無視"
+
+#: wxReaderUpdater.py:107
+msgid "View Release Page"
+msgstr "リリースページを表示"

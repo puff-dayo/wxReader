@@ -71,7 +71,7 @@ def get_icon_v2(art_id):
 
 
 class MainFrame(wx.Frame):
-    def __init__(self):
+    def __init__(self, lang=wx.LANGUAGE_ENGLISH):
         cfg = load_config()
 
         self.keybinds = DEFAULT_KEYBINDS.copy()
@@ -106,6 +106,7 @@ class MainFrame(wx.Frame):
         self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3D)
         self.splitter.SetMinimumPaneSize(50)
 
+        self.cur_lang = lang
         self.lang_to_change = None
 
         # START Sidebar
@@ -360,8 +361,10 @@ class MainFrame(wx.Frame):
         m_lang = FM.FlatMenu()
         self.id_lang_enus = wx.NewIdRef()
         self.id_lang_zhsg = wx.NewIdRef()
-        m_lang.AppendRadioItem(self.id_lang_enus, "English")
-        m_lang.AppendRadioItem(self.id_lang_zhsg, "新加坡中文")
+        self.id_lang_jajp = wx.NewIdRef()
+        m_lang.Append(self.id_lang_enus, "English (US)")
+        m_lang.Append(self.id_lang_jajp, "日本語（日本）")
+        m_lang.Append(self.id_lang_zhsg, "中文（新加坡）")
         m_file.AppendMenu(wx.ID_ANY, _("Languages..."), m_lang)
 
         m_file.AppendSeparator()
@@ -573,6 +576,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), m_exit)
 
         self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_enus)
+        self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_jajp)
         self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_zhsg)
 
         # View
@@ -957,7 +961,7 @@ class MainFrame(wx.Frame):
                 # Window was destroyed
                 pass
 
-        self.manual_window = ManualDialog(self)
+        self.manual_window = ManualDialog(self, lang=self.cur_lang)
         msw_set_theme(self.manual_window)
         self.manual_window.Show()
 
@@ -1432,6 +1436,8 @@ class MainFrame(wx.Frame):
         show_toast(self, message=_("Restart is required."))
         if event_id == self.id_lang_enus:
             self.lang_to_change = wx.LANGUAGE_ENGLISH
+        elif event_id == self.id_lang_jajp:
+            self.lang_to_change = wx.LANGUAGE_JAPANESE
         elif event_id == self.id_lang_zhsg:
             self.lang_to_change = wx.LANGUAGE_CHINESE_SINGAPORE
 
@@ -1503,6 +1509,9 @@ class WxPDFReaderApp(wx.App):
                 lang = int(lang)
             except Exception:
                 print(Exception)
+                lang = wx.LANGUAGE_ENGLISH
+        else:
+            lang = wx.LANGUAGE_ENGLISH
 
         base_path = os.path.dirname(os.path.abspath(__file__))
         locale_dir = os.path.join(base_path, 'locale')
@@ -1510,7 +1519,7 @@ class WxPDFReaderApp(wx.App):
         self.locale.AddCatalogLookupPathPrefix(locale_dir)
         self.locale.AddCatalog('messages')
 
-        frame = MainFrame()
+        frame = MainFrame(lang=lang)
 
         msw_set_theme(frame)
 
