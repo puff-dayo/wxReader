@@ -21,3 +21,4 @@ test.py
 src/result.json
 *.pkl
 build_ext2.bat
+src/dev_tool_editor.py
