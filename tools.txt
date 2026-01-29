@@ -1,5 +1,5 @@
 ////////////uv run pybabel extract -F babel.cfg -o locale/base.pot .
-////////////uv run pybabel init -i locale/base.pot -d locale -l zh_SG
+////////////uv run pybabel init -i locale/base.pot -d locale -l zh_TW
 
 Update:
 uv run pybabel extract -F babel.cfg -o locale/base.pot .

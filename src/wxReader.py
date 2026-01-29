@@ -361,10 +361,12 @@ class MainFrame(wx.Frame):
         m_lang = FM.FlatMenu()
         self.id_lang_enus = wx.NewIdRef()
         self.id_lang_zhsg = wx.NewIdRef()
+        self.id_lang_zhtw = wx.NewIdRef()
         self.id_lang_jajp = wx.NewIdRef()
         m_lang.Append(self.id_lang_enus, "English (US)")
         m_lang.Append(self.id_lang_jajp, "日本語（日本）")
         m_lang.Append(self.id_lang_zhsg, "中文（新加坡）")
+        m_lang.Append(self.id_lang_zhtw, "中文（台灣）")
         m_file.AppendMenu(wx.ID_ANY, _("Languages..."), m_lang)
 
         m_file.AppendSeparator()
@@ -578,6 +580,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_enus)
         self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_jajp)
         self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_zhsg)
+        self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_zhtw)
 
         # View
         self.Bind(wx.EVT_MENU, self.on_toggle_sidebar, id=self.id_sidebar_toggle)
@@ -1440,6 +1443,8 @@ class MainFrame(wx.Frame):
             self.lang_to_change = wx.LANGUAGE_JAPANESE
         elif event_id == self.id_lang_zhsg:
             self.lang_to_change = wx.LANGUAGE_CHINESE_SINGAPORE
+        elif event_id == self.id_lang_zhtw:
+            self.lang_to_change = wx.LANGUAGE_CHINESE_TAIWAN
 
     def on_close(self, evt):
         if self.content_provider and self.view:
