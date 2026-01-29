@@ -56,7 +56,7 @@ Python.
    6. Optional: `uv --project .\extctrl\voice sync`, `uv --project .\extctrl\eye_track sync`, then build with `.\build_*.bat`.
 
 2. Pre-compiled binary (stable): portable `.exe` files are provided on the **Releases** page. Here are links to download (for win10+ x86_64):
-   1. [wxReader](https://github.com/puff-dayo/wxReader/releases/download/v1.3.6/wxReader_v1.3.6_msvc_avx2_x64.zip)
+   1. [wxReader](https://github.com/puff-dayo/wxReader/releases/)
    2. [wxReaderVoiceCtrl](https://github.com/puff-dayo/wxReader/releases/download/v1.3.6/wxReaderVoiceCtrl_msvc_avx2_x64.zip)
    3. [wxReaderEyeTrackCtrl](https://github.com/puff-dayo/wxReader/releases/download/v1.3.6/wxReaderEyeTrackCtrl_pyi_x64.zip)
 
