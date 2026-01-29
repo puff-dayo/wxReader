@@ -9,7 +9,9 @@ Python.
 
 > **Version 1.3.4** Add customizable keyboard shortcuts. Add GUI control on uStrength of shaders. Add a folder tab in the sidebar. Gallery and cache performance optimized.
 > 
-> **Version 1.3.6** Add support for external controlled page tuning, and add example apps of voice and eye gesture command. UI/UX enhancements. Bugs fixed.
+> **~Version 1.3.7** External controlled page tuning, and add example apps of voice and eye gesture command. UI/UX enhancements. Bugs fixed. 7z format support. Cache optimizations.
+>
+> **Version 1.3.8** Add internationalization and localization for `ja_JP, zh_TW and zh_SG`.
 
 ---
 
