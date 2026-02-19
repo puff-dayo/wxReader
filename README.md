@@ -1,14 +1,18 @@
 # wxReader
 
-**wxReader** is a ~lightweight, high-performance~ document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), libvips (pyvips), and
-Python. Currently support Windows, and it is ported to Linux.
+**wxReader** is a comic/manga/pdf document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), libvips (pyvips), and
+Python. Currently support Windows and Linux.
 
 **wxReaderVoiceCtrl** is a hands-free external controller app for wxReader, recognizing **voice command** offline by vosk and pyaudio. GUI is built with wxPython.
 
 **wxReaderEyeTrackCtrl** is a hands-free external controller app for wxReader, recognizing **eye movement and blinking gesture** offline by EyeTrax(https://doi.org/10.5281/zenodo.17188537) through a webcam. GUI is also built with wxPython.
 
--> [Download](https://github.com/puff-dayo/wxReader/releases/) <- for Windows 10+ (>1809) and Debian13, amd64
-<br> Build/run from source: see below ↓
+**-> Download link <-**
+<br>wxReader for [Windows10+](https://github.com/puff-dayo/wxReader/releases/download/v1.3.9/wxReader_v1.3.9_msvc_x64.zip) (>1809)
+<br>wxReader for [Debian13](https://github.com/puff-dayo/wxReader/releases/download/v1.3.9/wxReader_v1.3.9_debian13_amd64.zip)
+<br>external controllers for [Windows10+_avx2](https://github.com/puff-dayo/wxReader/releases/tag/v1.3.6) (>1809)
+
+Build/run from source: see below ↓
 
 ---
 
@@ -64,7 +68,7 @@ Python. Currently support Windows, and it is ported to Linux.
 
 Tested on platform: Linux-6.12.73+deb13-amd64-x86_64-with-glibc2.41
 
-1. Run from sauce (latest dev):
+1. Run from sauce (clone the linux-dev branch of the repo!):
    1. Install Python 3.13 and uv, `uv --project . sync`.
    2. `sudo apt install libvips42t64 python3-wxgtk4.0`.
    3. `uv venv --python /usr/bin/python3 --system-site-packages`, and then activate the venv.
