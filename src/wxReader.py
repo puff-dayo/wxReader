@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+
 try:
     ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
 except Exception:
@@ -27,8 +28,10 @@ from wxReaderView import PDFView
 from wxReaderToast import show_toast
 from wxReaderExtCtrl import ControlServer
 
+
 def _(text):
     return wx.GetTranslation(text)
+
 
 GWL_STYLE = -16
 TVS_NOTOOLTIPS = 0x0080
@@ -382,7 +385,8 @@ class MainFrame(wx.Frame):
         m_view = wx.Menu()
 
         self.id_sidebar_toggle = wx.NewIdRef()
-        _add_item(m_view, self.id_sidebar_toggle, get_menu_label(_("Show &Sidebar"), "toggle_sidebar"), kind=wx.ITEM_CHECK)
+        _add_item(m_view, self.id_sidebar_toggle, get_menu_label(_("Show &Sidebar"), "toggle_sidebar"),
+                  kind=wx.ITEM_CHECK)
 
         self.id_switch_tab = wx.NewIdRef()
         _add_item(m_view, self.id_switch_tab, get_menu_label(_("Switch Sidebar Tab"), "switch_tab"))
@@ -628,7 +632,7 @@ class MainFrame(wx.Frame):
             on_next_callback=self.view.go_next,
             on_prev_callback=self.view.go_prev,
             on_ready_callback=self._update_ui
-        ) # todo: add pswd and port GUI
+        )  # todo: add pswd and port GUI
 
         self.gl_filters.load_filters()
 
@@ -1108,7 +1112,7 @@ class MainFrame(wx.Frame):
                 raw_text = self.content_provider.get_page_text(page_idx)
 
                 if raw_text:
-                    header = "=== "+_("Page") + f"{page_idx + 1} ==="
+                    header = "=== " + _("Page") + f"{page_idx + 1} ==="
                     extracted_parts.append(f"{header}\n{raw_text}")
 
             full_text = "\n\n".join(extracted_parts)
@@ -1122,7 +1126,7 @@ class MainFrame(wx.Frame):
             dlg.Destroy()
 
         except Exception as e:
-            show_toast(self, _("Failed to extract text:")+f"{e}", True)
+            show_toast(self, _("Failed to extract text:") + f"{e}", True)
 
     def on_extract_images(self, evt):
         if not self.content_provider:
@@ -1154,7 +1158,7 @@ class MainFrame(wx.Frame):
 
         except Exception as e:
             wx.EndBusyCursor()
-            show_toast(self, _("Error extracting images:")+ f"{e}", True)
+            show_toast(self, _("Error extracting images:") + f"{e}", True)
             return
         finally:
             if wx.IsBusy():
@@ -1214,7 +1218,8 @@ class MainFrame(wx.Frame):
 
     def on_goto_page(self, evt):
         if not self.content_provider: return
-        dlg = wx.TextEntryDialog(self, _("Enter page number")+f" (1-{self.content_provider.page_count}):", "Go to Page")
+        dlg = wx.TextEntryDialog(self, _("Enter page number") + f" (1-{self.content_provider.page_count}):",
+                                 "Go to Page")
         msw_set_theme(dlg)
         if dlg.ShowModal() == wx.ID_OK:
             try:
@@ -1394,7 +1399,6 @@ class MainFrame(wx.Frame):
         dlg.Bind(wx.EVT_CLOSE, _on_close_dialog)
         msw_set_theme(dlg)
         dlg.Show()
-
 
     def on_check_update(self, evt):
         from wxReaderUpdater import UpdateChecker
