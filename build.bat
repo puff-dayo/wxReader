@@ -4,7 +4,6 @@ uv --project . run python -m nuitka ^
   --mode=standalone ^
   --lto=yes ^
   --output-dir=build ^
-  --remove-output ^
   --follow-imports ^
   --nofollow-import-to=tkinter ^
   --nofollow-import-to=pillow ^

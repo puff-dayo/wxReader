@@ -5,7 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
     "imageio>=2.37.2",
-    "nuitka>=2.8.9",
+    "nuitka>=4.0.1",
     "numpy>=2.3.5",
     "py7zr>=1.1.0",
     "pymupdf==1.23.8",
@@ -13,7 +13,7 @@ dependencies = [
     "pyvips>=3.1.1",
     "pywinstyles>=1.8",
     "pyzipper>=0.3.6",
-    "wxpython>=4.2.4",
+    "wxpython>=4.2.5",
 ]
 
 [project.optional-dependencies]
