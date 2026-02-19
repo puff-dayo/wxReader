@@ -1,17 +1,14 @@
 # wxReader
 
 **wxReader** is a ~lightweight, high-performance~ document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), libvips (pyvips), and
-Python.
+Python. Currently support Windows, and it is ported to Linux.
 
-**wxReaderVoiceCtrl** is a hands-free external controller app for wxReader, recognizing **voice command** offline by vosk and pyaudio. GUI is  built with wxPython.
+**wxReaderVoiceCtrl** is a hands-free external controller app for wxReader, recognizing **voice command** offline by vosk and pyaudio. GUI is built with wxPython.
 
 **wxReaderEyeTrackCtrl** is a hands-free external controller app for wxReader, recognizing **eye movement and blinking gesture** offline by EyeTrax(https://doi.org/10.5281/zenodo.17188537) through a webcam. GUI is also built with wxPython.
 
-> **Version 1.3.4** Add customizable keyboard shortcuts. Add GUI control on uStrength of shaders. Add a folder tab in the sidebar. Gallery and cache performance optimized.
-> 
-> **~Version 1.3.7** External controlled page tuning, and add example apps of voice and eye gesture command. UI/UX enhancements. Bugs fixed. 7z format support. Cache optimizations.
->
-> **Version 1.3.8** Add internationalization and localization for `ja_JP, zh_TW and zh_SG`.
+-> [Download](https://github.com/puff-dayo/wxReader/releases/) <- for Windows 10+ (>1809) and Debian13, amd64
+<br> Build/run from source: see below ↓
 
 ---
 
@@ -46,13 +43,14 @@ Python.
 
 ## Installation
 
+### Windows
+
 1. From sauce (latest dev):
    1. Install Python 3.12 and uv, `uv --project . sync`.
    2. [Download](https://www.libvips.org/install.html) and put the libvips shared library *.dll files inside `.\src`.
    3. Sync dependencies with `uv`.
-   4. Build with `.\build.bat` on Windows x64. (Run the build
-      script inside /src folder.)
-   5. (Notes: upgrade pymupdf will fail the compilation, and this is a Nuitka issue.)
+   4. Build with `.\build.bat` on Windows x64. (Run the build script inside root folder.)
+   5. (Notes: upgrade pymupdf will fail the compilation.)
    6. Optional: `uv --project .\extctrl\voice sync`, `uv --project .\extctrl\eye_track sync`, then build with `.\build_*.bat`.
 
 2. Pre-compiled binary (stable): portable `.exe` files are provided on the **Releases** page. Here are links to download (for win10+ x86_64):
@@ -60,7 +58,38 @@ Python.
    2. [wxReaderVoiceCtrl](https://github.com/puff-dayo/wxReader/releases/download/v1.3.6/wxReaderVoiceCtrl_msvc_avx2_x64.zip)
    3. [wxReaderEyeTrackCtrl](https://github.com/puff-dayo/wxReader/releases/download/v1.3.6/wxReaderEyeTrackCtrl_pyi_x64.zip)
 
-3. Upgrade from older versions: simply copy the `wxReader.cfg` and `pswd.txt` files containing all user settings to the folder of a new version. You (probably) can also just unzip and overwrite existing files in the old folder. 
+3. Upgrade from older versions: simply copy the `wxReader.cfg` and `pswd.txt` files containing all user settings to the folder of a new version. You (probably) can also just unzip and overwrite existing files in the old folder.
+
+### Linux
+
+Tested on platform: Linux-6.12.73+deb13-amd64-x86_64-with-glibc2.41
+
+1. Run from sauce (latest dev):
+   1. Install Python 3.13 and uv, `uv --project . sync`.
+   2. `sudo apt install libvips42t64 python3-wxgtk4.0`.
+   3. `uv venv --python /usr/bin/python3 --system-site-packages`, and then activate the venv.
+   4. `cd src`
+   5. ../.venv/bin/python wxReader.py
+
+2. Build your own binary:
+```
+uv --project . run pyinstaller \
+  --name wxReader \
+  --distpath build \
+  --workpath build/pyi-build \
+  --specpath build/pyi-spec \
+  --onedir \
+  --icon "$(pwd)/src/icon.png" \
+  --add-data "$(pwd)/src/icon.png:icon.png" \
+  --add-data "$(pwd)/src/filters:filters" \
+  --add-data "$(pwd)/src/locale:locale" \
+  --exclude-module tkinter \
+  --exclude-module pillow \
+  --collect-submodules OpenGL \
+  src/wxReader.py
+```
+
+3. Pre-compiled binary: portable files are provided on the **Releases** page.
 
 ## TODO
 
