@@ -5,7 +5,7 @@ Python. Currently support Windows and Linux.
 
 **wxReaderVoiceCtrl** is a hands-free external controller app for wxReader, recognizing **voice command** offline by vosk and pyaudio. GUI is built with wxPython.
 
-**wxReaderEyeTrackCtrl** is a hands-free external controller app for wxReader, recognizing **eye movement and blinking gesture** offline by EyeTrax(https://doi.org/10.5281/zenodo.17188537) through a webcam. GUI is also built with wxPython.
+**wxReaderEyeTrackCtrl** is a hands-free external controller app for wxReader, recognizing **eye movement and blinking gesture** offline by [EyeTrax](https://doi.org/10.5281/zenodo.17188537) through a webcam. GUI is also built with wxPython.
 
 **-> Download link <-**
 <br>wxReader for [Windows10+](https://github.com/puff-dayo/wxReader/releases/download/v1.3.9/wxReader_v1.3.9_msvc_x64.zip) (>1809)
@@ -94,6 +94,18 @@ uv --project . run pyinstaller \
 ```
 
 3. Pre-compiled binary: portable files are provided on the **Releases** page.
+
+## Edit translation
+
+See [/tools.txt](https://github.com/puff-dayo/wxReader/blob/goshujinsama/tools.txt) in the repo.
+
+**Language support currently:** en_US, ja_JP, zh_SG and zh_TW.
+
+Message files are extracted with [pybabel](https://github.com/python-babel/babel) and translated with tool [Virtaal](https://github.com/translate/virtaal).
+
+## How to ... in wxReader
+
+Check the `Menubar -> Info -> Help Topic` manual of wxReader.
 
 ## TODO
 
