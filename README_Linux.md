@@ -22,6 +22,7 @@ uv --project . run pyinstaller \
   --add-data "$(pwd)/src/locale:locale" \
   --exclude-module tkinter \
   --exclude-module pillow \
+  --collect-submodules OpenGL \
   src/wxReader.py
   ```
 
