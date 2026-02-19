@@ -428,6 +428,10 @@ class MainFrame(wx.Frame):
         m_view.AppendRadioItem(self.id_zoom_manual, _("Manual Zoom"))
         m_view.AppendSeparator()
 
+        self.id_scrolllock = wx.NewIdRef()
+        _add_item(m_view, self.id_scrolllock, _("Scroll Lock") + "\tF6", kind=wx.ITEM_CHECK)
+        m_view.AppendSeparator()
+
         self.id_setmg = wx.NewIdRef()
         _add_item(m_view, self.id_setmg, _("Set Margin and Gap"))
 
@@ -598,6 +602,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_fit_width, id=self.id_fit_width)
         self.Bind(wx.EVT_MENU, self.on_fit_page, id=self.id_fit_page)
         self.Bind(wx.EVT_MENU, self.on_manual_zoom, id=self.id_zoom_manual)
+        self.Bind(wx.EVT_MENU, self.on_scrolllock_change, id=self.id_scrolllock)
         self.Bind(wx.EVT_MENU, self.on_setmg, id=self.id_setmg)
         self.Bind(wx.EVT_MENU, self.on_background_color, id=int(self.id_bg))
         self.Bind(wx.EVT_MENU, self.on_change_epub_font, id=self.id_font_increase)
@@ -1353,6 +1358,11 @@ class MainFrame(wx.Frame):
         self.view.go_to_page(current_page)
 
         print(f"[INFO] Render quality set to: {self.quality_preference}.")
+
+    def on_scrolllock_change(self, evt):
+        self.view.is_scroll_locked = not self.view.is_scroll_locked
+        _item = self._find_menu_item(self.id_scrolllock)
+        _item.Check(self.view.is_scroll_locked)
 
     def on_background_color(self, evt):
         current_color = self.view.GetBackgroundColour()

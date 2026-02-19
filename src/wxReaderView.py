@@ -51,6 +51,8 @@ class PDFView(wx.ScrolledWindow):
         self.direction = self.DIR_LTR
         self.pad_start = False
 
+        self.is_scroll_locked = False
+
         # {(page_index): wx.Bitmap}
         self._bmp_cache: OrderedDict[tuple[int, int], wx.Bitmap] = OrderedDict()
         self._pre_render_timer = wx.Timer(self)
@@ -393,18 +395,6 @@ class PDFView(wx.ScrolledWindow):
 
         return [max(self.MIN_ZOOM, z) for z in [z0, z1]]
 
-    def _apply_auto_zoom_if_needed(self):
-        if self.zoom_mode == self.ZOOM_MANUAL:
-            return
-        z = self._compute_auto_zoom()
-        if z is None:
-            return
-        z = max(self.MIN_ZOOM, min(z, self.MAX_ZOOM))
-
-        if abs(z - self.zoom) > 1e-9:
-            self.zoom = z
-            self._ensure_cache_zoom()
-
     def _start_pre_rendering(self):
         if not self.content_provider:
             return
@@ -483,6 +473,9 @@ class PDFView(wx.ScrolledWindow):
         total_h = content_h + 2 * self.margin
         self.SetVirtualSize((total_w, total_h))
         self.SetFocus()
+
+        if not self.is_scroll_locked:
+            self.Scroll(0, 0)
 
         if self.main_frame:
             wx.CallAfter(self.main_frame._update_ui)
