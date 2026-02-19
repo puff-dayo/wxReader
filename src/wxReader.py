@@ -12,7 +12,6 @@ import os
 import threading
 
 import wx
-import wx.lib.agw.flatmenu as FM
 
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
@@ -99,7 +98,7 @@ class MainFrame(wx.Frame):
 
         # Initialize state
         self.content_provider: ContentProvider | None = None
-        self.quality_preference = 1
+        self.quality_preference = 0
 
         self.epub_font_size = 12
 
@@ -238,7 +237,7 @@ class MainFrame(wx.Frame):
         try:
             if cfg.get("window_fullscreen", False):
                 def _do_fullscreen():
-                    self.ShowFullScreen(True)
+                    self.ShowFullScreen(True, style=wx.FULLSCREEN_NOBORDER | wx.FULLSCREEN_NOCAPTION)
                     item = self.menubar.FindMenuItem(self.id_fullscreen)
                     if item:
                         item.Check(True)
@@ -298,42 +297,47 @@ class MainFrame(wx.Frame):
         wx.CallAfter(self._post_startup_tasks)
 
     def _build_menus(self):
-        if hasattr(self, 'menubar') and self.menubar:
-            self.GetSizer().Detach(self.menubar)
+        old_mb = self.GetMenuBar()
+        if old_mb:
+            self.SetMenuBar(None)
+            try:
+                old_mb.Destroy()
+            except Exception:
+                pass
 
-            self.menubar.Destroy()
-            self.menubar = None
-
-            self.Layout()
-
-        self.menubar = FM.FlatMenuBar(self, wx.ID_ANY, 16, 2, options=FM.FM_OPT_IS_LCD)
-        theme_mmgr = self.menubar.GetRendererManager()
-        renderer = FM.FMRendererXP()
-        for attr in (
-                "buttonFocusFaceColour",
-                "menuFocusFaceColour",
-                "menuBarFocusFaceColour",
-        ):
-            setattr(renderer, attr, wx.Colour("#b6e4b6"))
-
-        theme_id = theme_mmgr.AddRenderer(renderer)
-        theme_mmgr.SetTheme(theme_id)
-
+        self.menubar = wx.MenuBar()
         self.menubar.SetFont(get_app_font())
 
-        def _add_item(menu, id, label, art_id=None, help_text="", kind=wx.ITEM_NORMAL, subMenu=None):
-            bmp = wx.NullBitmap
-            if art_id:
-                bundle = wx.ArtProvider.GetBitmapBundle(art_id, wx.ART_MENU, wx.Size(16, 16))
-                if bundle.IsOk():
-                    bmp = bundle.GetBitmap(wx.Size(16, 16))
+        def _add_item(menu: wx.Menu, id, label, art_id=None, help_text="", kind=wx.ITEM_NORMAL, subMenu=None):
+            if subMenu is not None:
+                item = menu.AppendSubMenu(subMenu, label, help_text)
+                return item
 
-            item = FM.FlatMenuItem(menu, id, label, help_text, kind, subMenu, normalBmp=bmp)
-            menu.AppendItem(item)
+            item = wx.MenuItem(menu, id, label, help_text, kind)
+
+            if art_id:
+                try:
+                    bmp = wx.ArtProvider.GetBitmap(art_id, wx.ART_MENU, wx.Size(16, 16))
+                    if bmp and bmp.IsOk():
+                        item.SetBitmap(bmp)
+                except Exception:
+                    print(Exception)
+
+            menu.Append(item)
             return item
 
+        def _find_item(mid):
+            try:
+                found = self.menubar.FindItem(int(mid))
+                return found[0]
+            except Exception:
+                print(Exception)
+                return None
+
+        self._find_menu_item = _find_item
+
         # --- File ---
-        m_file = FM.FlatMenu()
+        m_file = wx.Menu()
 
         m_open = _add_item(m_file, wx.ID_OPEN, get_menu_label(_("&Open..."), "open"), wx.ART_FILE_OPEN)
         m_close = _add_item(m_file, wx.ID_CLOSE, get_menu_label(_("&Close"), "close"))
@@ -358,7 +362,7 @@ class MainFrame(wx.Frame):
         self.id_key_binds_editor = wx.NewIdRef()
         _add_item(m_file, self.id_key_binds_editor, _("Preferences"))
 
-        m_lang = FM.FlatMenu()
+        m_lang = wx.Menu()
         self.id_lang_enus = wx.NewIdRef()
         self.id_lang_zhsg = wx.NewIdRef()
         self.id_lang_zhtw = wx.NewIdRef()
@@ -375,7 +379,7 @@ class MainFrame(wx.Frame):
         self.menubar.Append(m_file, _("&File"))
 
         # --- View ---
-        m_view = FM.FlatMenu()
+        m_view = wx.Menu()
 
         self.id_sidebar_toggle = wx.NewIdRef()
         _add_item(m_view, self.id_sidebar_toggle, get_menu_label(_("Show &Sidebar"), "toggle_sidebar"), kind=wx.ITEM_CHECK)
@@ -395,14 +399,13 @@ class MainFrame(wx.Frame):
         _add_item(m_view, self.id_pad_start, _("Add Blank Page at Start"), kind=wx.ITEM_CHECK)
         m_view.AppendSeparator()
 
-        m_dir = FM.FlatMenu()
+        m_dir = wx.Menu()
         self.id_ltr = wx.NewIdRef()
         self.id_rtl = wx.NewIdRef()
         m_dir.AppendRadioItem(self.id_ltr, _("Left-to-Right"))
         m_dir.AppendRadioItem(self.id_rtl, _("Right-to-Left"))
 
-        item_dir = FM.FlatMenuItem(m_view, wx.ID_ANY, _("Page &Direction"), "", wx.ITEM_NORMAL, m_dir)
-        m_view.AppendItem(item_dir)
+        _add_item(m_view, wx.ID_ANY, _("Page &Direction"), subMenu=m_dir)
 
         m_view.AppendSeparator()
 
@@ -440,27 +443,26 @@ class MainFrame(wx.Frame):
 
         m_view.AppendSeparator()
 
-        m_quality = FM.FlatMenu()
+        m_quality = wx.Menu()
 
         self.id_quality_hq = wx.NewIdRef()
         self.id_quality_mq = wx.NewIdRef()
         self.id_quality_lq = wx.NewIdRef()
 
-        m_quality.AppendRadioItem(self.id_quality_hq, _("DeMoiré"))
-        m_quality.AppendRadioItem(self.id_quality_mq, _("Lanczos"))
         m_quality.AppendRadioItem(self.id_quality_lq, _("Bilinear"))
+        m_quality.AppendRadioItem(self.id_quality_mq, _("Lanczos"))
+        m_quality.AppendRadioItem(self.id_quality_hq, _("DeMoiré"))
 
-        item_lq = m_quality.FindItem(self.id_quality_lq)
+        item_lq = _find_item(self.id_quality_lq)
         if item_lq:
             item_lq.Check(True)
 
-        item_quality = FM.FlatMenuItem(m_view, wx.ID_ANY, _("Render Quality"), "", wx.ITEM_NORMAL, m_quality)
-        m_view.AppendItem(item_quality)
+        _add_item(m_view, wx.ID_ANY, _("Render Quality"), subMenu=m_quality)
 
         self.menubar.Append(m_view, _("&View"))
 
         # --- Navigate ---
-        m_nav = FM.FlatMenu()
+        m_nav = wx.Menu()
 
         self.id_prev = wx.NewIdRef()
         self.id_next = wx.NewIdRef()
@@ -487,7 +489,7 @@ class MainFrame(wx.Frame):
         self.menubar.Append(m_nav, _("&Navigate"))
 
         # --- Process ---
-        m_process = FM.FlatMenu()
+        m_process = wx.Menu()
 
         self.id_extract_text = wx.NewIdRef()
         _add_item(m_process, self.id_extract_text, get_menu_label(_("Extract Page Text"), "extract_text"))
@@ -524,7 +526,7 @@ class MainFrame(wx.Frame):
                 full_path = os.path.join(filters_dir, entry)
 
                 if os.path.isdir(full_path):
-                    submenu = FM.FlatMenu()
+                    submenu = wx.Menu()
                     has_items = False
 
                     sub_files = sorted(os.listdir(full_path))
@@ -532,27 +534,24 @@ class MainFrame(wx.Frame):
                         name, ext = os.path.splitext(f)
                         if name in loaded_filters:
                             mid = wx.NewIdRef()
-                            item = FM.FlatMenuItem(submenu, mid, name, "", wx.ITEM_CHECK)
-                            submenu.AppendItem(item)
-
+                            item = submenu.AppendCheckItem(mid, name)
                             self.Bind(wx.EVT_MENU, functools.partial(self._on_custom_filter_menu, name=name), id=mid)
-
                             self.filter_menu_map[name] = mid
                             has_items = True
 
                     if has_items:
-                        item_sub = FM.FlatMenuItem(m_process, wx.ID_ANY, entry, "", wx.ITEM_NORMAL, submenu)
-                        m_process.AppendItem(item_sub)
+                        m_process.AppendSubMenu(submenu, entry)
 
-            item_none = m_process.FindItem(self.id_custom_none)
-            if item_none: item_none.Check(True)
+            item_none = _find_item(self.id_custom_none)
+            if item_none:
+                item_none.Check(True)
 
         self._populate_custom_filters_menu = _populate_custom_filters_menu
 
         self.menubar.Append(m_process, _("&Process"))
 
         # --- Help ---
-        m_help = FM.FlatMenu()
+        m_help = wx.Menu()
         m_about = _add_item(m_help, wx.ID_ABOUT, _("&About"), wx.ART_INFORMATION)
         self.menubar.Append(m_help, _("&Info"))
 
@@ -565,8 +564,7 @@ class MainFrame(wx.Frame):
         _add_item(m_help, self.id_manual, _("&Help Topics"), "help")
 
         # --- Integration ---
-        self.GetSizer().Insert(0, self.menubar, 0, wx.EXPAND)
-        self.Layout()
+        self.SetMenuBar(self.menubar)
 
         # --- Bindings ---
         self.Bind(wx.EVT_MENU, self.on_open, m_open)
@@ -819,11 +817,11 @@ class MainFrame(wx.Frame):
         mb = self.menubar
 
         def _set_enable(mid, val):
-            item = mb.FindMenuItem(mid)
+            item = self._find_menu_item(mid) if hasattr(self, "_find_menu_item") else None
             if item: item.Enable(val)
 
         def _set_check(mid, val):
-            item = mb.FindMenuItem(mid)
+            item = self._find_menu_item(mid) if hasattr(self, "_find_menu_item") else None
             if item: item.Check(val)
 
         _set_enable(self.id_sidebar_toggle, has_provider)
@@ -1331,7 +1329,7 @@ class MainFrame(wx.Frame):
             self.id_quality_mq: 1,
             self.id_quality_lq: 0
         }
-        self.quality_preference = quality_map.get(event_id, 1)
+        self.quality_preference = quality_map.get(event_id, 0)
 
         if not self.content_provider:
             return
@@ -1367,8 +1365,7 @@ class MainFrame(wx.Frame):
     def on_fullscreen(self, evt):
         is_full = self.IsFullScreen()
 
-        self.ShowFullScreen(not is_full, style=wx.FULLSCREEN_ALL)
-
+        self.ShowFullScreen(not is_full, style=wx.FULLSCREEN_NOBORDER | wx.FULLSCREEN_NOCAPTION)
         self._update_ui()
 
     def on_filter_settings(self, evt):
@@ -1413,7 +1410,7 @@ class MainFrame(wx.Frame):
 
         # Update checks on FlatMenuBar
         def _check_id(mid, val):
-            item = self.menubar.FindMenuItem(mid)
+            item = self._find_menu_item(mid)
             if item: item.Check(val)
 
         if name is None:
