@@ -2,7 +2,6 @@ import os
 import platform
 from functools import lru_cache
 
-import pywinstyles
 import wx
 
 
@@ -26,18 +25,10 @@ def get_app_icon():
 
 @lru_cache(maxsize=6)
 def get_app_font(add_size=0):
-    face_name = 'Segoe UI'
-    try:
-        sys_font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
-        font = wx.Font(sys_font.GetPointSize() + add_size, wx.FONTFAMILY_SWISS,
-                       wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL,
-                       faceName=face_name)
-        print(f"[DEBUG] App font set to {face_name}.")
-        return font
-    except Exception as e:
-        print(f"[ERROR ]Failed to font set: {e}")
-
-    return wx.SYS_DEFAULT_GUI_FONT
+    sys_font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+    font = wx.Font(sys_font)  # copy
+    font.SetPointSize(sys_font.GetPointSize() + add_size)
+    return font
 
 
 @lru_cache(maxsize=None)
@@ -49,12 +40,4 @@ def is_windows_11():
 
 
 def msw_set_theme(frame):
-    if is_windows_11():
-        try:
-            pywinstyles.change_header_color(frame, "#568466")
-            pywinstyles.change_title_color(frame, color="white")
-        except Exception as e1:
-            try:
-                pywinstyles.apply_style(frame, "mica")
-            except Exception as e2:
-                print(f"[ERROR] Failed to apply sytle: {e1}. {e2}")
+    pass

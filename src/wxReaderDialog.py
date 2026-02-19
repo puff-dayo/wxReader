@@ -835,11 +835,11 @@ class AboutDialog(wx.Dialog):
             tech_sizer.Add(l2, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
             tech_sizer.Add(l3, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
 
-        _add_tech_row("GUI kit:", f"wxPython (wxWidgets 3.2.8)", "LGPL")
-        _add_tech_row("PDF engine:", "PyMuPDF 1.23.8", "AGPL")
+        _add_tech_row("GUI kit:", f"wxPython", "LGPL")
+        _add_tech_row("PDF engine:", "PyMuPDF", "AGPL")
         _add_tech_row("Post process:", "OpenGL (PyOpenGL)", "BSD")
         _add_tech_row("Image:", "pyvips (libvips)", "LGPL")
-        _add_tech_row("Runtime:", "Python 3.12.9", "PSFL")
+        _add_tech_row("Runtime:", "Python 3", "PSFL")
 
         main_sizer.Add(tech_sizer, 0, wx.CENTER)
 

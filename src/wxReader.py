@@ -1,12 +1,5 @@
 from __future__ import annotations
 
-import ctypes
-
-try:
-    ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
-except Exception:
-    print(Exception)
-
 import functools
 import io
 import os
@@ -31,10 +24,6 @@ from wxReaderExtCtrl import ControlServer
 
 def _(text):
     return wx.GetTranslation(text)
-
-
-GWL_STYLE = -16
-TVS_NOTOOLTIPS = 0x0080
 
 
 class FileDropTarget(wx.FileDropTarget):
@@ -761,27 +750,7 @@ class MainFrame(wx.Frame):
                 self._update_ui()
 
     def _toggle_tree_tooltips(self, enable: bool):
-        if not hasattr(self, 'dir_ctrl') or not self.dir_ctrl:
-            return
-
-        try:
-            tree = self.dir_ctrl.GetTreeCtrl()
-            hwnd = tree.GetHandle()
-
-            current_style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
-
-            if enable:
-                new_style = current_style & ~TVS_NOTOOLTIPS
-            else:
-                new_style = current_style | TVS_NOTOOLTIPS
-
-            if new_style != current_style:
-                ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
-
-                # SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED
-                ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x27)
-        except Exception:
-            print(Exception)
+        pass
 
     def on_window_activate(self, evt):
         is_active = evt.GetActive()
