@@ -1006,7 +1006,10 @@ class MainFrame(wx.Frame):
 
         idx = self.notebook.GetPageIndex(v)
         if idx != wx.NOT_FOUND:
-            self.notebook.SetPageText(idx, os.path.basename(path))
+            full_name = os.path.basename(path)
+            display_name = full_name if len(full_name) <= 20 else full_name[:17] + "..."
+            self.notebook.SetPageText(idx, display_name)
+            self.notebook.SetPageTooltip(idx, full_name)
 
         self._populate_sidebar()
 
