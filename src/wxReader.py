@@ -232,8 +232,7 @@ class MainFrame(wx.Frame):
         self.notebook = aui.AuiNotebook(self.splitter,
                                         style=aui.AUI_NB_DEFAULT_STYLE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_CLOSE_ON_ALL_TABS)
 
-        if not self.show_tabbar:
-            self.notebook.SetTabCtrlHeight(0)
+        wx.CallAfter(self._update_tabbar_visibility)
 
         self.splitter.SplitVertically(self.sidebar, self.notebook, 250)
         self.splitter.SetSashGravity(0.0)
@@ -324,6 +323,9 @@ class MainFrame(wx.Frame):
         wx.CallAfter(self._post_startup_tasks)
 
     def _add_new_tab(self, select=True):
+        self.notebook.SetTabCtrlHeight(-1)
+        self.notebook.Update()
+
         view = PDFView(self.notebook)
         view.main_frame = self
 
@@ -339,6 +341,8 @@ class MainFrame(wx.Frame):
         view.set_background_color(wx.Colour(134, 180, 118))
 
         self.notebook.AddPage(view, _("Blank Tab"), select=select)
+
+        wx.CallAfter(self._update_tabbar_visibility)
         return view
 
     def on_tab_close(self, evt):
@@ -356,11 +360,13 @@ class MainFrame(wx.Frame):
         if self.notebook.GetPageCount() == 0:
             self._add_new_tab()
         self._populate_sidebar()
+        self._update_tabbar_visibility()
         self._update_ui()
         evt.Skip()
 
     def on_tab_changed(self, evt):
         self._populate_sidebar()
+        self._update_tabbar_visibility()
         self._update_ui()
         if self.view:
             self.view.SetFocus()
@@ -727,6 +733,19 @@ class MainFrame(wx.Frame):
             self._populate_custom_filters_menu()
             self.menubar.Refresh()
 
+    def _update_tabbar_visibility(self):
+        def _do_update():
+            if not self.show_tabbar:
+                self.notebook.SetTabCtrlHeight(0)
+            elif self.notebook.GetPageCount() <= 1:
+                self.notebook.SetTabCtrlHeight(0)
+            else:
+                self.notebook.SetTabCtrlHeight(-1)  # at 2+ tabs
+            self.notebook.Update()
+            self.notebook.Layout()
+
+        wx.CallAfter(_do_update)
+
     def _populate_sidebar(self, filter_text=None):
         if not self.content_provider:
             self.sidebar_tree.DeleteAllItems()
@@ -901,10 +920,7 @@ class MainFrame(wx.Frame):
 
     def on_toggle_tabbar(self, evt):
         self.show_tabbar = not self.show_tabbar
-        if self.show_tabbar:
-            self.notebook.SetTabCtrlHeight(-1)
-        else:
-            self.notebook.SetTabCtrlHeight(0)
+        self._update_tabbar_visibility()
         self.notebook.Update()
         self.notebook.Layout()
 
@@ -1053,6 +1069,7 @@ class MainFrame(wx.Frame):
             self.splitter.SplitVertically(self.sidebar, self.notebook, 250)
 
         self._update_ui()
+        self._update_tabbar_visibility()
         v.SetFocus()
 
         self.on_nav_current(None)
@@ -1064,6 +1081,7 @@ class MainFrame(wx.Frame):
         idx = self.notebook.GetSelection()
         if idx != wx.NOT_FOUND:
             self.notebook.DeletePage(idx)
+        self._populate_sidebar()
 
     def on_manual(self, evt):
         if hasattr(self, 'manual_window') and self.manual_window:
