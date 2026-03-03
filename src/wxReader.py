@@ -282,9 +282,17 @@ class MainFrame(wx.Frame):
 
         self.recent_files = cfg.get("recent_files", []) or []
         last = cfg.get("last_file", "")
+        last_files = cfg.get("last_files", [])
 
-        if last and os.path.isfile(last):
-            wx.CallLater(300, self._load_file, last)
+        files_to_load = last_files if last_files else ([last] if last else [])
+
+        def _load_previous_files():
+            for f in files_to_load:
+                if f and os.path.isfile(f):
+                    self._load_file(f)
+
+        if files_to_load:
+            wx.CallLater(300, _load_previous_files)
         # END Load Config
 
         # --- Events ---
@@ -1532,9 +1540,12 @@ class MainFrame(wx.Frame):
             self.lang_to_change = wx.LANGUAGE_CHINESE_TAIWAN
 
     def on_close(self, evt):
+        last_files = []
         for i in range(self.notebook.GetPageCount()):
             page = self.notebook.GetPage(i)
             if page and hasattr(page, 'content_provider') and page.content_provider:
+                if page.content_provider.path:
+                    last_files.append(page.content_provider.path)
                 if hasattr(self, 'file_progress') and page.content_provider.path:
                     self.file_progress[page.content_provider.path] = page.page
 
@@ -1555,6 +1566,7 @@ class MainFrame(wx.Frame):
                 "epub_font_size": self.epub_font_size,
                 "recent_files": self.recent_files,
                 "last_file": (self.content_provider.path if self.content_provider else ""),
+                "last_files": last_files,
                 "file_progress": self.file_progress,
             }
             cfg.update(current_cfg)
