@@ -13,6 +13,7 @@ import os
 import threading
 
 import wx
+import wx.lib.agw.aui as aui
 
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
@@ -73,6 +74,22 @@ def get_icon_v2(art_id):
 
 
 class MainFrame(wx.Frame):
+    @property
+    def view(self) -> PDFView | None:
+        if not hasattr(self, 'notebook'):
+            return None
+        if self.notebook.GetPageCount() == 0:
+            return None
+        idx = self.notebook.GetSelection()
+        if idx != wx.NOT_FOUND and idx >= 0:
+            return self.notebook.GetPage(idx)
+        return None
+
+    @property
+    def content_provider(self):
+        v = self.view
+        return v.content_provider if v else None
+
     def __init__(self, lang=wx.LANGUAGE_ENGLISH):
         cfg = load_config()
 
@@ -100,10 +117,10 @@ class MainFrame(wx.Frame):
         self.SetFont(wx.GetApp().global_font)
 
         # Initialize state
-        self.content_provider: ContentProvider | None = None
         self.quality_preference = 0
 
         self.epub_font_size = 12
+        self.show_tabbar = bool(cfg.get("show_tabbar", True))
 
         self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3D)
         self.splitter.SetMinimumPaneSize(50)
@@ -212,15 +229,20 @@ class MainFrame(wx.Frame):
         self.sidebar.SetSizer(self.sidebar_main_sizer)
 
         # START Main Content
-        self.view = PDFView(self.splitter)
-        self.view.main_frame = self
+        self.notebook = aui.AuiNotebook(self.splitter,
+                                        style=aui.AUI_NB_DEFAULT_STYLE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_CLOSE_ON_ALL_TABS)
 
-        self.splitter.SplitVertically(self.sidebar, self.view, 250)
+        if not self.show_tabbar:
+            self.notebook.SetTabCtrlHeight(0)
+
+        self.splitter.SplitVertically(self.sidebar, self.notebook, 250)
         self.splitter.SetSashGravity(0.0)
         self.splitter.Unsplit(self.sidebar)
 
         self.status_bar = self.CreateStatusBar(1)
         self.status_bar.SetFont(get_app_font())
+
+        # self._add_new_tab()
 
         filters_dir = os.path.join(os.path.dirname(__file__), "filters")
         self.gl_filters = GLFilterTool(self, filters_dir)
@@ -252,27 +274,25 @@ class MainFrame(wx.Frame):
         try:
             show_sidebar = bool(cfg.get("show_sidebar", False))
             if show_sidebar and not self.splitter.IsSplit():
-                self.splitter.SplitVertically(self.sidebar, self.view, 250)
+                self.splitter.SplitVertically(self.sidebar, self.notebook, 250)
         except Exception as e:
             print(f"[ERROR] wxReader Failed to restore sidebar state: {e}")
-
-        try:
-            self.view.set_mode(cfg.get("view_mode", PDFView.MODE_TWO))
-            self.view.set_direction(cfg.get("direction", PDFView.DIR_LTR))
-            self.view.set_pad_start(bool(cfg.get("pad_start", False)))
-            self.view.set_zoom_mode(cfg.get("zoom_mode", PDFView.ZOOM_FIT_PAGE))
-        except Exception as e:
-            print(f"[ERROR] wxReader Failed to restore view mode: {e}")
-
-        self.view.set_background_color(wx.Colour(134, 180, 118))
 
         self.epub_font_size = int(cfg.get("epub_font_size", self.epub_font_size))
 
         self.recent_files = cfg.get("recent_files", []) or []
         last = cfg.get("last_file", "")
+        last_files = cfg.get("last_files", [])
+        self.reopen_last_files = bool(cfg.get("reopen_last_files", True))
+        files_to_load = (last_files if last_files else ([last] if last else [])) if self.reopen_last_files else []
 
-        if last and os.path.isfile(last):
-            wx.CallLater(300, self._load_file, last)
+        def _load_previous_files():
+            for f in files_to_load:
+                if f and os.path.isfile(f):
+                    self._load_file(f)
+
+        if files_to_load:
+            wx.CallLater(300, _load_previous_files)
         # END Load Config
 
         # --- Events ---
@@ -290,6 +310,10 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.on_open_library, self.btn_fv_gallery)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
 
+        self.notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.on_tab_close)
+        self.notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CLOSED, self.on_tab_closed)
+        self.notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
+
         self.SetDropTarget(FileDropTarget(self))
 
         self._update_ui()
@@ -298,6 +322,49 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_ACTIVATE, self.on_window_activate)
 
         wx.CallAfter(self._post_startup_tasks)
+
+    def _add_new_tab(self, select=True):
+        view = PDFView(self.notebook)
+        view.main_frame = self
+
+        cfg = load_config()
+        try:
+            view.set_mode(cfg.get("view_mode", PDFView.MODE_TWO))
+            view.set_direction(cfg.get("direction", PDFView.DIR_LTR))
+            view.set_pad_start(bool(cfg.get("pad_start", False)))
+            view.set_zoom_mode(cfg.get("zoom_mode", PDFView.ZOOM_FIT_PAGE))
+        except Exception as e:
+            print(f"[ERROR] wxReader Failed to restore view mode: {e}")
+
+        view.set_background_color(wx.Colour(134, 180, 118))
+
+        self.notebook.AddPage(view, _("Blank Tab"), select=select)
+        return view
+
+    def on_tab_close(self, evt):
+        idx = evt.GetSelection()
+        if idx != wx.NOT_FOUND:
+            page = self.notebook.GetPage(idx)
+            if page and hasattr(page, 'content_provider') and page.content_provider:
+                if hasattr(self, 'file_progress') and page.content_provider.path:
+                    self.file_progress[page.content_provider.path] = page.page
+                page.content_provider.close()
+                page.set_content_provider(None)
+        evt.Skip()
+
+    def on_tab_closed(self, evt):
+        if self.notebook.GetPageCount() == 0:
+            self._add_new_tab()
+        self._populate_sidebar()
+        self._update_ui()
+        evt.Skip()
+
+    def on_tab_changed(self, evt):
+        self._populate_sidebar()
+        self._update_ui()
+        if self.view:
+            self.view.SetFocus()
+        evt.Skip()
 
     def _build_menus(self):
         old_mb = self.GetMenuBar()
@@ -355,6 +422,9 @@ class MainFrame(wx.Frame):
         self.id_recent_dialog = wx.NewIdRef()
         _add_item(m_file, self.id_recent_dialog, _("Recent Files..."))
 
+        self.id_reopen_last = wx.NewIdRef()
+        _add_item(m_file, self.id_reopen_last, _("Reopen Last Files"), kind=wx.ITEM_CHECK)
+
         m_file.AppendSeparator()
 
         self.id_pswdmng = wx.NewIdRef()
@@ -387,6 +457,9 @@ class MainFrame(wx.Frame):
         self.id_sidebar_toggle = wx.NewIdRef()
         _add_item(m_view, self.id_sidebar_toggle, get_menu_label(_("Show &Sidebar"), "toggle_sidebar"),
                   kind=wx.ITEM_CHECK)
+
+        self.id_show_tabbar = wx.NewIdRef()
+        _add_item(m_view, self.id_show_tabbar, _("Show &Tab-bar"), kind=wx.ITEM_CHECK)
 
         self.id_switch_tab = wx.NewIdRef()
         _add_item(m_view, self.id_switch_tab, get_menu_label(_("Switch Sidebar Tab"), "switch_tab"))
@@ -578,6 +651,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_open, m_open)
         self.Bind(wx.EVT_MENU, self.on_open_library, id=self.id_library)
         self.Bind(wx.EVT_MENU, self.on_show_recent, id=self.id_recent_dialog)
+        self.Bind(wx.EVT_MENU, self.on_reopen_last_toggle, id=self.id_reopen_last)
         self.Bind(wx.EVT_MENU, self.on_close_pdf, m_close)
         self.Bind(wx.EVT_MENU, self.on_open_pswdmng, id=self.id_pswdmng)
         self.Bind(wx.EVT_MENU, self.on_edit_keys, id=self.id_key_binds_editor)
@@ -590,6 +664,7 @@ class MainFrame(wx.Frame):
 
         # View
         self.Bind(wx.EVT_MENU, self.on_toggle_sidebar, id=self.id_sidebar_toggle)
+        self.Bind(wx.EVT_MENU, self.on_toggle_tabbar, id=self.id_show_tabbar)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_mode(PDFView.MODE_SINGLE), self._update_ui()),
                   id=self.id_single_page)
@@ -634,8 +709,8 @@ class MainFrame(wx.Frame):
 
     def _load_data_thread(self):
         self.server = ControlServer(
-            on_next_callback=self.view.go_next,
-            on_prev_callback=self.view.go_prev,
+            on_next_callback=lambda: getattr(self.view, "go_next")() if self.view else None,
+            on_prev_callback=lambda: getattr(self.view, "go_prev")() if self.view else None,
             on_ready_callback=self._update_ui
         )  # todo: add pswd and port GUI
 
@@ -650,6 +725,7 @@ class MainFrame(wx.Frame):
 
     def _populate_sidebar(self, filter_text=None):
         if not self.content_provider:
+            self.sidebar_tree.DeleteAllItems()
             return
         toc = self.content_provider.get_toc()
         self.sidebar_tree.DeleteAllItems()
@@ -756,7 +832,7 @@ class MainFrame(wx.Frame):
         item = self.sidebar_tree.GetSelection()
         if item and item.IsOk():
             data = self.sidebar_tree.GetItemData(item)
-            if data is not None:
+            if data is not None and self.view:
                 self.view.go_to_page(data)
                 self._update_ui()
 
@@ -819,6 +895,20 @@ class MainFrame(wx.Frame):
         self.view.set_pad_start(val)
         self._update_ui()
 
+    def on_toggle_tabbar(self, evt):
+        self.show_tabbar = not self.show_tabbar
+        if self.show_tabbar:
+            self.notebook.SetTabCtrlHeight(-1)
+        else:
+            self.notebook.SetTabCtrlHeight(0)
+        self.notebook.Update()
+        self.notebook.Layout()
+
+        cfg = load_config()
+        cfg["show_tabbar"] = self.show_tabbar
+        save_config(cfg)
+        self._update_ui()
+
     def _update_ui(self):
         has_provider = self.content_provider is not None
         is_reflowable = has_provider and self.content_provider.is_reflowable
@@ -831,32 +921,36 @@ class MainFrame(wx.Frame):
 
         def _set_check(mid, val):
             item = self._find_menu_item(mid) if hasattr(self, "_find_menu_item") else None
-            if item: item.Check(val)
+            if item:
+                item.Check(bool(val))
 
         _set_enable(self.id_sidebar_toggle, has_provider)
         _set_check(self.id_sidebar_toggle, self.splitter.IsSplit())
+        _set_check(self.id_show_tabbar, getattr(self, "show_tabbar", True))
 
         _set_enable(self.id_font_increase, is_reflowable)
         _set_enable(self.id_font_decrease, is_reflowable)
 
         _set_enable(wx.ID_CLOSE, has_provider)
 
-        _set_check(self.id_single_page, self.view.mode == PDFView.MODE_SINGLE)
-        _set_check(self.id_two_page, self.view.mode == PDFView.MODE_TWO)
+        _set_check(self.id_reopen_last, getattr(self, "reopen_last_files", True))
 
-        _set_check(self.id_pad_start, self.view.pad_start)
-        _set_enable(self.id_pad_start, has_provider and self.view.mode == PDFView.MODE_TWO)
+        _set_check(self.id_single_page, self.view and self.view.mode == PDFView.MODE_SINGLE)
+        _set_check(self.id_two_page, self.view and self.view.mode == PDFView.MODE_TWO)
 
-        _set_check(self.id_ltr, self.view.direction == PDFView.DIR_LTR)
-        _set_check(self.id_rtl, self.view.direction == PDFView.DIR_RTL)
+        _set_check(self.id_pad_start, self.view and self.view.pad_start)
+        _set_enable(self.id_pad_start, has_provider and self.view and self.view.mode == PDFView.MODE_TWO)
+
+        _set_check(self.id_ltr, self.view and self.view.direction == PDFView.DIR_LTR)
+        _set_check(self.id_rtl, self.view and self.view.direction == PDFView.DIR_RTL)
 
         for item_id in [self.id_prev, self.id_next, self.id_goto, self.id_zoom_in,
                         self.id_zoom_out, self.id_fit_width, self.id_fit_page]:
             _set_enable(item_id, has_provider)
 
-        _set_check(self.id_fit_width, self.view.zoom_mode == PDFView.ZOOM_FIT_WIDTH)
-        _set_check(self.id_fit_page, self.view.zoom_mode == PDFView.ZOOM_FIT_PAGE)
-        _set_check(self.id_zoom_manual, self.view.zoom_mode == PDFView.ZOOM_MANUAL)
+        _set_check(self.id_fit_width, self.view and self.view.zoom_mode == PDFView.ZOOM_FIT_WIDTH)
+        _set_check(self.id_fit_page, self.view and self.view.zoom_mode == PDFView.ZOOM_FIT_PAGE)
+        _set_check(self.id_zoom_manual, self.view and self.view.zoom_mode == PDFView.ZOOM_MANUAL)
 
         server_info = ""
         if self.menu_extctrl.IsChecked():
@@ -897,49 +991,54 @@ class MainFrame(wx.Frame):
                 self._load_file(dlg.GetPath())
 
     def _load_file(self, path):
-        if self.content_provider:
-            self.file_progress[self.content_provider.path] = self.view.page
-            self.content_provider.close()
-            self.content_provider = None
+        v = self.view
+        if v and v.content_provider:
+            v = self._add_new_tab()
+        elif not v:
+            v = self._add_new_tab()
 
         ext = os.path.splitext(path)[1].lower()
 
         try:
             if ext in {".pdf", ".epub", ".mobi", ".fb2", ".txt"}:
-                self.content_provider = PdfContentProvider(path)
+                provider = PdfContentProvider(path)
                 self._restore_epub_font()
             elif ext in {".zip", ".cbz"}:
-                self.content_provider = ArchiveContentProvider(path)
+                provider = ArchiveContentProvider(path)
             else:
-                self.content_provider = SevenZipContentProvider(path)
+                provider = SevenZipContentProvider(path)
 
         except Exception as e:
             show_toast(self, f"Error opening file: {e}", True)
-            if self.content_provider:
-                self.content_provider.close()
-            self.content_provider = None
+            if v and not v.content_provider:
+                idx = self.notebook.GetPageIndex(v)
+                if idx != wx.NOT_FOUND:
+                    self.notebook.DeletePage(idx)
             return
+
+        v.set_content_provider(provider)
+
+        idx = self.notebook.GetPageIndex(v)
+        if idx != wx.NOT_FOUND:
+            full_name = os.path.basename(path)
+            display_name = full_name if len(full_name) <= 20 else full_name[:17] + "..."
+            self.notebook.SetPageText(idx, display_name)
+            self.notebook.SetPageTooltip(idx, full_name)
 
         self._populate_sidebar()
 
-        self.view.set_content_provider(self.content_provider)
-
         if path in self.file_progress:
             saved_page = self.file_progress[path]
-            if 0 <= saved_page < self.content_provider.page_count:
-                self.view.go_to_page(saved_page)
+            if 0 <= saved_page < provider.page_count:
+                v.go_to_page(saved_page)
 
         self.recent_files = update_recent(self.recent_files, path)
 
         if not self.splitter.IsSplit():
-            self.splitter.SplitVertically(self.sidebar, self.view, 250)
-        # if not self.content_provider.get_toc():
-        #     self.sidebar_nb.SetSelection(1)
-        # else:
-        #     self.sidebar_nb.SetSelection(0)
+            self.splitter.SplitVertically(self.sidebar, self.notebook, 250)
 
         self._update_ui()
-        self.view.SetFocus()
+        v.SetFocus()
 
         self.on_nav_current(None)
 
@@ -947,20 +1046,9 @@ class MainFrame(wx.Frame):
         self._populate_folder_view_list()
 
     def on_close_pdf(self, evt):
-        if self.content_provider:
-            self.content_provider.close()
-        self.content_provider = None
-
-        self.view.set_content_provider(None)
-        self.sidebar_tree.DeleteAllItems()
-
-        if not self.splitter.IsSplit():
-            self.splitter.SplitVertically(self.sidebar, self.view, 250)
-
-        if self.sidebar_nb.GetPageCount() > 1:
-            self.sidebar_nb.SetSelection(1)
-
-        self._update_ui()
+        idx = self.notebook.GetSelection()
+        if idx != wx.NOT_FOUND:
+            self.notebook.DeletePage(idx)
 
     def on_manual(self, evt):
         if hasattr(self, 'manual_window') and self.manual_window:
@@ -1457,27 +1545,43 @@ class MainFrame(wx.Frame):
         elif event_id == self.id_lang_zhtw:
             self.lang_to_change = wx.LANGUAGE_CHINESE_TAIWAN
 
-    def on_close(self, evt):
-        if self.content_provider and self.view:
-            self.file_progress[self.content_provider.path] = self.view.page
+    def on_reopen_last_toggle(self, evt):
+        self.reopen_last_files = not self.reopen_last_files
+        cfg = load_config()
+        cfg["reopen_last_files"] = self.reopen_last_files
+        save_config(cfg)
+        self._update_ui()
 
-        if self.view:
-            self.view.stop_worker()
-            self.view.content_provider = None
-            self.view._bmp_cache.clear()
+    def on_close(self, evt):
+        last_files = []
+        for i in range(self.notebook.GetPageCount()):
+            page = self.notebook.GetPage(i)
+            if page and hasattr(page, 'content_provider') and page.content_provider:
+                if page.content_provider.path:
+                    last_files.append(page.content_provider.path)
+                if hasattr(self, 'file_progress') and page.content_provider.path:
+                    self.file_progress[page.content_provider.path] = page.page
+
+        v = self.view
+        if v:
+            v.stop_worker()
+            v.content_provider = None
+            v._bmp_cache.clear()
 
         try:
             cfg = load_config()
             current_cfg = {
                 "show_sidebar": self.splitter.IsSplit(),
-                "view_mode": self.view.mode,
-                "direction": self.view.direction,
-                "pad_start": self.view.pad_start,
-                "zoom_mode": self.view.zoom_mode,
+                "view_mode": v.mode if v else PDFView.MODE_TWO,
+                "direction": v.direction if v else PDFView.DIR_LTR,
+                "pad_start": v.pad_start if v else False,
+                "zoom_mode": v.zoom_mode if v else PDFView.ZOOM_FIT_PAGE,
                 "epub_font_size": self.epub_font_size,
                 "recent_files": self.recent_files,
                 "last_file": (self.content_provider.path if self.content_provider else ""),
+                "last_files": last_files,
                 "file_progress": self.file_progress,
+                "reopen_last_files": self.reopen_last_files,
             }
             cfg.update(current_cfg)
 
