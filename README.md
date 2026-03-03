@@ -1,6 +1,6 @@
 # wxReader
 
-**wxReader** is a comic/manga/pdf document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), libvips (pyvips), and
+**wxReader** is a **comic/manga/pdf** document reader built with wxWidgets (wxPython), MuPDF (PyMuPDF), OpenGL (PyOpenGL), libvips (pyvips), and
 Python. Currently support Windows and Linux.
 
 **wxReaderVoiceCtrl** is a hands-free external controller app for wxReader, recognizing **voice command** offline by vosk and pyaudio. GUI is built with wxPython.
@@ -14,34 +14,57 @@ Python. Currently support Windows and Linux.
 
 Build/run from source: see below ↓
 
----
+[//]: # ()
+[//]: # (---)
 
-## Features
+[//]: # ()
+[//]: # (## Features)
 
-<div style="display: flex; justify-content: space-between;">
-  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_1.png?raw=true" width="49%">
-  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_2.png?raw=true" width="49%">
-</div>
+[//]: # ()
+[//]: # (<div style="display: flex; justify-content: space-between;">)
 
-| Feature                 | Description                                                                                              |
-|-------------------------|----------------------------------------------------------------------------------------------------------|
-| **File Format Support** | PDF, EPUB, ePub, ZIP, CBZ (manga or comics archive files).                                               |
-| **Paging Strategy**     | Single Page and Two-Page spreads (with optional blank start page). Supports Right-to-Left (RTL) reading. |
-| **Content Extraction**  | Extract text and images directly from specific pages to the clipboard or disk.                           |
-| **Image Processing**    | Real-time built-in filters and enhancements. Support custom OpenGL frag shaders.                         |
-| **Zoom and View**       | Fit Width, Fit Page, Manual Zoom, Fullscreen Mode, and customizable background color.                    |
-| **Navigation**          | Sidebar with Outline (TOC) and File Browser tabs. Text search dialog, and a standalone TOC dialog.       |
-| **Gallery Mode**        | View all thumbnails or frontpages of all books inside a same folder like a gallery.                      |
-| **File History**        | Automatically saves recent files and reading progress on close.                                          |
-| **Interaction**         | Drag-and-drop file loading and full keyboard operation support.                                          |
-| **External control**    | (Default off.) Send command+token to a local UDP port to do page turning.                                |
+[//]: # (  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_1.png?raw=true" width="49%">)
 
-**Accessibility features**: The two independent external control programs, **wxReaderVoiceCtrl** and **wxReaderEyeTrackCtrl**, respectively provides offline voice-activated page turning commands and offline eye gesture based page-turning via computer camera recognition, triggered by “blinking twice while looking at a designated area of the screen.” (The are fully offline and requires a not-potato CPU.)
+[//]: # (  <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1_2.png?raw=true" width="49%">)
 
-<div style="display: flex; justify-content: space-between;">
-    <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/3.png?raw=true" width="32%">
-    <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/4.png?raw=true" width="65%">
-</div>
+[//]: # (</div>)
+
+[//]: # ()
+[//]: # (| Feature                 | Description                                                                                              |)
+
+[//]: # (|-------------------------|----------------------------------------------------------------------------------------------------------|)
+
+[//]: # (| **File Format Support** | PDF, EPUB, ePub, ZIP, CBZ &#40;manga or comics archive files&#41;.                                               |)
+
+[//]: # (| **Paging Strategy**     | Single Page and Two-Page spreads &#40;with optional blank start page&#41;. Supports Right-to-Left &#40;RTL&#41; reading. |)
+
+[//]: # (| **Content Extraction**  | Extract text and images directly from specific pages to the clipboard or disk.                           |)
+
+[//]: # (| **Image Processing**    | Real-time built-in filters and enhancements. Support custom OpenGL frag shaders.                         |)
+
+[//]: # (| **Zoom and View**       | Fit Width, Fit Page, Manual Zoom, Fullscreen Mode, and customizable background color.                    |)
+
+[//]: # (| **Navigation**          | Sidebar with Outline &#40;TOC&#41; and File Browser tabs. Text search dialog, and a standalone TOC dialog.       |)
+
+[//]: # (| **Gallery Mode**        | View all thumbnails or frontpages of all books inside a same folder like a gallery.                      |)
+
+[//]: # (| **File History**        | Automatically saves recent files and reading progress on close.                                          |)
+
+[//]: # (| **Interaction**         | Drag-and-drop file loading and full keyboard operation support.                                          |)
+
+[//]: # (| **External control**    | &#40;Default off.&#41; Send command+token to a local UDP port to do page turning.                                |)
+
+[//]: # ()
+[//]: # (**Accessibility features**: The two independent external control programs, **wxReaderVoiceCtrl** and **wxReaderEyeTrackCtrl**, respectively provides offline voice-activated page turning commands and offline eye gesture based page-turning via computer camera recognition, triggered by “blinking twice while looking at a designated area of the screen.” &#40;The are fully offline and requires a not-potato CPU.&#41;)
+
+[//]: # ()
+[//]: # (<div style="display: flex; justify-content: space-between;">)
+
+[//]: # (    <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/3.png?raw=true" width="32%">)
+
+[//]: # (    <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/4.png?raw=true" width="65%">)
+
+[//]: # (</div>)
 
 ---
 
@@ -106,7 +129,3 @@ Message files are extracted with [pybabel](https://github.com/python-babel/babel
 ## How to ... in wxReader
 
 Check the `Menubar -> Info -> Help Topic` manual of wxReader.
-
-## TODO
-
-- [ ] keys for navigation can conflict with input fields
