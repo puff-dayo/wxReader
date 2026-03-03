@@ -283,8 +283,8 @@ class MainFrame(wx.Frame):
         self.recent_files = cfg.get("recent_files", []) or []
         last = cfg.get("last_file", "")
         last_files = cfg.get("last_files", [])
-
-        files_to_load = last_files if last_files else ([last] if last else [])
+        self.reopen_last_files = bool(cfg.get("reopen_last_files", True))
+        files_to_load = (last_files if last_files else ([last] if last else [])) if self.reopen_last_files else []
 
         def _load_previous_files():
             for f in files_to_load:
@@ -421,6 +421,9 @@ class MainFrame(wx.Frame):
 
         self.id_recent_dialog = wx.NewIdRef()
         _add_item(m_file, self.id_recent_dialog, _("Recent Files..."))
+
+        self.id_reopen_last = wx.NewIdRef()
+        _add_item(m_file, self.id_reopen_last, _("Reopen Last Files"), kind=wx.ITEM_CHECK)
 
         m_file.AppendSeparator()
 
@@ -648,6 +651,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_open, m_open)
         self.Bind(wx.EVT_MENU, self.on_open_library, id=self.id_library)
         self.Bind(wx.EVT_MENU, self.on_show_recent, id=self.id_recent_dialog)
+        self.Bind(wx.EVT_MENU, self.on_reopen_last_toggle, id=self.id_reopen_last)
         self.Bind(wx.EVT_MENU, self.on_close_pdf, m_close)
         self.Bind(wx.EVT_MENU, self.on_open_pswdmng, id=self.id_pswdmng)
         self.Bind(wx.EVT_MENU, self.on_edit_keys, id=self.id_key_binds_editor)
@@ -928,6 +932,8 @@ class MainFrame(wx.Frame):
         _set_enable(self.id_font_decrease, is_reflowable)
 
         _set_enable(wx.ID_CLOSE, has_provider)
+
+        _set_check(self.id_reopen_last, getattr(self, "reopen_last_files", True))
 
         _set_check(self.id_single_page, self.view and self.view.mode == PDFView.MODE_SINGLE)
         _set_check(self.id_two_page, self.view and self.view.mode == PDFView.MODE_TWO)
@@ -1539,6 +1545,13 @@ class MainFrame(wx.Frame):
         elif event_id == self.id_lang_zhtw:
             self.lang_to_change = wx.LANGUAGE_CHINESE_TAIWAN
 
+    def on_reopen_last_toggle(self, evt):
+        self.reopen_last_files = not self.reopen_last_files
+        cfg = load_config()
+        cfg["reopen_last_files"] = self.reopen_last_files
+        save_config(cfg)
+        self._update_ui()
+
     def on_close(self, evt):
         last_files = []
         for i in range(self.notebook.GetPageCount()):
@@ -1568,6 +1581,7 @@ class MainFrame(wx.Frame):
                 "last_file": (self.content_provider.path if self.content_provider else ""),
                 "last_files": last_files,
                 "file_progress": self.file_progress,
+                "reopen_last_files": self.reopen_last_files,
             }
             cfg.update(current_cfg)
 
