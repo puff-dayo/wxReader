@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-03 15:15+0800\n"
-"PO-Revision-Date: 2026-03-03 15:17+0800\n"
+"POT-Creation-Date: 2026-03-03 15:51+0800\n"
+"PO-Revision-Date: 2026-03-03 15:53+0800\n"
 "Last-Translator: setsuna-dayo <no@email.hehe>\n"
 "Language-Team: info\n"
 "Language: zh\n"
@@ -108,206 +108,214 @@ msgid "Show &Sidebar"
 msgstr "显示侧边栏(&S)"
 
 #: wxReader.py:462
-msgid "Show &Tab-bar"
-msgstr "显示标签栏(&T)"
-
-#: wxReader.py:465
 msgid "Switch Sidebar Tab"
 msgstr "切换侧栏分页"
 
-#: wxReader.py:471
+#: wxReader.py:465
+msgid "Show &Tab-bar"
+msgstr "显示标签栏(&T)"
+
+#: wxReader.py:468
+msgid "Split Top Bar Tabs"
+msgstr "分裂顶栏标签页"
+
+#: wxReader.py:474
 msgid "Single Page View"
 msgstr "单页视图"
 
-#: wxReader.py:472
+#: wxReader.py:475
 msgid "Two Page View"
 msgstr "双页视图"
 
-#: wxReader.py:476
+#: wxReader.py:479
 msgid "Add Blank Page at Start"
 msgstr "添加空白起始页"
 
-#: wxReader.py:482
+#: wxReader.py:485
 msgid "Left-to-Right"
 msgstr "从左往右"
 
-#: wxReader.py:483
+#: wxReader.py:486
 msgid "Right-to-Left"
 msgstr "从右往左"
 
-#: wxReader.py:485
+#: wxReader.py:488
 msgid "Page &Direction"
 msgstr "排页方向(&D)"
 
-#: wxReader.py:495
+#: wxReader.py:498
 msgid "Zoom &In"
 msgstr "放大(&I)"
 
-#: wxReader.py:496
+#: wxReader.py:499
 msgid "Zoom &Out"
 msgstr "缩小(&O)"
 
-#: wxReader.py:499
+#: wxReader.py:502
 msgid "Fit &Width"
 msgstr "匹配页宽(&W)"
 
-#: wxReader.py:500
+#: wxReader.py:503
 msgid "Fit &Page"
 msgstr "匹配全页(P)"
 
-#: wxReader.py:501
+#: wxReader.py:504
 msgid "Manual Zoom"
 msgstr "手动缩放"
 
-#: wxReader.py:505
+#: wxReader.py:508
 msgid "Scroll Lock"
 msgstr "滚动锁定"
 
-#: wxReader.py:509 wxReader.py:1349
+#: wxReader.py:512 wxReader.py:1364
 msgid "Set Margin and Gap"
 msgstr "设置页间距和边距"
 
-#: wxReader.py:513
+#: wxReader.py:516
 msgid "Background Color…"
 msgstr "背景颜色…"
 
-#: wxReader.py:518
+#: wxReader.py:521
 msgid "Larger Font"
 msgstr "字体更大"
 
-#: wxReader.py:519
+#: wxReader.py:522
 msgid "Smaller Font"
 msgstr "字体更小"
 
-#: wxReader.py:523
+#: wxReader.py:526
 msgid "Full &Screen"
 msgstr "全屏(&S)"
 
-#: wxReader.py:533
+#: wxReader.py:536
 msgid "Bilinear"
 msgstr "双线性法"
 
-#: wxReader.py:534
+#: wxReader.py:537
 msgid "Lanczos"
 msgstr "兰乔斯法"
 
-#: wxReader.py:535
+#: wxReader.py:538
 msgid "DeMoiré"
 msgstr "去摩尔纹"
 
-#: wxReader.py:541
+#: wxReader.py:544
 msgid "Render Quality"
 msgstr "渲染质量"
 
-#: wxReader.py:543
+#: wxReader.py:546
 msgid "&View"
 msgstr "查看(&V)"
 
-#: wxReader.py:552
+#: wxReader.py:555
 msgid "Previous Page"
 msgstr "向前翻页"
 
-#: wxReader.py:553
+#: wxReader.py:556
 msgid "Next Page"
 msgstr "向后翻页"
 
-#: wxReader.py:554
+#: wxReader.py:557
 msgid "&Go to Page..."
 msgstr "去往页码(&G)"
 
-#: wxReader.py:559
+#: wxReader.py:562
 msgid "External Control"
 msgstr "外部控制"
 
-#: wxReader.py:565
+#: wxReader.py:568
 msgid "&Find..."
 msgstr "查找(&F)"
 
-#: wxReader.py:568
+#: wxReader.py:571
 msgid "Show TOC Dialog..."
 msgstr "显示大纲目录"
 
-#: wxReader.py:570
+#: wxReader.py:573
 msgid "&Navigate"
 msgstr "导航(&N)"
 
-#: wxReader.py:576
+#: wxReader.py:579
 msgid "Extract Page Text"
 msgstr "提取文字"
 
-#: wxReader.py:579
+#: wxReader.py:582
 msgid "Extract Page Images"
 msgstr "提取图片"
 
-#: wxReader.py:584
+#: wxReader.py:587
 msgid "Shader Settings..."
 msgstr "着色器设置…"
 
-#: wxReader.py:589
+#: wxReader.py:592
 msgid "None / Turn Off"
 msgstr "无 / 关闭"
 
-#: wxReader.py:632
+#: wxReader.py:635
 msgid "&Process"
 msgstr "处理(&P)"
 
-#: wxReader.py:636
+#: wxReader.py:639
 msgid "&About"
 msgstr "关于(&A)"
 
-#: wxReader.py:637
+#: wxReader.py:640
 msgid "&Info"
 msgstr "信息(&I)"
 
-#: wxReader.py:640
+#: wxReader.py:643
 msgid "Check for Updates..."
 msgstr "检查更新…"
 
-#: wxReader.py:645
+#: wxReader.py:648
 msgid "&Help Topics"
 msgstr "帮助主题(&H)"
 
-#: wxReader.py:1208 wxReaderDialog.py:487
+#: wxReader.py:918
+msgid "Need at least 2 tabs to split."
+msgstr "至少需要两个标签页才能分裂。"
+
+#: wxReader.py:1223 wxReaderDialog.py:487
 msgid "Page"
 msgstr "页"
 
-#: wxReader.py:1213
+#: wxReader.py:1228
 msgid "<No text found on visible pages.>"
 msgstr "<可见页面上没有找到文本。>"
 
-#: wxReader.py:1222
+#: wxReader.py:1237
 msgid "Failed to extract text:"
 msgstr "提取文本失败："
 
-#: wxReader.py:1254
+#: wxReader.py:1269
 msgid "Error extracting images:"
 msgstr "提取图片失败："
 
-#: wxReader.py:1261
+#: wxReader.py:1276
 msgid "No images found on the visible page(s)."
 msgstr "可见页面上没有找到图片。"
 
-#: wxReader.py:1314
+#: wxReader.py:1329
 msgid "Enter page number"
 msgstr "输入页码"
 
-#: wxReader.py:1324
+#: wxReader.py:1339
 msgid "Page number out of range."
 msgstr "页面超出范围。"
 
-#: wxReader.py:1326
+#: wxReader.py:1341
 msgid "Invalid number."
 msgstr "请输入数字。"
 
-#: wxReader.py:1362
+#: wxReader.py:1377
 msgid "Numbers must be between 0 and 999."
 msgstr "数字必须在 0~999 之间。"
 
-#: wxReader.py:1364
+#: wxReader.py:1379
 msgid "Please enter integers only."
 msgstr "请输入数字。"
 
-#: wxReader.py:1538
+#: wxReader.py:1553
 msgid "Restart is required."
 msgstr "重新启动是需要的。"
 
@@ -636,3 +644,6 @@ msgstr "查看发行页面"
 
 #~ msgid "Up to date"
 #~ msgstr "已是最新"
+
+#~ msgid "Split Tabs"
+#~ msgstr ""

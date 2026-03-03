@@ -458,11 +458,14 @@ class MainFrame(wx.Frame):
         _add_item(m_view, self.id_sidebar_toggle, get_menu_label(_("Show &Sidebar"), "toggle_sidebar"),
                   kind=wx.ITEM_CHECK)
 
+        self.id_switch_tab = wx.NewIdRef()
+        _add_item(m_view, self.id_switch_tab, get_menu_label(_("Switch Sidebar Tab"), "switch_tab"))
+
         self.id_show_tabbar = wx.NewIdRef()
         _add_item(m_view, self.id_show_tabbar, _("Show &Tab-bar"), kind=wx.ITEM_CHECK)
 
-        self.id_switch_tab = wx.NewIdRef()
-        _add_item(m_view, self.id_switch_tab, get_menu_label(_("Switch Sidebar Tab"), "switch_tab"))
+        self.id_split_tabs = wx.NewIdRef()
+        _add_item(m_view, self.id_split_tabs, _("Split Top Bar Tabs"))
 
         m_view.AppendSeparator()
 
@@ -666,6 +669,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_toggle_sidebar, id=self.id_sidebar_toggle)
         self.Bind(wx.EVT_MENU, self.on_toggle_tabbar, id=self.id_show_tabbar)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
+        self.Bind(wx.EVT_MENU, self.on_split_tabs, id=self.id_split_tabs)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_mode(PDFView.MODE_SINGLE), self._update_ui()),
                   id=self.id_single_page)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_mode(PDFView.MODE_TWO), self._update_ui()), id=self.id_two_page)
@@ -908,6 +912,17 @@ class MainFrame(wx.Frame):
         cfg["show_tabbar"] = self.show_tabbar
         save_config(cfg)
         self._update_ui()
+
+    def on_split_tabs(self, evt):
+        if self.notebook.GetPageCount() < 2:
+            show_toast(self, _("Need at least 2 tabs to split."))
+            return
+        try:
+            self.notebook.Split(page=1, direction=wx.RIGHT)
+            self.notebook.Update()
+            self.notebook.Layout()
+        except Exception as e:
+            print(e)
 
     def _update_ui(self):
         has_provider = self.content_provider is not None

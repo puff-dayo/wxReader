@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-03 15:15+0800\n"
+"POT-Creation-Date: 2026-03-03 15:51+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -106,206 +106,214 @@ msgid "Show &Sidebar"
 msgstr ""
 
 #: wxReader.py:462
-msgid "Show &Tab-bar"
-msgstr ""
-
-#: wxReader.py:465
 msgid "Switch Sidebar Tab"
 msgstr ""
 
-#: wxReader.py:471
+#: wxReader.py:465
+msgid "Show &Tab-bar"
+msgstr ""
+
+#: wxReader.py:468
+msgid "Split Top Bar Tabs"
+msgstr ""
+
+#: wxReader.py:474
 msgid "Single Page View"
 msgstr ""
 
-#: wxReader.py:472
+#: wxReader.py:475
 msgid "Two Page View"
 msgstr ""
 
-#: wxReader.py:476
+#: wxReader.py:479
 msgid "Add Blank Page at Start"
 msgstr ""
 
-#: wxReader.py:482
+#: wxReader.py:485
 msgid "Left-to-Right"
 msgstr ""
 
-#: wxReader.py:483
+#: wxReader.py:486
 msgid "Right-to-Left"
 msgstr ""
 
-#: wxReader.py:485
+#: wxReader.py:488
 msgid "Page &Direction"
 msgstr ""
 
-#: wxReader.py:495
+#: wxReader.py:498
 msgid "Zoom &In"
 msgstr ""
 
-#: wxReader.py:496
+#: wxReader.py:499
 msgid "Zoom &Out"
 msgstr ""
 
-#: wxReader.py:499
+#: wxReader.py:502
 msgid "Fit &Width"
 msgstr ""
 
-#: wxReader.py:500
+#: wxReader.py:503
 msgid "Fit &Page"
 msgstr ""
 
-#: wxReader.py:501
+#: wxReader.py:504
 msgid "Manual Zoom"
 msgstr ""
 
-#: wxReader.py:505
+#: wxReader.py:508
 msgid "Scroll Lock"
 msgstr ""
 
-#: wxReader.py:509 wxReader.py:1349
+#: wxReader.py:512 wxReader.py:1364
 msgid "Set Margin and Gap"
 msgstr ""
 
-#: wxReader.py:513
+#: wxReader.py:516
 msgid "Background Color…"
 msgstr ""
 
-#: wxReader.py:518
+#: wxReader.py:521
 msgid "Larger Font"
 msgstr ""
 
-#: wxReader.py:519
+#: wxReader.py:522
 msgid "Smaller Font"
 msgstr ""
 
-#: wxReader.py:523
+#: wxReader.py:526
 msgid "Full &Screen"
 msgstr ""
 
-#: wxReader.py:533
+#: wxReader.py:536
 msgid "Bilinear"
 msgstr ""
 
-#: wxReader.py:534
+#: wxReader.py:537
 msgid "Lanczos"
 msgstr ""
 
-#: wxReader.py:535
+#: wxReader.py:538
 msgid "DeMoiré"
 msgstr ""
 
-#: wxReader.py:541
+#: wxReader.py:544
 msgid "Render Quality"
 msgstr ""
 
-#: wxReader.py:543
+#: wxReader.py:546
 msgid "&View"
 msgstr ""
 
-#: wxReader.py:552
+#: wxReader.py:555
 msgid "Previous Page"
 msgstr ""
 
-#: wxReader.py:553
+#: wxReader.py:556
 msgid "Next Page"
 msgstr ""
 
-#: wxReader.py:554
+#: wxReader.py:557
 msgid "&Go to Page..."
 msgstr ""
 
-#: wxReader.py:559
+#: wxReader.py:562
 msgid "External Control"
 msgstr ""
 
-#: wxReader.py:565
+#: wxReader.py:568
 msgid "&Find..."
 msgstr ""
 
-#: wxReader.py:568
+#: wxReader.py:571
 msgid "Show TOC Dialog..."
 msgstr ""
 
-#: wxReader.py:570
+#: wxReader.py:573
 msgid "&Navigate"
 msgstr ""
 
-#: wxReader.py:576
+#: wxReader.py:579
 msgid "Extract Page Text"
 msgstr ""
 
-#: wxReader.py:579
+#: wxReader.py:582
 msgid "Extract Page Images"
 msgstr ""
 
-#: wxReader.py:584
+#: wxReader.py:587
 msgid "Shader Settings..."
 msgstr ""
 
-#: wxReader.py:589
+#: wxReader.py:592
 msgid "None / Turn Off"
 msgstr ""
 
-#: wxReader.py:632
+#: wxReader.py:635
 msgid "&Process"
 msgstr ""
 
-#: wxReader.py:636
+#: wxReader.py:639
 msgid "&About"
 msgstr ""
 
-#: wxReader.py:637
+#: wxReader.py:640
 msgid "&Info"
 msgstr ""
 
-#: wxReader.py:640
+#: wxReader.py:643
 msgid "Check for Updates..."
 msgstr ""
 
-#: wxReader.py:645
+#: wxReader.py:648
 msgid "&Help Topics"
 msgstr ""
 
-#: wxReader.py:1208 wxReaderDialog.py:487
+#: wxReader.py:918
+msgid "Need at least 2 tabs to split."
+msgstr ""
+
+#: wxReader.py:1223 wxReaderDialog.py:487
 msgid "Page"
 msgstr ""
 
-#: wxReader.py:1213
+#: wxReader.py:1228
 msgid "<No text found on visible pages.>"
 msgstr ""
 
-#: wxReader.py:1222
+#: wxReader.py:1237
 msgid "Failed to extract text:"
 msgstr ""
 
-#: wxReader.py:1254
+#: wxReader.py:1269
 msgid "Error extracting images:"
 msgstr ""
 
-#: wxReader.py:1261
+#: wxReader.py:1276
 msgid "No images found on the visible page(s)."
 msgstr ""
 
-#: wxReader.py:1314
+#: wxReader.py:1329
 msgid "Enter page number"
 msgstr ""
 
-#: wxReader.py:1324
+#: wxReader.py:1339
 msgid "Page number out of range."
 msgstr ""
 
-#: wxReader.py:1326
+#: wxReader.py:1341
 msgid "Invalid number."
 msgstr ""
 
-#: wxReader.py:1362
+#: wxReader.py:1377
 msgid "Numbers must be between 0 and 999."
 msgstr ""
 
-#: wxReader.py:1364
+#: wxReader.py:1379
 msgid "Please enter integers only."
 msgstr ""
 
-#: wxReader.py:1538
+#: wxReader.py:1553
 msgid "Restart is required."
 msgstr ""
 
