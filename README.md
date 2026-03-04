@@ -8,7 +8,7 @@ Python. Currently support Windows and Linux.
 **wxReaderEyeTrackCtrl** is a hands-free external controller app for wxReader, recognizing **eye movement and blinking gesture** offline by [EyeTrax](https://doi.org/10.5281/zenodo.17188537) through a webcam. GUI is also built with wxPython.
 
 **-> Download link <-**
-<br>wxReader for [Windows10+](https://github.com/puff-dayo/wxReader/releases/download/v1.3.9/wxReader_v1.3.9_msvc_x64.zip) (>1809)
+<br>wxReader for [Windows10+](https://github.com/puff-dayo/wxReader/releases/download/v1.4.0/wxReader_v1.4.0_msvc_x64.zip) (>1809)
 <br>wxReader for [Debian13](https://github.com/puff-dayo/wxReader/releases/download/v1.3.9/wxReader_v1.3.9_debian13_amd64.zip)
 <br>external controllers for [Windows10+_avx2](https://github.com/puff-dayo/wxReader/releases/tag/v1.3.6) (>1809)
 
