@@ -15,6 +15,7 @@ from wxReaderProvider import ContentProvider
 class PDFView(wx.ScrolledWindow):
     MODE_SINGLE = "single"
     MODE_TWO = "two"
+    MODE_FLOW = "flow"
 
     DIR_LTR = "ltr"
     DIR_RTL = "rtl"
@@ -62,6 +63,7 @@ class PDFView(wx.ScrolledWindow):
         self.margin = 2
         self.gap = 2
         self._current_bitmaps: list[tuple[int, wx.Bitmap]] = []  # [(page_index, bmp), ...]
+        self._flow_page_rects: list[wx.Rect] = []
 
         # Panning
         self._panning = False
@@ -79,6 +81,7 @@ class PDFView(wx.ScrolledWindow):
         self.Bind(wx.EVT_MOTION, self.on_mouse_move)
         self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
+        self.Bind(wx.EVT_SCROLLWIN, self.on_scroll)
 
     # --------------------------
     # public api
@@ -95,7 +98,7 @@ class PDFView(wx.ScrolledWindow):
         self.Refresh()
 
     def set_mode(self, mode: str):
-        if mode not in (self.MODE_SINGLE, self.MODE_TWO):
+        if mode not in (self.MODE_SINGLE, self.MODE_TWO, self.MODE_FLOW):
             return
         self.mode = mode
         self._refresh_layout()
@@ -143,6 +146,10 @@ class PDFView(wx.ScrolledWindow):
     def go_next(self):
         if not self.content_provider:
             return
+        if self.mode == self.MODE_FLOW:
+            self.go_to_page(self.page + 1)
+            return
+
         step = 1 if self.mode == self.MODE_SINGLE else 2
         self.page = min(self.page + step, self.content_provider.page_count - 1)
         self._refresh_layout()
@@ -151,6 +158,10 @@ class PDFView(wx.ScrolledWindow):
     def go_prev(self):
         if not self.content_provider:
             return
+        if self.mode == self.MODE_FLOW:
+            self.go_to_page(self.page - 1)
+            return
+
         step = 1 if self.mode == self.MODE_SINGLE else 2
         self.page = max(self.page - step, 0)
         self._refresh_layout()
@@ -159,9 +170,29 @@ class PDFView(wx.ScrolledWindow):
     def go_to_page(self, page_index: int):
         if not self.content_provider:
             return
+
+        old_page = self.page
         self.page = max(0, min(page_index, self.content_provider.page_count - 1))
-        self._refresh_layout()
-        self.Refresh()
+
+        if self.mode == self.MODE_FLOW:
+            if hasattr(self, '_flow_page_rects') and self.page < len(self._flow_page_rects):
+                target_rect = self._flow_page_rects[self.page]
+                spx, spy = self.GetScrollPixelsPerUnit()
+
+                vx, vy = self.GetViewStart()
+                scroll_y = vy * spy if spy > 0 else 0
+                ch = self.GetClientSize().height
+
+                is_visible = (target_rect.GetBottom() > scroll_y and target_rect.GetTop() < scroll_y + ch)
+
+                if old_page != self.page or not is_visible:
+                    if spy > 0:
+                        self.Scroll(-1, target_rect.y // spy)
+
+            self._update_visible_flow_pages()
+        else:
+            self._refresh_layout()
+            self.Refresh()
 
     def stop_worker(self):
         if self._pre_render_timer.IsRunning():
@@ -184,7 +215,6 @@ class PDFView(wx.ScrolledWindow):
                     arr[:] = out
 
             return arr.tobytes()
-
         except Exception as e:
             print(f"Background processing error: {e}")
             return data
@@ -195,13 +225,19 @@ class PDFView(wx.ScrolledWindow):
             try:
                 page_idx, zoom, provider = task
 
+                cache_key = (page_idx, int(zoom * 10000))
+
                 if provider != self.content_provider or abs(zoom - self.zoom) > 0.01:
+                    wx.CallAfter(self._requested_pages.discard, cache_key)
                     continue
+
                 if not provider.is_valid:
+                    wx.CallAfter(self._requested_pages.discard, cache_key)
                     continue
 
                 raw_result = provider.render_to_data(page_idx, zoom)
                 if not raw_result:
+                    print(f"[WARN] render_to_data failed in worker: page={page_idx}, zoom={zoom:.4f}")
                     continue
 
                 width, height, data = raw_result
@@ -242,9 +278,12 @@ class PDFView(wx.ScrolledWindow):
 
         self._bmp_cache[cache_key] = bmp
 
-        if self._is_page_visible(page_idx):
-            self.Refresh(eraseBackground=False)
-
+        if self.mode == self.MODE_FLOW:
+            if any(p == page_idx for p, _ in self._current_bitmaps):
+                wx.CallAfter(self._update_visible_flow_pages)
+        else:
+            if self._is_page_visible(page_idx):
+                self.Refresh(eraseBackground=False)
 
     def _is_page_visible(self, page_index):
         return any(p_idx == page_index for p_idx, _ in self._current_bitmaps)
@@ -285,10 +324,10 @@ class PDFView(wx.ScrolledWindow):
 
         res = self.content_provider.render_to_data(page_index, zoom)
         if not res:
+            print(f"[WARN] render_to_data failed: page={page_index}, zoom={zoom:.4f}")
             return wx.NullBitmap
 
         w, h, data = res
-
         processed_data = self._process_image_data(data, w, h)
 
         img = wx.Image(w, h, processed_data)
@@ -308,9 +347,7 @@ class PDFView(wx.ScrolledWindow):
             return [p]
 
         shift = 1 if self.pad_start else 0
-
         v_p = p + shift
-
         v_base = v_p if (v_p % 2 == 0) else (v_p - 1)
 
         left_idx = v_base - shift
@@ -322,13 +359,11 @@ class PDFView(wx.ScrolledWindow):
                 pages.append(left_idx)
             elif left_idx == -1 and self.pad_start:
                 pages.append(-1)
-
             if right_idx >= 0 and right_idx < n:
                 pages.append(right_idx)
         else:
             if right_idx >= 0 and right_idx < n:
                 pages.append(right_idx)
-
             if left_idx >= 0 and left_idx < n:
                 pages.append(left_idx)
             elif left_idx == -1 and self.pad_start:
@@ -380,7 +415,6 @@ class PDFView(wx.ScrolledWindow):
 
         total_effective_width = w0 + w1 * (h0 / h1)
         width_based_z0 = (avail_w - self.gap) / total_effective_width if total_effective_width > 0 else 0
-
         height_based_z0 = avail_h / h0
 
         z0 = 0.0
@@ -388,11 +422,10 @@ class PDFView(wx.ScrolledWindow):
             z0 = width_based_z0
         elif self.zoom_mode == self.ZOOM_FIT_PAGE:
             z0 = min(width_based_z0, height_based_z0)
-        else:  # Manual zoom
+        else:
             return [self.zoom, self.zoom]
 
         z1 = z0 * (h0 / h1)
-
         return [max(self.MIN_ZOOM, z) for z in [z0, z1]]
 
     def _start_pre_rendering(self):
@@ -413,11 +446,7 @@ class PDFView(wx.ScrolledWindow):
                 continue
 
             cache_key = (page_index, int(self.zoom * 10000))
-
-            if cache_key in self._bmp_cache:
-                continue
-
-            if cache_key in self._requested_pages:
+            if cache_key in self._bmp_cache or cache_key in self._requested_pages:
                 continue
 
             self._requested_pages.add(cache_key)
@@ -428,6 +457,64 @@ class PDFView(wx.ScrolledWindow):
             self.SetVirtualSize((0, 0))
             return
 
+        if self.mode == self.MODE_FLOW:
+            self._refresh_layout_flow()
+        else:
+            self._refresh_layout_paged()
+
+    def _refresh_layout_flow(self):
+        num_pages = self.content_provider.page_count
+        if num_pages == 0:
+            return
+
+        cw, ch = self.GetClientSize()
+        avail_w = max(1, cw - 2 * self.margin)
+
+        w0, h0 = self.content_provider.get_page_size(0)
+        if self.zoom_mode == self.ZOOM_FIT_WIDTH:
+            new_zoom = avail_w / w0
+        elif self.zoom_mode == self.ZOOM_FIT_PAGE:
+            new_zoom = min(avail_w / w0, max(1, ch - 2 * self.margin) / h0)
+        else:
+            new_zoom = self.zoom
+
+        new_zoom = max(self.MIN_ZOOM, min(new_zoom, self.MAX_ZOOM))
+
+        if abs(new_zoom - self.zoom) > 1e-9:
+            self.zoom = new_zoom
+            self._bmp_cache.clear()
+
+        self._flow_page_rects = []
+        current_y = self.margin
+        max_w = 0
+
+        for i in range(num_pages):
+            w_pt, h_pt = self.content_provider.get_page_size(i)
+            w_px = int(w_pt * self.zoom)
+            h_px = int(h_pt * self.zoom)
+
+            x = self.margin
+            if avail_w > w_px:
+                x = self.margin + (avail_w - w_px) // 2
+
+            self._flow_page_rects.append(wx.Rect(x, current_y, w_px, h_px))
+            current_y += h_px + self.gap
+            max_w = max(max_w, w_px)
+
+        total_w = max_w + 2 * self.margin
+        total_h = current_y + self.margin
+
+        self.SetVirtualSize((total_w, total_h))
+
+        if not self._panning and self.page < len(self._flow_page_rects):
+            target_rect = self._flow_page_rects[self.page]
+            spx, spy = self.GetScrollPixelsPerUnit()
+            if spy > 0:
+                self.Scroll(-1, target_rect.y // spy)
+
+        self._update_visible_flow_pages()
+
+    def _refresh_layout_paged(self):
         pages = self._spread_pages()
         if not pages:
             self.SetVirtualSize((0, 0))
@@ -467,7 +554,7 @@ class PDFView(wx.ScrolledWindow):
             content_h = heights[0]
         else:
             content_w = widths[0] + self.gap + widths[1]
-            content_h = heights[0]
+            content_h = max(heights[0], heights[1])
 
         total_w = content_w + 2 * self.margin
         total_h = content_h + 2 * self.margin
@@ -480,6 +567,68 @@ class PDFView(wx.ScrolledWindow):
         if self.main_frame:
             wx.CallAfter(self.main_frame._update_ui)
         self._start_pre_rendering()
+
+    def _update_visible_flow_pages(self):
+        if not self.content_provider or not hasattr(self, '_flow_page_rects') or not self._flow_page_rects:
+            return
+
+        vx, vy = self.GetViewStart()
+        spx, spy = self.GetScrollPixelsPerUnit()
+        scroll_x = vx * spx
+        scroll_y = vy * spy
+        cw, ch = self.GetClientSize()
+
+        view_rect = wx.Rect(scroll_x, scroll_y, cw, ch)
+
+        visible_pages = []
+        max_area = 0
+        best_page = self.page
+
+        for i, rect in enumerate(self._flow_page_rects):
+            if rect.Intersects(view_rect):
+                visible_pages.append(i)
+
+                intersect = wx.Rect(view_rect)
+                intersect.Intersect(rect)
+                area = intersect.width * intersect.height
+
+                if area > max_area:
+                    max_area = area
+                    best_page = i
+            elif rect.y > view_rect.GetBottom():
+                break
+
+        self._current_bitmaps = []
+        for i in visible_pages:
+            cache_key = (i, int(self.zoom * 10000))
+            if cache_key in self._bmp_cache:
+                self._bmp_cache.move_to_end(cache_key)
+                self._current_bitmaps.append((i, self._bmp_cache[cache_key]))
+            else:
+                self._current_bitmaps.append((i, wx.NullBitmap))
+                if cache_key not in self._requested_pages:
+                    self._requested_pages.add(cache_key)
+                    self.render_queue.put((i, self.zoom, self.content_provider))
+
+        while len(self._bmp_cache) > self.MAX_CACHE_SIZE:
+            self._bmp_cache.popitem(last=False)
+
+        if visible_pages:
+            first_vis = visible_pages[0]
+            last_vis = visible_pages[-1]
+
+            for i in range(max(0, first_vis - 2), min(self.content_provider.page_count, last_vis + 3)):
+                cache_key = (i, int(self.zoom * 10000))
+                if cache_key not in self._bmp_cache and cache_key not in self._requested_pages:
+                    self._requested_pages.add(cache_key)
+                    self.render_queue.put((i, self.zoom, self.content_provider))
+
+        if best_page != self.page:
+            self.page = best_page
+            if self.main_frame:
+                wx.CallAfter(self.main_frame._update_ui)
+
+        self.Refresh(eraseBackground=False)
 
     def _draw_centered(self, dc: wx.DC):
         if not self._current_bitmaps:
@@ -514,6 +663,24 @@ class PDFView(wx.ScrolledWindow):
             x1 = base_x + bmp0.GetWidth() + self.gap
             dc.DrawBitmap(bmp1, x1 - ox, base_y - oy, True)
 
+    def _draw_flow(self, dc: wx.DC):
+        if not self._current_bitmaps:
+            return
+
+        origin_x, origin_y = self.GetViewStart()
+        spx, spy = self.GetScrollPixelsPerUnit()
+        ox, oy = origin_x * spx, origin_y * spy
+
+        for page_index, bmp in self._current_bitmaps:
+            if page_index < len(self._flow_page_rects):
+                rect = self._flow_page_rects[page_index]
+                if bmp and bmp.IsOk():
+                    dc.DrawBitmap(bmp, rect.x - ox, rect.y - oy, True)
+                else:
+                    dc.SetBrush(wx.Brush(wx.WHITE))
+                    dc.SetPen(wx.Pen(wx.Colour(200, 200, 200)))
+                    dc.DrawRectangle(rect.x - ox, rect.y - oy, rect.width, rect.height)
+
     # --------------------------
     # Event handlers
     # --------------------------
@@ -523,9 +690,17 @@ class PDFView(wx.ScrolledWindow):
         dc.Clear()
         if self.content_provider and self.content_provider.is_valid:
             try:
-                self._draw_centered(dc)
-            except Exception:
-                pass
+                if self.mode == self.MODE_FLOW:
+                    self._draw_flow(dc)
+                else:
+                    self._draw_centered(dc)
+            except Exception as e:
+                print(f"Paint error: {e}")
+
+    def on_scroll(self, evt):
+        evt.Skip()
+        if self.mode == self.MODE_FLOW:
+            wx.CallAfter(self._update_visible_flow_pages)
 
     def on_mousewheel(self, evt: wx.MouseEvent):
         if evt.ControlDown():
@@ -542,24 +717,35 @@ class PDFView(wx.ScrolledWindow):
                 return
 
             self.zoom_mode = self.ZOOM_MANUAL
+
+            self._bmp_cache.clear()
+            self._requested_pages.clear()
+
+            self.Freeze()
             mx, my = evt.GetPosition()
             vx, vy = self.GetViewStart()
             spx, spy = self.GetScrollPixelsPerUnit()
             anchor_x = vx * spx + mx
             anchor_y = vy * spy + my
 
-            self.Freeze()
             self._refresh_layout()
             scale = self.zoom / old_zoom
             new_scroll_px_x = max(0, int(anchor_x * scale - mx))
             new_scroll_px_y = max(0, int(anchor_y * scale - my))
 
             self.Scroll(new_scroll_px_x // spx if spx else 0, new_scroll_px_y // spy if spy else 0)
-            self.Thaw()
 
+            if self.mode == self.MODE_FLOW:
+                self._update_visible_flow_pages()
+            self.Thaw()
             self.Refresh()
+
+            if self.main_frame:
+                self.main_frame._update_ui()
         else:
             evt.Skip()
+            if self.mode == self.MODE_FLOW:
+                wx.CallAfter(self._update_visible_flow_pages)
 
     def on_right_down(self, evt: wx.MouseEvent):
         if not self.content_provider: return
@@ -581,7 +767,11 @@ class PDFView(wx.ScrolledWindow):
         dx, dy = evt.GetPosition().x - self._pan_start_mouse.x, evt.GetPosition().y - self._pan_start_mouse.y
         start_x, start_y = self._pan_start_view
         self.Scroll(max(0, start_x - int(dx / spx)), max(0, start_y - int(dy / spy)))
-        self.Refresh(False)
+
+        if self.mode == self.MODE_FLOW:
+            self._update_visible_flow_pages()
+        else:
+            self.Refresh(False)
 
     def on_char_hook(self, evt: wx.KeyEvent):
         if not self.content_provider:
@@ -589,6 +779,13 @@ class PDFView(wx.ScrolledWindow):
             return
 
         key = evt.GetKeyCode()
+
+        if self.mode == self.MODE_FLOW:
+            if key in (wx.WXK_UP, wx.WXK_DOWN, wx.WXK_PAGEUP, wx.WXK_PAGEDOWN, wx.WXK_SPACE, wx.WXK_LEFT, wx.WXK_RIGHT):
+                evt.Skip()
+                wx.CallAfter(self._update_visible_flow_pages)
+                return
+
         if self.direction == self.DIR_LTR:
             next_keys = {wx.WXK_RIGHT, wx.WXK_DOWN, wx.WXK_PAGEDOWN, wx.WXK_SPACE}
             prev_keys = {wx.WXK_LEFT, wx.WXK_UP, wx.WXK_PAGEUP, wx.WXK_BACK}
@@ -619,8 +816,33 @@ class PDFView(wx.ScrolledWindow):
             return
 
         click_pos = self.CalcUnscrolledPosition(evt.GetPosition())
+
+        if self.mode == self.MODE_FLOW:
+            if not hasattr(self, '_flow_page_rects'):
+                evt.Skip()
+                return
+
+            for page_index, bmp in self._current_bitmaps:
+                if page_index < len(self._flow_page_rects):
+                    page_rect = self._flow_page_rects[page_index]
+                    if page_rect.Contains(click_pos) and page_index >= 0:
+                        links = self.content_provider.get_links(page_index)
+                        for link in links:
+                            link_rect_pdf = link['from']
+                            link_wx_rect = wx.Rect(
+                                round(page_rect.x + link_rect_pdf.x0 * self.zoom),
+                                round(page_rect.y + link_rect_pdf.y0 * self.zoom),
+                                round(link_rect_pdf.width * self.zoom),
+                                round(link_rect_pdf.height * self.zoom)
+                            )
+                            if link_wx_rect.Contains(click_pos):
+                                self.handle_link_click(link)
+                                return
+            evt.Skip()
+            return
+
         cw, ch = self.GetClientSize()
-        widths = [bmp.GetWidth() for _, bmp in self._current_bitmaps]
+        widths = [bmp.GetWidth() for _, bmp in self._current_bitmaps if bmp.IsOk()]
         if not widths:
             evt.Skip()
             return
@@ -633,6 +855,7 @@ class PDFView(wx.ScrolledWindow):
 
         current_x = base_x
         for page_index, bmp in self._current_bitmaps:
+            if not bmp.IsOk(): continue
             page_rect = wx.Rect(current_x, base_y, bmp.GetWidth(), bmp.GetHeight())
             if page_rect.Contains(click_pos) and page_index >= 0:
                 links = self.content_provider.get_links(page_index)
@@ -646,7 +869,6 @@ class PDFView(wx.ScrolledWindow):
                     )
                     if link_wx_rect.Contains(click_pos):
                         self.handle_link_click(link)
-                        evt.Skip()
                         return
             current_x += bmp.GetWidth() + self.gap
         evt.Skip()
@@ -654,5 +876,4 @@ class PDFView(wx.ScrolledWindow):
     def on_size(self, evt):
         self._refresh_layout()
         self.Refresh(eraseBackground=True)
-
         evt.Skip()

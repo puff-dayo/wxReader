@@ -477,8 +477,10 @@ class MainFrame(wx.Frame):
 
         self.id_single_page = wx.NewIdRef()
         self.id_two_page = wx.NewIdRef()
+        self.id_flow_mode = wx.NewIdRef()
         m_view.AppendRadioItem(self.id_single_page, get_menu_label(_("Single Page View"), "single_page"))
         m_view.AppendRadioItem(self.id_two_page, get_menu_label(_("Two Page View"), "two_page"))
+        m_view.AppendRadioItem(self.id_flow_mode, _("Flow Mode"))
         m_view.AppendSeparator()
 
         self.id_pad_start = wx.NewIdRef()
@@ -679,6 +681,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_mode(PDFView.MODE_SINGLE), self._update_ui()),
                   id=self.id_single_page)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_mode(PDFView.MODE_TWO), self._update_ui()), id=self.id_two_page)
+        self.Bind(wx.EVT_MENU, lambda e: (self.view.set_mode(PDFView.MODE_FLOW), self._update_ui()),
+                  id=self.id_flow_mode)
         self.Bind(wx.EVT_MENU, self.on_toggle_pad_start, id=self.id_pad_start)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_direction(PDFView.DIR_LTR), self._update_ui()), id=self.id_ltr)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_direction(PDFView.DIR_RTL), self._update_ui()), id=self.id_rtl)
@@ -968,6 +972,7 @@ class MainFrame(wx.Frame):
 
         _set_check(self.id_single_page, self.view and self.view.mode == PDFView.MODE_SINGLE)
         _set_check(self.id_two_page, self.view and self.view.mode == PDFView.MODE_TWO)
+        _set_check(self.id_flow_mode, self.view and self.view.mode == PDFView.MODE_FLOW)
 
         _set_check(self.id_pad_start, self.view and self.view.pad_start)
         _set_enable(self.id_pad_start, has_provider and self.view and self.view.mode == PDFView.MODE_TWO)
