@@ -69,6 +69,10 @@ class PDFView(wx.ScrolledWindow):
         self._panning = False
         self._pan_start_mouse = wx.Point(0, 0)
         self._pan_start_view = (0, 0)
+        self._left_down = False
+        self._left_dragged = False
+        self._drag_threshold = 4
+        self._pan_button = None  # "left" or "right"
 
         self.SetScrollRate(20, 20)
 
@@ -81,6 +85,7 @@ class PDFView(wx.ScrolledWindow):
         self.Bind(wx.EVT_MOTION, self.on_mouse_move)
         self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
+        self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
         self.Bind(wx.EVT_SCROLLWIN, self.on_scroll)
 
     # --------------------------
@@ -291,6 +296,22 @@ class PDFView(wx.ScrolledWindow):
     # --------------------------
     # Internals
     # --------------------------
+    def _begin_pan(self, evt: wx.MouseEvent, button: str):
+        if not self.content_provider:
+            return
+        self._panning = True
+        self._pan_button = button
+        self._pan_start_mouse = evt.GetPosition()
+        self._pan_start_view = self.GetViewStart()
+        if not self.HasCapture():
+            self.CaptureMouse()
+
+    def _end_pan(self):
+        self._panning = False
+        self._pan_button = None
+        if self.HasCapture():
+            self.ReleaseMouse()
+
     def _ensure_cache_zoom(self):
         if abs(self.zoom - self._last_cache_zoom) > 1e-9:
             self._bmp_cache.clear()
@@ -748,23 +769,34 @@ class PDFView(wx.ScrolledWindow):
                 wx.CallAfter(self._update_visible_flow_pages)
 
     def on_right_down(self, evt: wx.MouseEvent):
-        if not self.content_provider: return
-        self._panning = True
-        self._pan_start_mouse = evt.GetPosition()
-        self._pan_start_view = self.GetViewStart()
-        self.CaptureMouse()
+        self._begin_pan(evt, "right")
 
     def on_right_up(self, evt: wx.MouseEvent):
-        if self._panning:
-            self._panning = False
-            if self.HasCapture(): self.ReleaseMouse()
+        if self._pan_button == "right":
+            self._end_pan()
 
     def on_mouse_move(self, evt: wx.MouseEvent):
-        if not (self._panning and evt.Dragging() and evt.RightIsDown()): return
-        spx, spy = self.GetScrollPixelsPerUnit()
-        if spx == 0 or spy == 0: return
+        if not (self._panning and evt.Dragging()):
+            return
 
-        dx, dy = evt.GetPosition().x - self._pan_start_mouse.x, evt.GetPosition().y - self._pan_start_mouse.y
+        if self._pan_button == "left" and not evt.LeftIsDown():
+            self._end_pan()
+            return
+        if self._pan_button == "right" and not evt.RightIsDown():
+            self._end_pan()
+            return
+
+        spx, spy = self.GetScrollPixelsPerUnit()
+        if spx == 0 or spy == 0:
+            return
+
+        dx = evt.GetPosition().x - self._pan_start_mouse.x
+        dy = evt.GetPosition().y - self._pan_start_mouse.y
+
+        if self._pan_button == "left":
+            if abs(dx) >= self._drag_threshold or abs(dy) >= self._drag_threshold:
+                self._left_dragged = True
+
         start_x, start_y = self._pan_start_view
         self.Scroll(max(0, start_x - int(dx / spx)), max(0, start_y - int(dy / spy)))
 
@@ -811,6 +843,24 @@ class PDFView(wx.ScrolledWindow):
             if uri: webbrowser.open(uri)
 
     def on_left_down(self, evt: wx.MouseEvent):
+        if not self.content_provider:
+            evt.Skip()
+            return
+
+        self._left_down = True
+        self._left_dragged = False
+        self._begin_pan(evt, "left")
+
+    def on_left_up(self, evt: wx.MouseEvent):
+        was_dragged = self._left_dragged
+        self._left_down = False
+
+        if self._pan_button == "left":
+            self._end_pan()
+
+        if was_dragged:
+            return
+
         if not self.content_provider:
             evt.Skip()
             return
