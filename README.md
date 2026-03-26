@@ -66,6 +66,14 @@ Build/run from source: see below ↓
 
 ---
 
+## Minimum GPU Requirements
+
+GPU that supports OpenGL 2.1 should be compatible, which typically includes:<br>
+Intel Graphics: GMA 950 and later <br>
+NVIDIA: GeForce 6000 series and later<br>
+AMD/ATI: Radeon X1000 series and later<br>
+All-in-wonder: ATI X600 series and later
+
 ## Installation
 
 ### Windows
