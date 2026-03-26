@@ -238,8 +238,17 @@ class MainFrame(wx.Frame):
         self.splitter.SetSashGravity(0.0)
         self.splitter.Unsplit(self.sidebar)
 
-        self.status_bar = self.CreateStatusBar(1)
+        self.status_bar = self.CreateStatusBar(2)
         self.status_bar.SetFont(get_app_font())
+        # left status text, right progress bar
+        self.status_bar.SetStatusWidths([-1, 160])
+        self.reading_progress = wx.Gauge(
+            self.status_bar,
+            range=100,
+            style=wx.GA_HORIZONTAL | wx.GA_SMOOTH
+        )
+        self.status_bar.Bind(wx.EVT_SIZE, self.on_statusbar_resize)
+        wx.CallAfter(self.on_statusbar_resize, None)
 
         # self._add_new_tab()
 
@@ -891,6 +900,15 @@ class MainFrame(wx.Frame):
         self._toggle_tree_tooltips(is_active)
         evt.Skip()
 
+    def on_statusbar_resize(self, evt):
+        if hasattr(self, "reading_progress") and self.reading_progress:
+            rect = self.status_bar.GetFieldRect(1)
+            pad = 3
+            self.reading_progress.SetPosition((rect.x + pad, rect.y + pad))
+            self.reading_progress.SetSize((max(10, rect.width - pad * 2), max(10, rect.height - pad * 2)))
+        if evt:
+            evt.Skip()
+
     def on_fv_hover(self, evt):
         if not self.IsActive():
             evt.Skip()
@@ -1012,11 +1030,13 @@ class MainFrame(wx.Frame):
                           f"{server_info}")
             if is_reflowable:
                 status_txt += f" | Font Size: {self.epub_font_size}pt"
-            self.SetStatusText(status_txt)
+            self.status_bar.SetStatusText(status_txt, 0)
+            self.reading_progress.SetValue(int(progress_pct))
+            self.reading_progress.Show()
         else:
-            self.SetStatusText("Welcome to wxReader - File->Open or Drag-and-drop a file to begin.")
-            # if self.splitter.IsSplit():
-            #     self.splitter.Unsplit(self.sidebar)
+            self.status_bar.SetStatusText("Welcome to wxReader - File->Open or Drag-and-drop a file to begin.", 0)
+            self.reading_progress.SetValue(0)
+            self.reading_progress.Hide()
 
     # --- Actions ---
 
