@@ -4,8 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
 dependencies = [
-    "imageio>=2.37.2",
-    "nuitka>=4.0.1",
+    "babel==2.18.0",
+    "imageio==2.37.3",
+    "nuitka==4.0.7",
     "numpy>=2.3.5",
     "py7zr>=1.1.0",
     "pymupdf==1.23.8",
