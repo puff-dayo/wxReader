@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import math
 import queue
 import threading
 import webbrowser
+from collections import OrderedDict
 
 import fitz  # PyMuPDF
 import numpy as np
 import wx
-from collections import OrderedDict
 
+from wxReaderIcon import get_app_font
 from wxReaderProvider import ContentProvider
+
+
+def _(text):
+    return wx.GetTranslation(text)
 
 
 class PDFView(wx.ScrolledWindow):
@@ -54,6 +60,22 @@ class PDFView(wx.ScrolledWindow):
 
         self.is_scroll_locked = False
 
+        # Right-button radial menu
+        self._radial_hold_ms = 32
+        self._radial_deadzone = 18
+        self._radial_outer_radius = 182
+        self._radial_inner_radius = 45
+
+        self._radial_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_radial_timer, self._radial_timer)
+
+        self._right_down = False
+        self._right_press_pos = wx.Point(0, 0)
+        self._radial_visible = False
+        self._radial_center = wx.Point(0, 0)
+        self._radial_hover_index = -1
+        self._radial_items = []
+
         # {(page_index): wx.Bitmap}
         self._bmp_cache: OrderedDict[tuple[int, int], wx.Bitmap] = OrderedDict()
         self._pre_render_timer = wx.Timer(self)
@@ -87,6 +109,19 @@ class PDFView(wx.ScrolledWindow):
         self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
         self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
         self.Bind(wx.EVT_SCROLLWIN, self.on_scroll)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.on_mouse_leave)
+
+    def _build_radial_items(self):
+        return [
+            {"label": _("Nav Up"), "action": self.go_prev},
+            {"label": _("Nav Down"), "action": self.go_next},
+            {"label": _("Single P"), "action": lambda: self.set_mode(self.MODE_SINGLE)},
+            {"label": _("Double P"), "action": lambda: self.set_mode(self.MODE_TWO)},
+            {"label": _("Zoom In"), "action": self._radial_zoom_in},
+            {"label": _("Zoom Out"), "action": self._radial_zoom_out},
+            {"label": _("Fit Page"), "action": lambda: self.set_zoom_mode(self.ZOOM_FIT_PAGE)},
+            {"label": _("Fit Width"), "action": lambda: self.set_zoom_mode(self.ZOOM_FIT_WIDTH)},
+        ]
 
     # --------------------------
     # public api
@@ -312,6 +347,22 @@ class PDFView(wx.ScrolledWindow):
         if self.HasCapture():
             self.ReleaseMouse()
 
+    def _radial_zoom_in(self):
+        self.set_zoom_mode(self.ZOOM_MANUAL)
+        self.zoom = min(self.MAX_ZOOM, self.zoom * 1.2)
+        self._refresh_layout()
+        self.Refresh()
+        if self.main_frame:
+            self.main_frame._update_ui()
+
+    def _radial_zoom_out(self):
+        self.set_zoom_mode(self.ZOOM_MANUAL)
+        self.zoom = max(self.MIN_ZOOM, self.zoom / 1.2)
+        self._refresh_layout()
+        self.Refresh()
+        if self.main_frame:
+            self.main_frame._update_ui()
+
     def _ensure_cache_zoom(self):
         if abs(self.zoom - self._last_cache_zoom) > 1e-9:
             self._bmp_cache.clear()
@@ -376,16 +427,16 @@ class PDFView(wx.ScrolledWindow):
 
         pages = []
         if self.direction == self.DIR_LTR:
-            if left_idx >= 0 and left_idx < n:
+            if 0 <= left_idx < n:
                 pages.append(left_idx)
             elif left_idx == -1 and self.pad_start:
                 pages.append(-1)
-            if right_idx >= 0 and right_idx < n:
+            if 0 <= right_idx < n:
                 pages.append(right_idx)
         else:
-            if right_idx >= 0 and right_idx < n:
+            if 0 <= right_idx < n:
                 pages.append(right_idx)
-            if left_idx >= 0 and left_idx < n:
+            if 0 <= left_idx < n:
                 pages.append(left_idx)
             elif left_idx == -1 and self.pad_start:
                 pages.append(-1)
@@ -702,6 +753,131 @@ class PDFView(wx.ScrolledWindow):
                     dc.SetPen(wx.Pen(wx.Colour(200, 200, 200)))
                     dc.DrawRectangle(rect.x - ox, rect.y - oy, rect.width, rect.height)
 
+    @staticmethod
+    def _make_radial_sector_path(gc, cx, cy, inner_r, outer_r, a0_deg, a1_deg):
+        a0 = math.radians(-a0_deg)
+        a1 = math.radians(-a1_deg)
+
+        path = gc.CreatePath()
+
+        x0o = cx + math.cos(a0) * outer_r
+        y0o = cy + math.sin(a0) * outer_r
+        x1o = cx + math.cos(a1) * outer_r
+        y1o = cy + math.sin(a1) * outer_r
+
+        x1i = cx + math.cos(a1) * inner_r
+        y1i = cy + math.sin(a1) * inner_r
+        x0i = cx + math.cos(a0) * inner_r
+        y0i = cy + math.sin(a0) * inner_r
+
+        path.MoveToPoint(x0o, y0o)
+        path.AddArc(cx, cy, outer_r, a0, a1, False)
+        path.AddLineToPoint(x1i, y1i)
+        path.AddArc(cx, cy, inner_r, a1, a0, True)
+        path.CloseSubpath()
+
+        return path
+
+    def _draw_radial_menu(self, gc: wx.GraphicsContext):
+        cx = float(self._radial_center.x)
+        cy = float(self._radial_center.y)
+
+        items = self._radial_items
+        count = len(items)
+        if count == 0:
+            return
+
+        outer_r = float(self._radial_outer_radius)
+        inner_r = float(self._radial_inner_radius)
+        text_r = (outer_r + inner_r) / 2.0
+
+        font = get_app_font(2)
+        gc.SetFont(font, wx.Colour(245, 245, 245))
+
+        gc.SetPen(wx.Pen(wx.Colour(0, 0, 0, 0), 0))
+        gc.SetBrush(wx.Brush(wx.Colour(0, 0, 0, 60)))
+        gc.DrawEllipse(cx - outer_r - 4, cy - outer_r + 5, outer_r * 2, outer_r * 2)
+
+        sector_size = 360.0 / count
+        start_offset = -sector_size / 2.0
+
+        for i, item in enumerate(items):
+            a0 = start_offset + i * sector_size
+            a1 = a0 + sector_size
+
+            path = self._make_radial_sector_path(gc, cx, cy, inner_r, outer_r, a0, a1)
+
+            hovered = (i == self._radial_hover_index)
+
+            if hovered:
+                pen = wx.Pen(wx.Colour(255, 210, 110, 235), 2)
+                brush = wx.Brush(wx.Colour(255, 210, 110, 125))
+            else:
+                pen = wx.Pen(wx.Colour(235, 235, 235, 60), 1)
+                brush = wx.Brush(wx.Colour(52, 56, 64, 220))
+
+            gc.SetPen(pen)
+            gc.SetBrush(brush)
+            gc.FillPath(path)
+            gc.StrokePath(path)
+
+        gc.SetPen(wx.Pen(wx.Colour(255, 255, 255, 40), 1))
+        gc.SetBrush(wx.Brush(wx.Colour(28, 30, 36, 235)))
+        gc.DrawEllipse(cx - inner_r, cy - inner_r, inner_r * 2, inner_r * 2)
+
+        center_label = _("Cancel")
+        tw, th = gc.GetTextExtent(center_label)
+        gc.SetFont(font, wx.Colour(230, 230, 230))
+        gc.DrawText(center_label, cx - tw / 2, cy - th / 2)
+
+        gc.SetPen(wx.Pen(wx.Colour(255, 255, 255, 35), 1))
+        for i in range(count):
+            angle_deg = start_offset + i * sector_size
+            rad = math.radians(angle_deg)
+            x0 = cx + math.cos(rad) * inner_r
+            y0 = cy - math.sin(rad) * inner_r
+            x1 = cx + math.cos(rad) * outer_r
+            y1 = cy - math.sin(rad) * outer_r
+            gc.StrokeLine(x0, y0, x1, y1)
+
+        for i, item in enumerate(items):
+            mid_deg = start_offset + (i + 0.5) * sector_size
+            rad = math.radians(mid_deg)
+
+            tx = cx + math.cos(rad) * text_r
+            ty = cy - math.sin(rad) * text_r
+
+            label = item["label"]
+
+            if i == self._radial_hover_index:
+                gc.SetFont(font, wx.Colour(255, 248, 220))
+            else:
+                gc.SetFont(font, wx.Colour(245, 245, 245))
+
+            tw, th = gc.GetTextExtent(label)
+            gc.DrawText(label, tx - tw / 2, ty - th / 2)
+
+    def _update_radial_hover(self, pos: wx.Point):
+        dx = pos.x - self._radial_center.x
+        dy = pos.y - self._radial_center.y
+        dist = math.hypot(dx, dy)
+
+        if dist < self._radial_inner_radius:
+            self._radial_hover_index = -1
+            return
+
+        if dist > self._radial_outer_radius + 24:
+            self._radial_hover_index = -1
+            return
+
+        angle = math.degrees(math.atan2(-dy, dx)) % 360.0
+
+        sector_count = len(self._radial_items)
+        sector_size = 360.0 / sector_count
+
+        angle = (angle + sector_size / 2.0) % 360.0
+        self._radial_hover_index = int(angle // sector_size)
+
     # --------------------------
     # Event handlers
     # --------------------------
@@ -709,6 +885,7 @@ class PDFView(wx.ScrolledWindow):
         dc = wx.AutoBufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.bgColor))
         dc.Clear()
+
         if self.content_provider and self.content_provider.is_valid:
             try:
                 if self.mode == self.MODE_FLOW:
@@ -717,6 +894,11 @@ class PDFView(wx.ScrolledWindow):
                     self._draw_centered(dc)
             except Exception as e:
                 print(f"Paint error: {e}")
+
+        if self._radial_visible:
+            gc = wx.GraphicsContext.Create(dc)
+            if gc:
+                self._draw_radial_menu(gc)
 
     def on_scroll(self, evt):
         evt.Skip()
@@ -769,14 +951,65 @@ class PDFView(wx.ScrolledWindow):
                 wx.CallAfter(self._update_visible_flow_pages)
 
     def on_right_down(self, evt: wx.MouseEvent):
-        self._begin_pan(evt, "right")
+        if not self.content_provider:
+            evt.Skip()
+            return
+
+        self._right_down = True
+        self._radial_visible = False
+        self._radial_hover_index = -1
+        self._right_press_pos = evt.GetPosition()
+        self._radial_center = evt.GetPosition()
+        self._radial_items = self._build_radial_items()
+
+        self._radial_timer.Stop()
+        self._radial_timer.Start(self._radial_hold_ms, wx.TIMER_ONE_SHOT)
+
+        if not self.HasCapture():
+            self.CaptureMouse()
+
+    def _on_radial_timer(self, evt):
+        if not self._right_down:
+            return
+
+        self._radial_visible = True
+        self._radial_center = wx.Point(self._right_press_pos.x, self._right_press_pos.y)
+        self._radial_hover_index = -1
+        self.Refresh(False)
 
     def on_right_up(self, evt: wx.MouseEvent):
-        if self._pan_button == "right":
-            self._end_pan()
+        trigger_index = self._radial_hover_index if self._radial_visible else -1
+
+        self._radial_timer.Stop()
+        self._right_down = False
+
+        if self.HasCapture():
+            self.ReleaseMouse()
+
+        was_visible = self._radial_visible
+        self._radial_visible = False
+        self._radial_hover_index = -1
+        self.Refresh(False)
+
+        if was_visible and 0 <= trigger_index < len(self._radial_items):
+            action = self._radial_items[trigger_index].get("action")
+            if callable(action):
+                action()
+
+    def on_mouse_leave(self, evt):
+        if self._radial_visible:
+            self._radial_hover_index = -1
+            self.Refresh(False)
+        evt.Skip()
 
     def on_mouse_move(self, evt: wx.MouseEvent):
+        if self._right_down and self._radial_visible:
+            self._update_radial_hover(evt.GetPosition())
+            self.Refresh(False)
+            return
+
         if not (self._panning and evt.Dragging()):
+            evt.Skip()
             return
 
         if self._pan_button == "left" and not evt.LeftIsDown():
