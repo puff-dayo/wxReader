@@ -3,6 +3,8 @@ import io
 import os
 import threading
 
+import re
+
 import fitz  # PyMuPDF
 import pyvips
 import pyzipper
@@ -11,6 +13,10 @@ import wx
 import py7zr
 
 from wxReaderString import IMAGE_EXTENSIONS
+
+
+def _natural_sort_key(s: str):
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
 
 
 class ContentProvider(abc.ABC):
@@ -226,7 +232,7 @@ class ArchiveContentProvider(ContentProvider):
         self.image_list = sorted([
             f for f in all_files
             if not f.startswith('__MACOSX') and os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
-        ])
+        ], key=_natural_sort_key)
 
         if self.image_list:
             test_file = self.image_list[0]
@@ -449,6 +455,7 @@ class ArchiveContentProvider(ContentProvider):
             print(f"[ERROR] pyvips failed to get thumbnail for {self.path}: {e}")
             return None
 
+
 class SevenZipContentProvider(ContentProvider):
     _cached_passwords = None
 
@@ -480,7 +487,7 @@ class SevenZipContentProvider(ContentProvider):
         self.image_list = sorted([
             f for f in all_files
             if not f.startswith('__MACOSX') and os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS
-        ])
+        ], key=_natural_sort_key)
 
         if self.sz_file and self.image_list:
             test_file = self.image_list[0]
