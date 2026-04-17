@@ -100,6 +100,7 @@ jobs:
           uv --project . run python -m nuitka ^
             --mode=standalone ^
             --lto=yes ^
+            --assume-yes-for-downloads ^
             --output-dir=build ^
             --follow-imports ^
             --nofollow-import-to=tkinter ^
