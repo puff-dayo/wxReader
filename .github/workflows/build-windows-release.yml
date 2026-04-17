@@ -94,6 +94,8 @@ jobs:
 
       - name: Build with Nuitka
         shell: cmd
+        env:
+          NUITKA_ALLOW_DOWNLOADS: "1"
         run: |
           uv --project . run python -m nuitka ^
             --mode=standalone ^
