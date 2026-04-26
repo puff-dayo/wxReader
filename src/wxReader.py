@@ -120,7 +120,9 @@ class MainFrame(wx.Frame):
         self.quality_preference = 0
 
         self.epub_font_size = 12
+
         self.show_tabbar = bool(cfg.get("show_tabbar", True))
+        self.multi_tab_mode = bool(cfg.get("multi_tab_mode", True))
 
         self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3D)
         self.splitter.SetMinimumPaneSize(50)
@@ -292,7 +294,18 @@ class MainFrame(wx.Frame):
         last = cfg.get("last_file", "")
         last_files = cfg.get("last_files", [])
         self.reopen_last_files = bool(cfg.get("reopen_last_files", True))
-        files_to_load = (last_files if last_files else ([last] if last else [])) if self.reopen_last_files else []
+        if self.reopen_last_files:
+            if self.multi_tab_mode:
+                files_to_load = last_files if last_files else ([last] if last else [])
+            else:
+                if last_files:
+                    files_to_load = [last_files[-1]]
+                elif last:
+                    files_to_load = [last]
+                else:
+                    files_to_load = []
+        else:
+            files_to_load = []
 
         def _load_previous_files():
             for f in files_to_load:
@@ -478,6 +491,9 @@ class MainFrame(wx.Frame):
 
         self.id_show_tabbar = wx.NewIdRef()
         _add_item(m_view, self.id_show_tabbar, _("Show &Tab-bar"), kind=wx.ITEM_CHECK)
+
+        self.id_multi_tab_mode = wx.NewIdRef()
+        _add_item(m_view, self.id_multi_tab_mode, _("Multi-tab Mode"), kind=wx.ITEM_CHECK)
 
         self.id_split_tabs = wx.NewIdRef()
         _add_item(m_view, self.id_split_tabs, _("Split Top Bar Tabs"))
@@ -685,6 +701,7 @@ class MainFrame(wx.Frame):
         # View
         self.Bind(wx.EVT_MENU, self.on_toggle_sidebar, id=self.id_sidebar_toggle)
         self.Bind(wx.EVT_MENU, self.on_toggle_tabbar, id=self.id_show_tabbar)
+        self.Bind(wx.EVT_MENU, self.on_toggle_multi_tab_mode, id=self.id_multi_tab_mode)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
         self.Bind(wx.EVT_MENU, self.on_split_tabs, id=self.id_split_tabs)
         self.Bind(wx.EVT_MENU, lambda e: (self.view.set_mode(PDFView.MODE_SINGLE), self._update_ui()),
@@ -951,6 +968,60 @@ class MainFrame(wx.Frame):
         save_config(cfg)
         self._update_ui()
 
+    def _save_view_progress(self, view: PDFView | None):
+        if not view:
+            return
+        if getattr(view, "content_provider", None) and view.content_provider.path:
+            if hasattr(self, "file_progress"):
+                self.file_progress[view.content_provider.path] = view.page
+
+    def _close_view_provider(self, view: PDFView | None):
+        if not view:
+            return
+        self._save_view_progress(view)
+        if getattr(view, "content_provider", None):
+            try:
+                view.content_provider.close()
+            except Exception:
+                pass
+            view.set_content_provider(None)
+
+    def _keep_only_current_tab(self):
+        if self.notebook.GetPageCount() == 0:
+            self._add_new_tab()
+            return
+
+        keep_idx = self.notebook.GetSelection()
+        if keep_idx == wx.NOT_FOUND:
+            keep_idx = 0
+            self.notebook.SetSelection(0)
+
+        for i in range(self.notebook.GetPageCount() - 1, -1, -1):
+            if i == keep_idx:
+                continue
+
+            page = self.notebook.GetPage(i)
+            self._close_view_provider(page)
+            self.notebook.DeletePage(i)
+
+            if i < keep_idx:
+                keep_idx -= 1
+
+        self.notebook.SetSelection(max(0, keep_idx))
+
+    def on_toggle_multi_tab_mode(self, evt):
+        self.multi_tab_mode = bool(evt.IsChecked())
+
+        cfg = load_config()
+        cfg["multi_tab_mode"] = self.multi_tab_mode
+        save_config(cfg)
+
+        if not self.multi_tab_mode:
+            self._keep_only_current_tab()
+
+        self._update_tabbar_visibility()
+        self._update_ui()
+
     def on_split_tabs(self, evt):
         if self.notebook.GetPageCount() < 2:
             show_toast(self, _("Need at least 2 tabs to split."))
@@ -980,6 +1051,8 @@ class MainFrame(wx.Frame):
         _set_enable(self.id_sidebar_toggle, has_provider)
         _set_check(self.id_sidebar_toggle, self.splitter.IsSplit())
         _set_check(self.id_show_tabbar, getattr(self, "show_tabbar", True))
+        _set_check(self.id_multi_tab_mode, getattr(self, "multi_tab_mode", True))
+        _set_enable(self.id_split_tabs, getattr(self, "multi_tab_mode", True) and self.notebook.GetPageCount() >= 2)
 
         _set_enable(self.id_font_increase, is_reflowable)
         _set_enable(self.id_font_decrease, is_reflowable)
@@ -1048,10 +1121,21 @@ class MainFrame(wx.Frame):
 
     def _load_file(self, path):
         v = self.view
-        if v and v.content_provider:
-            v = self._add_new_tab()
-        elif not v:
-            v = self._add_new_tab()
+
+        if self.multi_tab_mode:
+            if v and v.content_provider:
+                v = self._add_new_tab()
+            elif not v:
+                v = self._add_new_tab()
+        else:
+            self._keep_only_current_tab()
+            v = self.view
+
+            if not v:
+                v = self._add_new_tab()
+
+            if v.content_provider:
+                self._close_view_provider(v)
 
         ext = os.path.splitext(path)[1].lower()
 
@@ -1621,6 +1705,8 @@ class MainFrame(wx.Frame):
                     self.file_progress[page.content_provider.path] = page.page
 
         v = self.view
+        last_file = self.content_provider.path if self.content_provider else ""
+
         if v:
             v.stop_worker()
             v.content_provider = None
@@ -1630,13 +1716,15 @@ class MainFrame(wx.Frame):
             cfg = load_config()
             current_cfg = {
                 "show_sidebar": self.splitter.IsSplit(),
+                "multi_tab_mode": self.multi_tab_mode,
+                "show_tabbar": self.show_tabbar,
                 "view_mode": v.mode if v else PDFView.MODE_TWO,
                 "direction": v.direction if v else PDFView.DIR_LTR,
                 "pad_start": v.pad_start if v else False,
                 "zoom_mode": v.zoom_mode if v else PDFView.ZOOM_FIT_PAGE,
                 "epub_font_size": self.epub_font_size,
                 "recent_files": self.recent_files,
-                "last_file": (self.content_provider.path if self.content_provider else ""),
+                "last_file": last_file,
                 "last_files": last_files,
                 "file_progress": self.file_progress,
                 "reopen_last_files": self.reopen_last_files,
