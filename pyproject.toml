@@ -6,8 +6,8 @@ requires-python = ">=3.12"
 dependencies = [
     "babel==2.18.0",
     "imageio==2.37.3",
-    "nuitka==4.0.7",
-    "numpy>=2.3.5",
+    "nuitka==4.0.8",
+    "numpy>=2.4.4",
     "py7zr>=1.1.0",
     "pymupdf==1.23.8",
     "pyopengl>=3.1.10",
@@ -15,6 +15,7 @@ dependencies = [
     "pywinstyles>=1.8",
     "pyzipper>=0.3.6",
     "wxpython>=4.2.5",
+    "pillow>=12.2.0",
 ]
 
 [project.optional-dependencies]
