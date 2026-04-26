@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag'
+        description: 'Release tag (e.g. v1.5.1)'
         required: true
         default: 'v1.5.1'
 
@@ -43,6 +43,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
+          enable-cache: "auto"
 
       - name: Install project dependencies
         shell: cmd
@@ -51,7 +52,7 @@ jobs:
       - name: Download libvips v8.18.2 (win64 all)
         shell: pwsh
         run: |
-          $url = "https://github.com/libvips/build-win64-mxe/releases/download/v8.18.2/vips-dev-w64-all-8.18.2.zip"
+          $url = "https://github.com/libvips/build-win64-mxe/releases/download/v8.18.2/vips-dev-x64-all-8.18.2.zip"
           Invoke-WebRequest -Uri $url -OutFile "vips.zip"
 
       - name: Extract required libvips DLLs into src\
@@ -64,13 +65,16 @@ jobs:
             "libvips-cpp-42.dll"
           )
           Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $zip  = [System.IO.Compression.ZipFile]::OpenRead("vips.zip")
+          $zip = [System.IO.Compression.ZipFile]::OpenRead("vips.zip")
           foreach ($entry in $zip.Entries) {
-            $file = [System.IO.Path]::GetFileName($entry.FullName)
-            if ($needed -contains $file) {
-              $dest = Join-Path "src" $file
-              Write-Host "Extracting $file -> $dest"
-              [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $dest, $true)
+            # Files live at vips-dev-8.18/bin/<name>.dll inside the zip
+            if ($entry.FullName -like "vips-dev-8.18/bin/*") {
+              $file = [System.IO.Path]::GetFileName($entry.FullName)
+              if ($needed -contains $file) {
+                $dest = Join-Path "src" $file
+                Write-Host "Extracting $($entry.FullName) -> $dest"
+                [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $dest, $true)
+              }
             }
           }
           $zip.Dispose()
@@ -91,10 +95,13 @@ jobs:
 
       - name: Build with Nuitka
         shell: cmd
+        env:
+          NUITKA_ALLOW_DOWNLOADS: "1"
         run: |
           uv --project . run python -m nuitka ^
             --mode=standalone ^
             --lto=yes ^
+            --assume-yes-for-downloads ^
             --output-dir=build ^
             --follow-imports ^
             --nofollow-import-to=tkinter ^
