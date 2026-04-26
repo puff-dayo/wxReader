@@ -74,6 +74,9 @@ class ContentProvider(abc.ABC):
     def set_render_quality(self, high_quality: int):
         self.high_quality_render = high_quality
 
+    def set_memory_profile(self, profile: dict):
+        pass
+
 
 class PdfContentProvider(ContentProvider):
     def __init__(self, path: str):
@@ -344,6 +347,13 @@ class ArchiveContentProvider(ContentProvider):
     @property
     def is_valid(self) -> bool:
         return self.zip_file is not None
+
+    def set_memory_profile(self, profile: dict):
+        self._img_cache_limit = int(profile.get("source_image_cache_pages", 32))
+
+        while len(self._img_cache) > self._img_cache_limit:
+            first_key = next(iter(self._img_cache.keys()))
+            del self._img_cache[first_key]
 
     def close(self):
         self._img_cache.clear()
@@ -716,6 +726,13 @@ class SevenZipContentProvider(ContentProvider):
     @property
     def is_valid(self) -> bool:
         return self.sz_file is not None
+
+    def set_memory_profile(self, profile: dict):
+        self._img_cache_limit = int(profile.get("source_image_cache_pages", 32))
+
+        while len(self._img_cache) > self._img_cache_limit:
+            first_key = next(iter(self._img_cache.keys()))
+            del self._img_cache[first_key]
 
     def close(self):
         self._img_cache.clear()

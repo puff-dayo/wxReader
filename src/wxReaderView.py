@@ -18,6 +18,50 @@ def _(text):
     return wx.GetTranslation(text)
 
 
+MEMORY_PROFILES = {
+    "potato": {
+        "label": "Potato",
+        "bitmap_cache_pages": 4,
+        "source_image_cache_pages": 2,
+        "prerender_before": 0,
+        "prerender_after": 1,
+        "max_pending_render_tasks": 1,
+    },
+    "low": {
+        "label": "Low",
+        "bitmap_cache_pages": 8,
+        "source_image_cache_pages": 4,
+        "prerender_before": 0,
+        "prerender_after": 2,
+        "max_pending_render_tasks": 2,
+    },
+    "balanced": {
+        "label": "Balanced",
+        "bitmap_cache_pages": 18,
+        "source_image_cache_pages": 8,
+        "prerender_before": 1,
+        "prerender_after": 3,
+        "max_pending_render_tasks": 4,
+    },
+    "default": {
+        "label": "Default",
+        "bitmap_cache_pages": 36,
+        "source_image_cache_pages": 32,
+        "prerender_before": 4,
+        "prerender_after": 5,
+        "max_pending_render_tasks": 10,
+    },
+    "performance": {
+        "label": "Performance",
+        "bitmap_cache_pages": 64,
+        "source_image_cache_pages": 48,
+        "prerender_before": 6,
+        "prerender_after": 10,
+        "max_pending_render_tasks": 16,
+    },
+}
+
+
 class PDFView(wx.ScrolledWindow):
     MODE_SINGLE = "single"
     MODE_TWO = "two"
@@ -47,6 +91,13 @@ class PDFView(wx.ScrolledWindow):
         self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
         self.worker_thread.start()
         self._requested_pages = set()
+
+        self.memory_profile_name = "default"
+        self.memory_profile = MEMORY_PROFILES["default"]
+        self.max_bitmap_cache_pages = self.memory_profile["bitmap_cache_pages"]
+        self.prerender_before = self.memory_profile["prerender_before"]
+        self.prerender_after = self.memory_profile["prerender_after"]
+        self.max_pending_render_tasks = self.memory_profile["max_pending_render_tasks"]
 
         # State
         self.content_provider: ContentProvider | None = None
@@ -131,7 +182,12 @@ class PDFView(wx.ScrolledWindow):
     def set_content_provider(self, provider: ContentProvider | None):
         self._bmp_cache.clear()
         self._current_bitmaps.clear()
+        self._requested_pages.clear()
         self.content_provider = provider
+
+        if self.content_provider and hasattr(self.content_provider, "set_memory_profile"):
+            self.content_provider.set_memory_profile(self.memory_profile)
+
         self.page = 0
         self.zoom = 1.0
         self.zoom_mode = self.ZOOM_FIT_PAGE
@@ -184,6 +240,30 @@ class PDFView(wx.ScrolledWindow):
         self.gap = g
         self._refresh_layout()
         self.Refresh()
+
+    def set_memory_profile_name(self, name: str):
+        if name not in MEMORY_PROFILES:
+            name = "default"
+        self.set_memory_profile(name, MEMORY_PROFILES[name])
+
+    def set_memory_profile(self, name: str, profile: dict):
+        self.memory_profile_name = name
+        self.memory_profile = profile
+
+        self.max_bitmap_cache_pages = int(profile.get("bitmap_cache_pages", self.MAX_CACHE_SIZE))
+        self.prerender_before = int(profile.get("prerender_before", 4))
+        self.prerender_after = int(profile.get("prerender_after", 5))
+        self.max_pending_render_tasks = int(profile.get("max_pending_render_tasks", 10))
+
+        self._trim_bitmap_cache()
+
+        if self.content_provider and hasattr(self.content_provider, "set_memory_profile"):
+            self.content_provider.set_memory_profile(profile)
+
+    def _trim_bitmap_cache(self):
+        limit = getattr(self, "max_bitmap_cache_pages", self.MAX_CACHE_SIZE)
+        while len(self._bmp_cache) > limit:
+            self._bmp_cache.popitem(last=False)
 
     def go_next(self):
         if not self.content_provider:
@@ -381,7 +461,8 @@ class PDFView(wx.ScrolledWindow):
             self._bmp_cache.move_to_end(cache_key)
             return self._bmp_cache[cache_key]
 
-        if len(self._bmp_cache) >= self.MAX_CACHE_SIZE:
+        limit = getattr(self, "max_bitmap_cache_pages", self.MAX_CACHE_SIZE)
+        if len(self._bmp_cache) >= limit:
             self._bmp_cache.popitem(last=False)
 
         if page_index < 0:
@@ -516,10 +597,20 @@ class PDFView(wx.ScrolledWindow):
         if not self.content_provider:
             return
 
+        before = getattr(self, "prerender_before", 4)
+        after = getattr(self, "prerender_after", 5)
+        max_pending = getattr(self, "max_pending_render_tasks", 10)
+
+        if len(self._requested_pages) >= max_pending:
+            return
+
         anchor = self.page
-        pages_to_check = range(anchor - 4, anchor + 6)
+        pages_to_check = range(anchor - before, anchor + after + 1)
 
         for page_index in pages_to_check:
+            if len(self._requested_pages) >= max_pending:
+                break
+
             if not (0 <= page_index < self.content_provider.page_count):
                 continue
 
@@ -707,12 +798,12 @@ class PDFView(wx.ScrolledWindow):
                 self._current_bitmaps.append((i, self._bmp_cache[cache_key]))
             else:
                 self._current_bitmaps.append((i, wx.NullBitmap))
-                if cache_key not in self._requested_pages:
+                max_pending = getattr(self, "max_pending_render_tasks", 10)
+                if cache_key not in self._requested_pages and len(self._requested_pages) < max_pending:
                     self._requested_pages.add(cache_key)
                     self.render_queue.put((i, zoom_i, self.content_provider))
 
-        while len(self._bmp_cache) > self.MAX_CACHE_SIZE:
-            self._bmp_cache.popitem(last=False)
+        self._trim_bitmap_cache()
 
         if visible_pages:
             first_vis = visible_pages[0]

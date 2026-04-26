@@ -25,7 +25,7 @@ from wxReaderManual import ManualDialog
 from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContentProvider, SevenZipContentProvider
 from wxReaderString import *
 from wxReaderKeyBinds import DEFAULT_KEYBINDS, get_menu_label
-from wxReaderView import PDFView
+from wxReaderView import PDFView, MEMORY_PROFILES
 from wxReaderToast import show_toast
 from wxReaderExtCtrl import ControlServer
 
@@ -118,6 +118,10 @@ class MainFrame(wx.Frame):
 
         # Initialize state
         self.quality_preference = 0
+
+        self.memory_profile_name = cfg.get("memory_profile", "default")
+        if self.memory_profile_name not in MEMORY_PROFILES:
+            self.memory_profile_name = "default"
 
         self.epub_font_size = 12
 
@@ -350,6 +354,7 @@ class MainFrame(wx.Frame):
 
         view = PDFView(self.notebook)
         view.main_frame = self
+        view.set_memory_profile_name(self.memory_profile_name)
 
         cfg = load_config()
         try:
@@ -578,6 +583,22 @@ class MainFrame(wx.Frame):
 
         _add_item(m_view, wx.ID_ANY, _("Render Quality"), subMenu=m_quality)
 
+        m_memory = wx.Menu()
+
+        self.id_memory_potato = wx.NewIdRef()
+        self.id_memory_low = wx.NewIdRef()
+        self.id_memory_balanced = wx.NewIdRef()
+        self.id_memory_default = wx.NewIdRef()
+        self.id_memory_performance = wx.NewIdRef()
+
+        m_memory.AppendRadioItem(self.id_memory_potato, _("Potato"))
+        m_memory.AppendRadioItem(self.id_memory_low, _("Low"))
+        m_memory.AppendRadioItem(self.id_memory_balanced, _("Balanced"))
+        m_memory.AppendRadioItem(self.id_memory_default, _("Default"))
+        m_memory.AppendRadioItem(self.id_memory_performance, _("Performance"))
+
+        _add_item(m_view, wx.ID_ANY, _("Memory Usage"), subMenu=m_memory)
+
         self.menubar.Append(m_view, _("&View"))
 
         # --- Navigate ---
@@ -729,6 +750,12 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_quality_change, id=self.id_quality_hq)
         self.Bind(wx.EVT_MENU, self.on_quality_change, id=self.id_quality_mq)
         self.Bind(wx.EVT_MENU, self.on_quality_change, id=self.id_quality_lq)
+
+        self.Bind(wx.EVT_MENU, self.on_memory_profile_change, id=self.id_memory_potato)
+        self.Bind(wx.EVT_MENU, self.on_memory_profile_change, id=self.id_memory_low)
+        self.Bind(wx.EVT_MENU, self.on_memory_profile_change, id=self.id_memory_balanced)
+        self.Bind(wx.EVT_MENU, self.on_memory_profile_change, id=self.id_memory_default)
+        self.Bind(wx.EVT_MENU, self.on_memory_profile_change, id=self.id_memory_performance)
 
         # Navigate
         self.Bind(wx.EVT_MENU, lambda e: self.view.go_prev(), id=self.id_prev)
@@ -1056,6 +1083,19 @@ class MainFrame(wx.Frame):
         _set_check(self.id_show_tabbar, getattr(self, "show_tabbar", True))
         _set_check(self.id_multi_tab_mode, getattr(self, "multi_tab_mode", True))
         _set_enable(self.id_split_tabs, getattr(self, "multi_tab_mode", True) and self.notebook.GetPageCount() >= 2)
+
+        memory_item_map = {
+            "potato": self.id_memory_potato,
+            "low": self.id_memory_low,
+            "balanced": self.id_memory_balanced,
+            "default": self.id_memory_default,
+            "performance": self.id_memory_performance,
+        }
+
+        memory_item_id = memory_item_map.get(self.memory_profile_name, self.id_memory_default)
+        memory_item = self._find_menu_item(memory_item_id)
+        if memory_item:
+            memory_item.Check(True)
 
         _set_enable(self.id_font_increase, is_reflowable)
         _set_enable(self.id_font_decrease, is_reflowable)
@@ -1592,6 +1632,39 @@ class MainFrame(wx.Frame):
 
         print(f"[INFO] Render quality set to: {self.quality_preference}.")
 
+    def on_memory_profile_change(self, event):
+        event_id = event.GetId()
+
+        profile_map = {
+            self.id_memory_potato: "potato",
+            self.id_memory_low: "low",
+            self.id_memory_balanced: "balanced",
+            self.id_memory_default: "default",
+            self.id_memory_performance: "performance",
+        }
+
+        name = profile_map.get(event_id, "default")
+        self.set_memory_profile_name(name)
+
+    def set_memory_profile_name(self, name: str):
+        if name not in MEMORY_PROFILES:
+            name = "default"
+
+        self.memory_profile_name = name
+
+        for i in range(self.notebook.GetPageCount()):
+            view = self.notebook.GetPage(i)
+            if view and hasattr(view, "set_memory_profile_name"):
+                view.set_memory_profile_name(name)
+
+        cfg = load_config()
+        cfg["memory_profile"] = self.memory_profile_name
+        save_config(cfg)
+
+        self._update_ui()
+
+        print(f"[INFO] Memory usage profile set to: {self.memory_profile_name}.")
+
     def on_scrolllock_change(self, evt):
         self.view.is_scroll_locked = not self.view.is_scroll_locked
         _item = self._find_menu_item(self.id_scrolllock)
@@ -1733,6 +1806,7 @@ class MainFrame(wx.Frame):
                 "last_files": last_files,
                 "file_progress": self.file_progress,
                 "reopen_last_files": self.reopen_last_files,
+                "memory_profile": self.memory_profile_name,
             }
             cfg.update(current_cfg)
 
