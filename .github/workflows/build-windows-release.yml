@@ -20,6 +20,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build-windows:
@@ -134,6 +136,19 @@ jobs:
           Write-Host "Created: $zipName ($('{0:N0}' -f (Get-Item $zipName).Length) bytes)"
           echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
 
+      - name: Generate SHA256 checksum
+        shell: pwsh
+        run: |
+          $hash = Get-FileHash "${{ env.ZIP_NAME }}" -Algorithm SHA256
+          $checksumFile = "${{ env.ZIP_NAME }}.sha256"
+          "$($hash.Hash.ToLower())  ${{ env.ZIP_NAME }}" | Out-File -Encoding ascii $checksumFile
+          echo "CHECKSUM_NAME=$checksumFile" >> $env:GITHUB_ENV
+
+      - name: Attest release artifact
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ env.ZIP_NAME }}
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -142,6 +157,8 @@ jobs:
           draft: false
           prerelease: false
           body: ${{ github.event.inputs.release_notes }}
-          files: ${{ env.ZIP_NAME }}
+          files: |
+            ${{ env.ZIP_NAME }}
+            ${{ env.CHECKSUM_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
