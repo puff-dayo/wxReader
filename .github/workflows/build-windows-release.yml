@@ -10,6 +10,13 @@ on:
         description: 'Release tag (e.g. v1.5.1)'
         required: true
         default: 'v1.5.1'
+      release_notes:
+        description: 'Release notes'
+        required: false
+        default: |
+          ## Release notes
+          
+          - 
 
 permissions:
   contents: write
@@ -134,6 +141,7 @@ jobs:
           name: wxReader ${{ steps.tag.outputs.TAG }}
           draft: false
           prerelease: false
+          body: ${{ github.event.inputs.release_notes }}
           files: ${{ env.ZIP_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
