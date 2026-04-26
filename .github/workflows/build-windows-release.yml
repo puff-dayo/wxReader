@@ -61,7 +61,7 @@ jobs:
       - name: Download libvips v8.18.2 (win64 all)
         shell: pwsh
         run: |
-          $url = "https://github.com/libvips/build-win64-mxe/releases/download/v8.18.2/vips-dev-x64-all-8.18.2.zip"
+          $url = "https://github.com/libvips/build-win64-mxe/releases/download/v8.18.2/vips-dev-x64-web-8.18.2-static-ffi.zip"
           Invoke-WebRequest -Uri $url -OutFile "vips.zip"
 
       - name: Extract required libvips DLLs into src\
