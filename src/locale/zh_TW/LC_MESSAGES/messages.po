@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-27 04:50+0800\n"
-"PO-Revision-Date: 2026-03-27 04:59+0800\n"
+"POT-Creation-Date: 2026-04-26 21:31+0800\n"
+"PO-Revision-Date: 2026-04-26 21:34+0800\n"
 "Last-Translator: setsuna-dayo <no@email.hehe>\n"
 "Language-Team: info\n"
 "Language: ja\n"
@@ -19,307 +19,311 @@ msgstr ""
 "X-Generator: Virtaal 0.7.1\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: wxReader.py:144
+#: wxReader.py:146
 msgid "Search Outline"
 msgstr "搜尋大綱"
 
-#: wxReader.py:154
+#: wxReader.py:156
 msgid "Outline"
 msgstr "文件大綱"
 
-#: wxReader.py:163
+#: wxReader.py:165
 msgid "Dir Up"
 msgstr "上一層"
 
-#: wxReader.py:166
+#: wxReader.py:168
 msgid "Locate"
 msgstr "定位"
 
-#: wxReader.py:169 wxReader.py:200
+#: wxReader.py:171 wxReader.py:202
 msgid "Gallery"
 msgstr "圖庫"
 
-#: wxReader.py:189
+#: wxReader.py:191
 msgid "File Browser"
 msgstr "檔案瀏覽器"
 
-#: wxReader.py:198 wxReaderLibrary.py:173
+#: wxReader.py:200 wxReaderLibrary.py:173
 msgid "Refresh"
 msgstr "重新整理"
 
-#: wxReader.py:205
+#: wxReader.py:207
 msgid "Newest"
 msgstr "最新"
 
-#: wxReader.py:206
+#: wxReader.py:208
 msgid "Oldest"
 msgstr "最舊"
 
-#: wxReader.py:225
+#: wxReader.py:227
 msgid "Folder List"
 msgstr "資料夾列表"
 
-#: wxReader.py:352
+#: wxReader.py:365
 msgid "Blank Tab"
 msgstr "空白分頁"
 
-#: wxReader.py:427
+#: wxReader.py:440
 msgid "&Open..."
 msgstr "開啟(&O)..."
 
-#: wxReader.py:428
+#: wxReader.py:441
 msgid "&Close"
 msgstr "關閉(&C)"
 
-#: wxReader.py:433
+#: wxReader.py:446
 msgid "&Gallery Mode"
 msgstr "圖庫模式(&G)"
 
-#: wxReader.py:438
+#: wxReader.py:451
 msgid "Recent Files..."
 msgstr "最近開啟的檔案..."
 
-#: wxReader.py:441
+#: wxReader.py:454
 msgid "Reopen Last Files"
 msgstr "重新開啟上次檔案"
 
-#: wxReader.py:446
+#: wxReader.py:459
 msgid "Edit pswd.txt"
 msgstr "編輯密碼簿"
 
-#: wxReader.py:451
+#: wxReader.py:464
 msgid "Preferences"
 msgstr "偏好設定"
 
-#: wxReader.py:462
+#: wxReader.py:475
 msgid "Languages..."
 msgstr "語言..."
 
-#: wxReader.py:465
+#: wxReader.py:478
 msgid "E&xit"
 msgstr "結束(&X)"
 
-#: wxReader.py:467
+#: wxReader.py:480
 msgid "&File"
 msgstr "檔案(&F)"
 
-#: wxReader.py:473
+#: wxReader.py:486
 msgid "Show &Sidebar"
 msgstr "顯示側邊欄(&S)"
 
-#: wxReader.py:477
+#: wxReader.py:490
 msgid "Switch Sidebar Tab"
 msgstr "切換側邊欄分頁"
 
-#: wxReader.py:480
+#: wxReader.py:493
 msgid "Show &Tab-bar"
 msgstr "顯示分頁列(&T)"
 
-#: wxReader.py:483
+#: wxReader.py:496
+msgid "Multi-tab Mode"
+msgstr "多分頁模式"
+
+#: wxReader.py:499
 msgid "Split Top Bar Tabs"
 msgstr "分割頂欄分頁"
 
-#: wxReader.py:490
+#: wxReader.py:506
 msgid "Single Page View"
 msgstr "單頁檢視"
 
-#: wxReader.py:491
+#: wxReader.py:507
 msgid "Two Page View"
 msgstr "雙頁檢視"
 
-#: wxReader.py:492
+#: wxReader.py:508
 msgid "Flow Mode"
 msgstr "連續頁面模式"
 
-#: wxReader.py:496
+#: wxReader.py:512
 msgid "Add Blank Page at Start"
 msgstr "加入空白起始頁"
 
-#: wxReader.py:502
+#: wxReader.py:518
 msgid "Left-to-Right"
 msgstr "從左到右"
 
-#: wxReader.py:503
+#: wxReader.py:519
 msgid "Right-to-Left"
 msgstr "從右到左"
 
-#: wxReader.py:505
+#: wxReader.py:521
 msgid "Page &Direction"
 msgstr "翻頁方向(&D)"
 
-#: wxReader.py:515
+#: wxReader.py:531
 msgid "Zoom &In"
 msgstr "放大(&I)"
 
-#: wxReader.py:516
+#: wxReader.py:532
 msgid "Zoom &Out"
 msgstr "縮小(&O)"
 
-#: wxReader.py:519
+#: wxReader.py:535
 msgid "Fit &Width"
 msgstr "符合頁寬(&W)"
 
-#: wxReader.py:520
+#: wxReader.py:536
 msgid "Fit &Page"
 msgstr "符合頁面(&P)"
 
-#: wxReader.py:521
+#: wxReader.py:537
 msgid "Manual Zoom"
 msgstr "手動縮放"
 
-#: wxReader.py:525
+#: wxReader.py:541
 msgid "Scroll Lock"
 msgstr "捲動鎖定"
 
-#: wxReader.py:529 wxReader.py:1407
+#: wxReader.py:545 wxReader.py:1491
 msgid "Set Margin and Gap"
 msgstr "設定邊界與間距"
 
-#: wxReader.py:533
+#: wxReader.py:549
 msgid "Background Color…"
 msgstr "背景顏色..."
 
-#: wxReader.py:538
+#: wxReader.py:554
 msgid "Larger Font"
 msgstr "放大字體"
 
-#: wxReader.py:539
+#: wxReader.py:555
 msgid "Smaller Font"
 msgstr "縮小字體"
 
-#: wxReader.py:543
+#: wxReader.py:559
 msgid "Full &Screen"
 msgstr "全螢幕(&S)"
 
-#: wxReader.py:553
+#: wxReader.py:569
 msgid "Bilinear"
 msgstr "雙線性插值"
 
-#: wxReader.py:554
+#: wxReader.py:570
 msgid "Lanczos"
 msgstr "Lanczos 插值"
 
-#: wxReader.py:555
+#: wxReader.py:571
 msgid "DeMoiré"
 msgstr "去摩爾紋"
 
-#: wxReader.py:561
+#: wxReader.py:577
 msgid "Render Quality"
 msgstr "渲染品質"
 
-#: wxReader.py:563
+#: wxReader.py:579
 msgid "&View"
 msgstr "檢視(&V)"
 
-#: wxReader.py:572
+#: wxReader.py:588
 msgid "Previous Page"
 msgstr "上一頁"
 
-#: wxReader.py:573
+#: wxReader.py:589
 msgid "Next Page"
 msgstr "下一頁"
 
-#: wxReader.py:574
+#: wxReader.py:590
 msgid "&Go to Page..."
 msgstr "前往頁面(&G)..."
 
-#: wxReader.py:579
+#: wxReader.py:595
 msgid "External Control"
 msgstr "外部控制"
 
-#: wxReader.py:585
+#: wxReader.py:601
 msgid "&Find..."
 msgstr "尋找(&F)..."
 
-#: wxReader.py:588
+#: wxReader.py:604
 msgid "Show TOC Dialog..."
 msgstr "顯示目錄對話框..."
 
-#: wxReader.py:590
+#: wxReader.py:606
 msgid "&Navigate"
 msgstr "導覽(&N)"
 
-#: wxReader.py:596
+#: wxReader.py:612
 msgid "Extract Page Text"
 msgstr "擷取頁面文字"
 
-#: wxReader.py:599
+#: wxReader.py:615
 msgid "Extract Page Images"
 msgstr "擷取頁面圖片"
 
-#: wxReader.py:604
+#: wxReader.py:620
 msgid "Shader Settings..."
 msgstr "著色器設定..."
 
-#: wxReader.py:609
+#: wxReader.py:625
 msgid "None / Turn Off"
 msgstr "無 / 關閉"
 
-#: wxReader.py:652
+#: wxReader.py:668
 msgid "&Process"
 msgstr "處理(&P)"
 
-#: wxReader.py:656
+#: wxReader.py:672
 msgid "&About"
 msgstr "關於(&A)"
 
-#: wxReader.py:657
+#: wxReader.py:673
 msgid "&Info"
 msgstr "資訊(&I)"
 
-#: wxReader.py:660
+#: wxReader.py:676
 msgid "Check for Updates..."
 msgstr "檢查更新..."
 
-#: wxReader.py:665
+#: wxReader.py:681
 msgid "&Help Topics"
 msgstr "說明主題(&H)"
 
-#: wxReader.py:956
+#: wxReader.py:1027
 msgid "Need at least 2 tabs to split."
 msgstr "至少需要 2 個分頁才能分割。"
 
-#: wxReader.py:1266 wxReaderDialog.py:487
+#: wxReader.py:1350 wxReaderDialog.py:487
 msgid "Page"
 msgstr "頁次"
 
-#: wxReader.py:1271
+#: wxReader.py:1355
 msgid "<No text found on visible pages.>"
 msgstr "<在可見頁面上找不到文字。>"
 
-#: wxReader.py:1280
+#: wxReader.py:1364
 msgid "Failed to extract text:"
 msgstr "擷取文字失敗："
 
-#: wxReader.py:1312
+#: wxReader.py:1396
 msgid "Error extracting images:"
 msgstr "擷取圖片錯誤："
 
-#: wxReader.py:1319
+#: wxReader.py:1403
 msgid "No images found on the visible page(s)."
 msgstr "在可見頁面上找不到圖片。"
 
-#: wxReader.py:1372
+#: wxReader.py:1456
 msgid "Enter page number"
 msgstr "輸入頁碼"
 
-#: wxReader.py:1382
+#: wxReader.py:1466
 msgid "Page number out of range."
 msgstr "頁碼超出範圍。"
 
-#: wxReader.py:1384
+#: wxReader.py:1468
 msgid "Invalid number."
 msgstr "無效的數字。"
 
-#: wxReader.py:1420
+#: wxReader.py:1504
 msgid "Numbers must be between 0 and 999."
 msgstr "數字必須介於 0 到 999 之間。"
 
-#: wxReader.py:1422
+#: wxReader.py:1506
 msgid "Please enter integers only."
 msgstr "請僅輸入整數。"
 
-#: wxReader.py:1596
+#: wxReader.py:1680
 msgid "Restart is required."
 msgstr "需要重新啟動。"
 
