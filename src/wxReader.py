@@ -978,7 +978,7 @@ class MainFrame(wx.Frame):
         if self.splitter.IsSplit():
             self.splitter.Unsplit(self.sidebar)
         else:
-            self.splitter.SplitVertically(self.sidebar, self.view, 250)
+            self.splitter.SplitVertically(self.sidebar, self.notebook, 250)
         self.Layout()
         self._update_ui()
 
