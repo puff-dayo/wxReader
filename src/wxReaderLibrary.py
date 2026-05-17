@@ -53,60 +53,267 @@ def process_cover_with_provider(file_path, thumb_width, thumb_height):
     return file_path, 0, 0, None
 
 
-class ThumbnailPanel(wx.Panel):
-    def __init__(self, parent, file_path, bitmap, callback):
-        super().__init__(parent, size=(THUMB_WIDTH, PANEL_HEIGHT))
-        self.file_path = file_path
+class VirtualThumbnailCanvas(wx.ScrolledWindow):
+    CELL_WIDTH = THUMB_WIDTH + 20
+    CELL_HEIGHT = PANEL_HEIGHT + 20
+    OUTER_MARGIN = 10
+
+    def __init__(self, parent, placeholder_bmp, callback):
+        super().__init__(parent, style=wx.VSCROLL | wx.BORDER_NONE)
+
+        self.placeholder_bmp = placeholder_bmp
         self.callback = callback
 
+        self.files = []
+        self.bitmap_map = {}
+        self.hover_index = -1
+        self.columns = 1
+
         self.SetBackgroundColour(BG_COLOR)
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.SetScrollRate(0, 20)
 
-        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_SIZE, self.on_size)
+        self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
+        self.Bind(wx.EVT_MOTION, self.on_mouse_move)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.on_mouse_leave)
 
-        # cover
-        self.bmp = wx.StaticBitmap(self, bitmap=bitmap, size=(THUMB_WIDTH, THUMB_HEIGHT))
+    def clear(self):
+        self.files.clear()
+        self.bitmap_map.clear()
+        self.hover_index = -1
+        self.SetVirtualSize((self.GetClientSize().width, 0))
+        self.Scroll(0, 0)
+        self.Refresh(False)
 
-        # filename
-        name = os.path.basename(file_path)
-        self.lbl = wx.StaticText(self, label=name, style=wx.ALIGN_CENTER)
-        self.lbl.SetForegroundColour(TEXT_COLOR)
-        self.lbl.SetToolTip(name)
+    def set_files(self, files, keep_scroll=False):
+        old_view = self.GetViewStart()
 
-        font = self.lbl.GetFont()
+        self.files = list(files)
+        self._recalc_virtual_size()
+
+        if keep_scroll:
+            self.Scroll(old_view[0], old_view[1])
+        else:
+            self.Scroll(0, 0)
+
+        self.Refresh(False)
+
+    def update_bitmap(self, file_path, bitmap):
+        self.bitmap_map[file_path] = bitmap
+
+        try:
+            index = self.files.index(file_path)
+        except ValueError:
+            return
+
+        if self._index_is_visible(index):
+            self.Refresh(False)
+
+    def _recalc_virtual_size(self):
+        client_w = max(1, self.GetClientSize().width)
+
+        usable_w = max(1, client_w - self.OUTER_MARGIN * 2)
+        self.columns = max(1, usable_w // self.CELL_WIDTH)
+
+        rows = (len(self.files) + self.columns - 1) // self.columns
+        total_h = self.OUTER_MARGIN * 2 + rows * self.CELL_HEIGHT
+
+        self.SetVirtualSize((client_w, total_h))
+
+    def _index_rect(self, index):
+        row = index // self.columns
+        col = index % self.columns
+
+        cell_x = self.OUTER_MARGIN + col * self.CELL_WIDTH
+        cell_y = self.OUTER_MARGIN + row * self.CELL_HEIGHT
+
+        card_x = cell_x + (self.CELL_WIDTH - THUMB_WIDTH) // 2
+        card_y = cell_y
+
+        return wx.Rect(card_x, card_y, THUMB_WIDTH, PANEL_HEIGHT)
+
+    def _index_from_mouse(self, x, y):
+        ux, uy = self.CalcUnscrolledPosition(x, y)
+
+        ux -= self.OUTER_MARGIN
+        uy -= self.OUTER_MARGIN
+
+        if ux < 0 or uy < 0:
+            return -1
+
+        col = ux // self.CELL_WIDTH
+        row = uy // self.CELL_HEIGHT
+
+        if col >= self.columns:
+            return -1
+
+        index = row * self.columns + col
+        if index >= len(self.files):
+            return -1
+
+        return index
+
+    def _index_is_visible(self, index):
+        if index < 0 or index >= len(self.files):
+            return False
+
+        _, view_y_units = self.GetViewStart()
+        _, ppu_y = self.GetScrollPixelsPerUnit()
+        visible_y = view_y_units * ppu_y
+        visible_h = self.GetClientSize().height
+
+        rect = self._index_rect(index)
+        return rect.Bottom >= visible_y and rect.Top <= visible_y + visible_h
+
+    def on_size(self, evt):
+        old_view = self.GetViewStart()
+        self._recalc_virtual_size()
+        self.Scroll(old_view[0], old_view[1])
+        self.Refresh(False)
+        evt.Skip()
+
+    def on_left_down(self, evt):
+        index = self._index_from_mouse(evt.GetX(), evt.GetY())
+        if index >= 0 and self.callback:
+            self.callback(self.files[index])
+
+    def on_mouse_move(self, evt):
+        index = self._index_from_mouse(evt.GetX(), evt.GetY())
+        if index != self.hover_index:
+            self.hover_index = index
+
+            if index >= 0:
+                self.SetToolTip(os.path.basename(self.files[index]))
+            else:
+                self.SetToolTip(None)
+
+            self.Refresh(False)
+
+        evt.Skip()
+
+    def on_mouse_leave(self, evt):
+        if self.hover_index != -1:
+            self.hover_index = -1
+            self.SetToolTip(None)
+            self.Refresh(False)
+
+        evt.Skip()
+
+    def on_paint(self, evt):
+        dc = wx.AutoBufferedPaintDC(self)
+        self.PrepareDC(dc)
+
+        dc.SetBackground(wx.Brush(BG_COLOR))
+        dc.Clear()
+
+        if not self.files:
+            return
+
+        _, view_y_units = self.GetViewStart()
+        _, ppu_y = self.GetScrollPixelsPerUnit()
+
+        visible_y = view_y_units * ppu_y
+        visible_h = self.GetClientSize().height
+
+        first_row = max(0, (visible_y - self.OUTER_MARGIN) // self.CELL_HEIGHT)
+        last_row = max(0, (visible_y + visible_h - self.OUTER_MARGIN) // self.CELL_HEIGHT + 1)
+
+        start_index = first_row * self.columns
+        end_index = min(len(self.files), (last_row + 1) * self.columns)
+
+        for index in range(start_index, end_index):
+            self._draw_item(dc, index)
+
+    def _draw_item(self, dc, index):
+        file_path = self.files[index]
+        rect = self._index_rect(index)
+
+        if index == self.hover_index:
+            dc.SetBrush(wx.Brush(wx.Colour(154, 200, 138)))
+        else:
+            dc.SetBrush(wx.Brush(BG_COLOR))
+
+        dc.SetPen(wx.Pen(wx.Colour(210, 210, 210)))
+        dc.DrawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, 2)
+
+        bmp = self.bitmap_map.get(file_path, self.placeholder_bmp)
+
+        bmp_w = bmp.GetWidth()
+        bmp_h = bmp.GetHeight()
+
+        draw_x = rect.x + max(0, (THUMB_WIDTH - bmp_w) // 2)
+        draw_y = rect.y + max(0, (THUMB_HEIGHT - bmp_h) // 2)
+
+        dc.DrawBitmap(bmp, draw_x, draw_y, True)
+
+        font = dc.GetFont()
         font.SetPointSize(9)
-        self.lbl.SetFont(font)
+        dc.SetFont(font)
+        dc.SetTextForeground(TEXT_COLOR)
 
-        self.lbl.Wrap(THUMB_WIDTH - 4)
+        label_rect = wx.Rect(
+            rect.x + 4,
+            rect.y + THUMB_HEIGHT + 6,
+            rect.width - 8,
+            PANEL_HEIGHT - THUMB_HEIGHT - 10
+        )
 
-        sizer.Add(self.bmp, 0, wx.ALIGN_CENTER, 0)
-        sizer.Add(self.lbl, 1, wx.TOP | wx.EXPAND, 5)
+        self._draw_filename(dc, os.path.basename(file_path), label_rect)
 
-        self.SetSizer(sizer)
+    def _draw_filename(self, dc, text, rect):
+        lines = self._split_text_to_two_lines(dc, text, rect.width)
 
-        # events
-        self.bmp.Bind(wx.EVT_LEFT_DOWN, self.on_click)
-        self.lbl.Bind(wx.EVT_LEFT_DOWN, self.on_click)
-        self.Bind(wx.EVT_LEFT_DOWN, self.on_click)
-        self.bmp.Bind(wx.EVT_ENTER_WINDOW, self.on_enter)
-        self.bmp.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave)
-        self.lbl.Bind(wx.EVT_ENTER_WINDOW, self.on_enter)
-        self.lbl.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave)
+        line_h = dc.GetTextExtent("Ag")[1]
+        total_h = len(lines) * line_h
+        y = rect.y + max(0, (rect.height - total_h) // 2)
 
-    def update_image(self, bitmap):
-        self.bmp.SetBitmap(bitmap)
-        self.Refresh()
+        for line in lines:
+            text_w, _ = dc.GetTextExtent(line)
+            x = rect.x + max(0, (rect.width - text_w) // 2)
+            dc.DrawText(line, x, y)
+            y += line_h
 
-    def on_click(self, evt):
-        if self.callback:
-            self.callback(self.file_path)
+    def _split_text_to_two_lines(self, dc, text, max_width):
+        if dc.GetTextExtent(text)[0] <= max_width:
+            return [text]
 
-    def on_enter(self, evt):
-        self.SetBackgroundColour(wx.Colour(220, 230, 240))
-        self.Refresh()
+        first_line = ""
+        split_pos = 0
 
-    def on_leave(self, evt):
-        self.SetBackgroundColour(BG_COLOR)
-        self.Refresh()
+        for i, ch in enumerate(text):
+            candidate = first_line + ch
+            if dc.GetTextExtent(candidate)[0] <= max_width:
+                first_line = candidate
+                split_pos = i + 1
+            else:
+                break
+
+        remaining = text[split_pos:]
+
+        if dc.GetTextExtent(remaining)[0] <= max_width:
+            return [first_line, remaining]
+
+        second_line = self._ellipsize(dc, remaining, max_width)
+        return [first_line, second_line]
+
+    def _ellipsize(self, dc, text, max_width):
+        ellipsis = "…"
+
+        if dc.GetTextExtent(text)[0] <= max_width:
+            return text
+
+        result = ""
+
+        for ch in text:
+            candidate = result + ch + ellipsis
+            if dc.GetTextExtent(candidate)[0] <= max_width:
+                result += ch
+            else:
+                break
+
+        return result + ellipsis if result else ellipsis
 
 
 class LibraryManagerThread(threading.Thread):
@@ -150,9 +357,8 @@ class LibraryFrame(wx.Frame):
         self.result_queue = queue.Queue()
         self.supported_exts = SUPPORTED_EXTENSIONS
 
-        self.thumb_panels = []
-        self.item_map = {}
-        self.file_metadata = {}  # Cache
+        self.file_metadata = {}
+        self.files_to_create = []
 
         self.SetBackgroundColour(BG_COLOR)
 
@@ -161,6 +367,7 @@ class LibraryFrame(wx.Frame):
             self.SetIcon(app_icon)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.placeholder_bmp = self._create_placeholder()
 
         top_panel = wx.Panel(self)
         top_panel.SetBackgroundColour(BG_COLOR)
@@ -184,18 +391,17 @@ class LibraryFrame(wx.Frame):
 
         top_panel.SetSizer(top_sizer)
 
-        self.scrolled = wx.ScrolledWindow(self, style=wx.VSCROLL)
-        self.scrolled.SetBackgroundColour(BG_COLOR)
-        self.scrolled.SetScrollRate(0, 20)
-
-        self.gallery_sizer = wx.WrapSizer(wx.HORIZONTAL)
-        self.scrolled.SetSizer(self.gallery_sizer)
+        self.gallery = VirtualThumbnailCanvas(
+            self,
+            self.placeholder_bmp,
+            self.on_thumb_click
+        )
 
         self.gauge = wx.Gauge(self, range=100, size=(-1, 4))
         self.status_lbl = wx.StaticText(self, label=_("Ready"))
 
         main_sizer.Add(top_panel, 0, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(self.scrolled, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
+        main_sizer.Add(self.gallery, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
         main_sizer.Add(self.gauge, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 0)
         main_sizer.Add(self.status_lbl, 0, wx.EXPAND | wx.ALL, 5)
 
@@ -206,12 +412,9 @@ class LibraryFrame(wx.Frame):
         self.btn_refresh.Bind(wx.EVT_BUTTON, self.on_refresh)
         self.chk_stay_on_top.Bind(wx.EVT_CHECKBOX, self.on_toggle_top)
         self.Bind(wx.EVT_CLOSE, self.on_close)
-        self.scrolled.Bind(wx.EVT_SIZE, self.on_resize)
 
         self.update_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_update_timer, self.update_timer)
-
-        self.placeholder_bmp = self._create_placeholder()
 
         wx.CallAfter(self.load_files)
 
@@ -223,20 +426,18 @@ class LibraryFrame(wx.Frame):
     def load_files(self):
         if self.manager_thread and self.manager_thread.is_alive():
             self.manager_thread.stop()
+
         self.update_timer.Stop()
 
         while not self.result_queue.empty():
             try:
                 self.result_queue.get_nowait()
-            except:
-                pass
+            except queue.Empty:
+                break
 
-        self.scrolled.Freeze()
-        self.gallery_sizer.Clear(delete_windows=True)
-        self.item_map.clear()
-        self.thumb_panels.clear()
+        self.gallery.clear()
         self.file_metadata.clear()
-        self.scrolled.Thaw()
+        self.files_to_create.clear()
 
         self.status_lbl.SetLabel(_("Scanning directory..."))
         self.gauge.Pulse()
@@ -244,7 +445,11 @@ class LibraryFrame(wx.Frame):
         current_dir = self.directory
         sort_mode = self.combo_sort.GetSelection()
 
-        threading.Thread(target=self._scan_worker, args=(current_dir, sort_mode), daemon=True).start()
+        threading.Thread(
+            target=self._scan_worker,
+            args=(current_dir, sort_mode),
+            daemon=True
+        ).start()
 
         self.Raise()
 
@@ -279,84 +484,59 @@ class LibraryFrame(wx.Frame):
 
     def _on_scan_complete(self, valid_files, metadata):
         self.file_metadata = metadata
-        self.gauge.SetRange(len(valid_files))
-        self.gauge.SetValue(0)
-        # self.status_lbl.SetLabel(f"Found {len(valid_files)} files. Creating thumbnails...")
-        self.status_lbl.SetLabel(_("Found {} files. Creating thumbnails...").format(len(valid_files)))
-
         self.files_to_create = valid_files[:]
-        self.creation_index = 0
 
-        self._batch_create_placeholders()
+        self.gallery.set_files(self.files_to_create)
+
+        self.gauge.SetRange(len(self.files_to_create))
+        self.gauge.SetValue(0)
+
+        self.status_lbl.SetLabel(
+            _("Found {} files. Creating thumbnails...").format(len(self.files_to_create))
+        )
+
+        self.processed_count = 0
+
+        if not self.files_to_create:
+            self.status_lbl.SetLabel(_("Done."))
+            return
+
+        self.manager_thread = LibraryManagerThread(
+            self.files_to_create,
+            self.result_queue
+        )
+        self.manager_thread.start()
+
+        self.update_timer.Start(30)
 
         self.Raise()
 
-    def _batch_create_placeholders(self):
-        BATCH_SIZE = 50
-        count = 0
-
-        self.scrolled.Freeze()
-        try:
-            while self.creation_index < len(self.files_to_create) and count < BATCH_SIZE:
-                f_path = self.files_to_create[self.creation_index]
-
-                thumb = ThumbnailPanel(self.scrolled, f_path, self.placeholder_bmp, self.on_thumb_click)
-                self.gallery_sizer.Add(thumb, 0, wx.ALL, 10)
-
-                self.item_map[f_path] = thumb
-                self.thumb_panels.append(thumb)
-
-                self.creation_index += 1
-                count += 1
-        finally:
-            self.scrolled.Thaw()
-
-        # if count > 0:
-        #     self.scrolled.Layout()
-        #     self.scrolled.FitInside()
-
-        if self.creation_index < len(self.files_to_create):
-            self.gauge.SetValue(self.creation_index)
-            wx.CallLater(1, self._batch_create_placeholders)
-        else:
-            self.scrolled.Layout()
-            self.scrolled.FitInside()
-
-            self.status_lbl.SetLabel(_("Generating covers..."))
-            self.processed_count = 0
-            self.gauge.SetValue(0)
-
-            self.scrolled.FitInside()
-
-            self.manager_thread = LibraryManagerThread(self.files_to_create, self.result_queue)
-            self.manager_thread.start()
-
-            self.update_timer.Start(30)
-
     def on_sort_change(self, evt):
-        if not self.thumb_panels:
+        if not self.files_to_create:
             return
 
         sort_mode = self.combo_sort.GetSelection()
 
         if sort_mode == 0:
-            self.thumb_panels.sort(key=lambda p: os.path.basename(p.file_path).lower())
+            self.files_to_create.sort(
+                key=lambda path: os.path.basename(path).lower()
+            )
         elif sort_mode == 1:
-            self.thumb_panels.sort(key=lambda p: os.path.basename(p.file_path).lower(), reverse=True)
+            self.files_to_create.sort(
+                key=lambda path: os.path.basename(path).lower(),
+                reverse=True
+            )
         elif sort_mode == 2:
-            self.thumb_panels.sort(key=lambda p: self.file_metadata.get(p.file_path, 0), reverse=True)
+            self.files_to_create.sort(
+                key=lambda path: self.file_metadata.get(path, 0),
+                reverse=True
+            )
         elif sort_mode == 3:
-            self.thumb_panels.sort(key=lambda p: self.file_metadata.get(p.file_path, 0))
+            self.files_to_create.sort(
+                key=lambda path: self.file_metadata.get(path, 0)
+            )
 
-        self.scrolled.Freeze()
-        self.gallery_sizer.Clear(delete_windows=False)
-
-        for panel in self.thumb_panels:
-            self.gallery_sizer.Add(panel, 0, wx.ALL, 10)
-
-        self.scrolled.Layout()
-        self.scrolled.FitInside()
-        self.scrolled.Thaw()
+        self.gallery.set_files(self.files_to_create, keep_scroll=True)
 
     def on_update_timer(self, evt):
         start_time = time.time()
@@ -390,18 +570,19 @@ class LibraryFrame(wx.Frame):
             print(f"[ERROR]: {e}")
 
     def _apply_cover_raw(self, file_path, w, h, data):
-        thumb = self.item_map.get(file_path)
+        if not data or w <= 0 or h <= 0:
+            return
 
-        # check if matches RGB or RGBA
-        if thumb and data and w > 0 and h > 0:
-            expected_len = w * h * 3
-            if len(data) == expected_len:
-                try:
-                    img = wx.Image(w, h, data)
-                    if img.IsOk():
-                        thumb.update_image(wx.Bitmap(img))
-                except Exception as e:
-                    print(f"Failed to create image for {file_path}: {e}")
+        expected_len = w * h * 3
+        if len(data) != expected_len:
+            return
+
+        try:
+            img = wx.Image(w, h, data)
+            if img.IsOk():
+                self.gallery.update_bitmap(file_path, wx.Bitmap(img))
+        except Exception as e:
+            print(f"Failed to create image for {file_path}: {e}")
 
     def on_refresh(self, evt):
         self.load_files()
@@ -417,12 +598,6 @@ class LibraryFrame(wx.Frame):
     def on_thumb_click(self, path):
         if self.open_callback:
             self.open_callback(path)
-
-    def on_resize(self, evt):
-        w, h = self.scrolled.GetClientSize()
-        self.scrolled.SetVirtualSize(w, -1)
-        self.scrolled.Layout()
-        evt.Skip()
 
     def on_close(self, evt):
         self.update_timer.Stop()
