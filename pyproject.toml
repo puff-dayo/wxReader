@@ -6,14 +6,14 @@ requires-python = ">=3.12"
 dependencies = [
     "babel==2.18.0",
     "imageio==2.37.3",
-    "nuitka==4.0.8",
+    "nuitka==4.1",
     "numpy>=2.4.4",
     "py7zr>=1.1.0",
     "pymupdf==1.23.8",
     "pyopengl>=3.1.10",
     "pyvips>=3.1.1",
     "pywinstyles>=1.8",
-    "pyzipper>=0.3.6",
+    "pyzipper>=0.4.0",
     "wxpython>=4.2.5",
     "pillow>=12.2.0",
 ]
