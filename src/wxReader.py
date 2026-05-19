@@ -14,6 +14,7 @@ import threading
 
 import wx
 import wx.lib.agw.aui as aui
+from wx.lib.agw.aui import tabart
 
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
@@ -36,6 +37,28 @@ def _(text):
 
 GWL_STYLE = -16
 TVS_NOTOOLTIPS = 0x0080
+
+class DarkAuiTabArt(tabart.AuiDefaultTabArt):
+    def __init__(self):
+        super().__init__()
+
+        self._base_colour = wx.Colour(42, 42, 42)
+        self._base_colour_brush = wx.Brush(self._base_colour)
+
+        self._border_colour = wx.Colour(72, 72, 72)
+        self._border_pen = wx.Pen(self._border_colour)
+
+        self._background_top_colour = wx.Colour(48, 48, 48)
+        self._background_bottom_colour = wx.Colour(35, 35, 35)
+
+        self._tab_top_colour = wx.Colour(70, 70, 70)
+        self._tab_bottom_colour = wx.Colour(58, 58, 58)
+        self._tab_gradient_highlight_colour = wx.Colour(78, 78, 78)
+
+        self._tab_inactive_top_colour = wx.Colour(48, 48, 48)
+        self._tab_inactive_bottom_colour = wx.Colour(40, 40, 40)
+
+        self._tab_disabled_text_colour = wx.Colour(140, 140, 140)
 
 
 class FileDropTarget(wx.FileDropTarget):
@@ -72,6 +95,53 @@ def get_icon(art_id):
 def get_icon_v2(art_id):
     return wx.ArtProvider.GetBitmapBundle(art_id, wx.ART_OTHER, wx.Size(16, 16))
 
+class ReadingProgressBar(wx.Panel):
+    def __init__(self, parent, range=100):
+        super().__init__(parent, style=wx.BORDER_NONE)
+        self._range = max(1, range)
+        self._value = 0
+
+        self.track_colour = wx.Colour(65, 65, 65)
+        self.fill_colour = wx.Colour(134, 180, 118)
+
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_SIZE, lambda evt: (self.Refresh(), evt.Skip()))
+
+    def SetValue(self, value: int):
+        self._value = max(0, min(int(value), self._range))
+        self.Refresh()
+
+    def GetValue(self) -> int:
+        return self._value
+
+    def SetRange(self, value: int):
+        self._range = max(1, int(value))
+        self._value = min(self._value, self._range)
+        self.Refresh()
+
+    def on_paint(self, evt):
+        dc = wx.BufferedPaintDC(self)
+        w, h = self.GetClientSize()
+
+        dc.SetBackground(wx.Brush(self.GetParent().GetBackgroundColour()))
+        dc.Clear()
+
+        if w <= 0 or h <= 0:
+            return
+
+        line_h = 3
+        y = (h - line_h) // 2
+
+        dc.SetPen(wx.TRANSPARENT_PEN)
+
+        dc.SetBrush(wx.Brush(self.track_colour))
+        dc.DrawRectangle(0, y, w, line_h)
+
+        fill_w = int(w * self._value / self._range)
+        if fill_w > 0:
+            dc.SetBrush(wx.Brush(self.fill_colour))
+            dc.DrawRectangle(0, y, fill_w, line_h)
 
 class MainFrame(wx.Frame):
     @property
@@ -128,6 +198,8 @@ class MainFrame(wx.Frame):
         self.show_tabbar = bool(cfg.get("show_tabbar", True))
         self.multi_tab_mode = bool(cfg.get("multi_tab_mode", True))
 
+        self.dark_mode = bool(cfg.get("dark_mode", False))
+
         self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3D)
         self.splitter.SetMinimumPaneSize(50)
 
@@ -151,7 +223,7 @@ class MainFrame(wx.Frame):
 
         self.sidebar_tree = wx.TreeCtrl(self.toc_panel, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT |
                                                               wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_NO_LINES | wx.TR_TWIST_BUTTONS)
-        self.sidebar_tree.SetBackgroundColour(wx.Colour(245, 245, 245))
+        self._apply_sidebar_tree_theme()
 
         toc_sizer.Add(self.sidebar_search, 0, wx.EXPAND | wx.ALL, 5)
         toc_sizer.Add(self.sidebar_tree, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 0)
@@ -237,6 +309,7 @@ class MainFrame(wx.Frame):
         # START Main Content
         self.notebook = aui.AuiNotebook(self.splitter,
                                         style=aui.AUI_NB_DEFAULT_STYLE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_CLOSE_ON_ALL_TABS)
+        self._apply_notebook_theme()
 
         wx.CallAfter(self._update_tabbar_visibility)
 
@@ -248,10 +321,9 @@ class MainFrame(wx.Frame):
         self.status_bar.SetFont(get_app_font())
         # left status text, right progress bar
         self.status_bar.SetStatusWidths([-1, 160])
-        self.reading_progress = wx.Gauge(
+        self.reading_progress = ReadingProgressBar(
             self.status_bar,
-            range=100,
-            style=wx.GA_HORIZONTAL | wx.GA_SMOOTH
+            range=100
         )
         self.status_bar.Bind(wx.EVT_SIZE, self.on_statusbar_resize)
         wx.CallAfter(self.on_statusbar_resize, None)
@@ -365,7 +437,10 @@ class MainFrame(wx.Frame):
         except Exception as e:
             print(f"[ERROR] wxReader Failed to restore view mode: {e}")
 
-        view.set_background_color(wx.Colour(134, 180, 118))
+        if bool(cfg.get("dark_mode", False)):
+            view.set_background_color(wx.Colour(76, 122, 92))
+        else:
+            view.set_background_color(wx.Colour(134, 180, 118))
 
         self.notebook.AddPage(view, _("Blank Tab"), select=select)
 
@@ -463,6 +538,10 @@ class MainFrame(wx.Frame):
         self.id_pswdmng = wx.NewIdRef()
         _add_item(m_file, self.id_pswdmng, _("Edit pswd.txt"))
 
+        m_file.AppendSeparator()
+
+        self.id_dark_mode = wx.NewIdRef()
+        _add_item(m_file, self.id_dark_mode, _("Dark Mode"), kind=wx.ITEM_CHECK)
         m_file.AppendSeparator()
 
         self.id_key_binds_editor = wx.NewIdRef()
@@ -713,6 +792,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_reopen_last_toggle, id=self.id_reopen_last)
         self.Bind(wx.EVT_MENU, self.on_close_pdf, m_close)
         self.Bind(wx.EVT_MENU, self.on_open_pswdmng, id=self.id_pswdmng)
+        self.Bind(wx.EVT_MENU, self.on_toggle_dark_mode, id=self.id_dark_mode)
         self.Bind(wx.EVT_MENU, self.on_edit_keys, id=self.id_key_binds_editor)
         self.Bind(wx.EVT_MENU, lambda e: self.Close(), m_exit)
 
@@ -1080,6 +1160,7 @@ class MainFrame(wx.Frame):
 
         _set_enable(self.id_sidebar_toggle, has_provider)
         _set_check(self.id_sidebar_toggle, self.splitter.IsSplit())
+        _set_check(self.id_dark_mode, getattr(self, "dark_mode", False))
         _set_check(self.id_show_tabbar, getattr(self, "show_tabbar", True))
         _set_check(self.id_multi_tab_mode, getattr(self, "multi_tab_mode", True))
         _set_enable(self.id_split_tabs, getattr(self, "multi_tab_mode", True) and self.notebook.GetPageCount() >= 2)
@@ -1530,6 +1611,24 @@ class MainFrame(wx.Frame):
 
         dlg.Destroy()
 
+    def _apply_notebook_theme(self):
+        if self.dark_mode:
+            self.notebook.SetArtProvider(DarkAuiTabArt())
+
+            for i in range(self.notebook.GetPageCount()):
+                self.notebook.SetPageTextColour(i, wx.Colour(235, 235, 235))
+        else:
+            self.notebook.SetArtProvider(tabart.AuiDefaultTabArt())
+
+            for i in range(self.notebook.GetPageCount()):
+                self.notebook.SetPageTextColour(
+                    i,
+                    wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
+                )
+
+        self.notebook.Refresh()
+        self.notebook.Update()
+
     def on_setmg(self, evt):
         dlg = SetMarginGapDialog(self, title=_("Set Margin and Gap"))
         msw_set_theme(dlg)
@@ -1689,6 +1788,27 @@ class MainFrame(wx.Frame):
         self.ShowFullScreen(not is_full, style=wx.FULLSCREEN_NOBORDER | wx.FULLSCREEN_NOCAPTION)
         self._update_ui()
 
+    def _apply_sidebar_tree_theme(self):
+        if self.dark_mode:
+            self.sidebar_tree.SetBackgroundColour(wx.Colour(32, 32, 32))
+            self.sidebar_tree.SetForegroundColour(wx.Colour(235, 235, 235))
+        else:
+            self.sidebar_tree.SetBackgroundColour(wx.Colour(245, 245, 245))
+            self.sidebar_tree.SetForegroundColour(
+                wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
+            )
+
+        self.sidebar_tree.Refresh()
+
+    def on_toggle_dark_mode(self, evt):
+        self.dark_mode = bool(evt.IsChecked())
+
+        cfg = load_config()
+        cfg["dark_mode"] = self.dark_mode
+        save_config(cfg)
+
+        show_toast(self, _("Restart is required."))
+
     def on_filter_settings(self, evt):
         debounce_timer = wx.Timer(self)
 
@@ -1796,6 +1916,7 @@ class MainFrame(wx.Frame):
                 "show_sidebar": self.splitter.IsSplit(),
                 "multi_tab_mode": self.multi_tab_mode,
                 "show_tabbar": self.show_tabbar,
+                "dark_mode": self.dark_mode,
                 "view_mode": v.mode if v else PDFView.MODE_TWO,
                 "direction": v.direction if v else PDFView.DIR_LTR,
                 "pad_start": v.pad_start if v else False,
@@ -1858,6 +1979,9 @@ class WxPDFReaderApp(wx.App):
         else:
             lang = wx.LANGUAGE_ENGLISH
 
+        if bool(cfg.get("dark_mode", False)):
+            self.MSWEnableDarkMode(flags=1)
+
         base_path = os.path.dirname(os.path.abspath(__file__))
         locale_dir = os.path.join(base_path, 'locale')
         self.locale = wx.Locale(lang)
@@ -1879,4 +2003,11 @@ class WxPDFReaderApp(wx.App):
 
 if __name__ == "__main__":
     app = WxPDFReaderApp(False)
+
+    appearance = wx.SystemSettings.GetAppearance()
+
+    print(appearance.IsDark())  # Application
+    print(appearance.IsSystemDark())  # System
+    print(appearance.IsUsingDarkBackground())  # Application
+
     app.MainLoop()

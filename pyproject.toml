@@ -2,7 +2,7 @@
 name = "wxreader"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "babel==2.18.0",
     "imageio==2.37.3",
@@ -14,9 +14,12 @@ dependencies = [
     "pyvips>=3.1.1",
     "pywinstyles>=1.8",
     "pyzipper>=0.4.0",
-    "wxpython>=4.2.5",
+    "wxpython",
     "pillow>=12.2.0",
 ]
+
+[tool.uv.sources]
+wxpython = { url = "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl" }
 
 [project.optional-dependencies]
 analysis = [
