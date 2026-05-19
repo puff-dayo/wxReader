@@ -1,7 +1,9 @@
+import re
 import wx
-import wx.html
+import wx.richtext as rt
+from html.parser import HTMLParser
 
-from wxReaderIcon import get_app_icon
+from wxReaderIcon import get_app_icon, get_app_font
 
 # Format: List of tuples -> (Title, HTML_Content, [List of Children Tuples])
 # HTML_Content can be None if just a category
@@ -1219,40 +1221,58 @@ class ManualDialog(wx.Frame):
         if parent:
             self.SetIcon(parent.GetIcon())
 
-        self.splitter = wx.SplitterWindow(self, style=wx.SP_3D | wx.SP_LIVE_UPDATE)
+        self.splitter = wx.SplitterWindow(
+            self,
+            style=wx.SP_3D | wx.SP_LIVE_UPDATE
+        )
         self.splitter.SetMinimumPaneSize(200)
 
         self.nav_panel = wx.Panel(self.splitter)
         nav_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.tree = wx.TreeCtrl(self.nav_panel,
-                                style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_NO_LINES | wx.TR_TWIST_BUTTONS)
-        self.tree.SetBackgroundColour(wx.Colour(240, 240, 240))
+        self.tree = wx.TreeCtrl(
+            self.nav_panel,
+            style=(
+                wx.TR_DEFAULT_STYLE
+                | wx.TR_HIDE_ROOT
+                | wx.TR_FULL_ROW_HIGHLIGHT
+                | wx.TR_NO_LINES
+                | wx.TR_TWIST_BUTTONS
+            )
+        )
 
         nav_sizer.Add(self.tree, 1, wx.EXPAND)
         self.nav_panel.SetSizer(nav_sizer)
 
-        self.html_window = wx.html.HtmlWindow(self.splitter)
-        self.html_window.SetStandardFonts(size=11)
+        self.manual_view = rt.RichTextCtrl(
+            self.splitter,
+            style=rt.RE_MULTILINE | wx.VSCROLL | wx.HSCROLL | wx.BORDER_NONE
+        )
+        self.manual_view.SetEditable(False)
 
-        self.splitter.SplitVertically(self.nav_panel, self.html_window, 250)
+        base_font = self.manual_view.GetFont()
+        self.manual_view.SetFont(wx.Font(
+            11,
+            base_font.GetFamily(),
+            base_font.GetStyle(),
+            base_font.GetWeight(),
+            faceName=base_font.GetFaceName()
+        ))
+
+        self.renderer = ManualRichTextRenderer(self.manual_view)
+
+        self.splitter.SplitVertically(
+            self.nav_panel,
+            self.manual_view,
+            250
+        )
 
         self.root_id = self.tree.AddRoot("Root")
 
-        if lang == wx.LANGUAGE_ENGLISH:
-            self._populate_tree(self.root_id, MANUAL_TREE)
-        elif lang == wx.LANGUAGE_CHINESE_SINGAPORE:
-            self._populate_tree(self.root_id, MANUAL_TREE_ZHSG)
-        elif lang == wx.LANGUAGE_JAPANESE:
-            self._populate_tree(self.root_id, MANUAL_TREE_JAJP)
-        elif lang == wx.LANGUAGE_CHINESE_TAIWAN:
-            self._populate_tree(self.root_id, MANUAL_TREE_ZHTW)
-        elif lang == wx.LANGUAGE_CHINESE_HONGKONG:
-            self._populate_tree(self.root_id, MANUAL_TREE_ZHHK)
-
+        manual_tree = self._get_manual_tree(lang)
+        self._populate_tree(self.root_id, manual_tree)
 
         self.tree.ExpandAll()
-
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_selection_changed)
         self.Bind(wx.EVT_CLOSE, self.on_close)
 
@@ -1266,12 +1286,27 @@ class ManualDialog(wx.Frame):
         if app_icon.IsOk():
             self.SetIcon(app_icon)
 
+    def _get_manual_tree(self, lang):
+        if lang == wx.LANGUAGE_CHINESE_SINGAPORE:
+            return MANUAL_TREE_ZHSG
+
+        if lang == wx.LANGUAGE_JAPANESE:
+            return MANUAL_TREE_JAJP
+
+        if lang == wx.LANGUAGE_CHINESE_TAIWAN:
+            return MANUAL_TREE_ZHTW
+
+        if lang == wx.LANGUAGE_CHINESE_HONGKONG:
+            return MANUAL_TREE_ZHHK
+
+        return MANUAL_TREE
+
     def _populate_tree(self, parent_id, nodes):
         for title, content, children in nodes:
             item_id = self.tree.AppendItem(parent_id, title)
 
             if content is None:
-                content = f"<h3>{title}</h3><p>Select a sub-topic from the tree to view details.</p>"
+                content = f"<h3>{title}</h3>"
 
             self.tree.SetItemData(item_id, content)
 
@@ -1283,27 +1318,224 @@ class ManualDialog(wx.Frame):
         if item_id.IsOk():
             content = self.tree.GetItemData(item_id)
             if content:
-                self._display_html(content)
-
-    def _display_html(self, body_content):
-        # Wrap content in a standard Windows Help style template
-        full_html = f"""
-        <html>
-        <head>
-            <style>
-                body {{ font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 10pt; color: #333; }}
-                h3 {{ color: #003399; border-bottom: 1px solid #a0a0a0; padding-bottom: 5px; }}
-                h4 {{ color: #333; margin-top: 15px; margin-bottom: 5px; }}
-                li {{ margin-bottom: 5px; }}
-                code {{ background-color: #f0f0f0; padding: 2px 4px; font-family: Consolas, monospace; }}
-            </style>
-        </head>
-        <body>
-            {body_content}
-        </body>
-        </html>
-        """
-        self.html_window.SetPage(full_html)
+                self.renderer.render(content)
 
     def on_close(self, evt):
         self.Destroy()
+
+
+class ManualRichTextRenderer(HTMLParser):
+    def __init__(self, ctrl):
+        super().__init__(convert_charrefs=True)
+
+        self.ctrl = ctrl
+        self.base_font = get_app_font(add_size=2)
+        self.heading_font_size = self.base_font.GetPointSize() + 4
+
+        self.code_font = wx.Font(
+            self.base_font.GetPointSize(),
+            wx.FONTFAMILY_TELETYPE,
+            wx.FONTSTYLE_NORMAL,
+            wx.FONTWEIGHT_NORMAL
+        )
+
+        self._reset_render_state()
+
+    def _reset_render_state(self):
+        self.list_stack = []
+
+        self.in_table = False
+        self.table_rows = []
+        self.current_row = None
+        self.current_cell = None
+
+    def render(self, source):
+        self.reset()
+        self._reset_render_state()
+
+        self.ctrl.Freeze()
+        self.ctrl.SetEditable(True)
+        self.ctrl.Clear()
+
+        self.ctrl.GetBuffer().ClearStyleStack()
+
+        default_style = wx.TextAttr()
+        default_style.SetFont(self.base_font)
+        self.ctrl.SetDefaultStyle(default_style)
+        self.ctrl.SetFont(self.base_font)
+
+        self.feed(source or "")
+        self.close()
+
+        self.ctrl.GetBuffer().ClearStyleStack()
+
+        self.ctrl.SetInsertionPoint(0)
+        self.ctrl.ShowPosition(0)
+        self.ctrl.SetEditable(False)
+        self.ctrl.Thaw()
+
+    def handle_starttag(self, tag, attrs):
+        if self.in_table:
+            self._handle_table_start(tag)
+            return
+
+        if tag == "h3":
+            self._write_block_gap()
+            self.ctrl.BeginBold()
+            self.ctrl.BeginFontSize(self.heading_font_size)
+
+        elif tag == "p":
+            pass
+
+        elif tag == "b":
+            self.ctrl.BeginBold()
+
+        elif tag == "code":
+            self.ctrl.BeginFont(self.code_font)
+
+        elif tag == "br":
+            self.ctrl.Newline()
+
+        elif tag == "ul":
+            self.list_stack.append({
+                "kind": "ul",
+                "index": 0
+            })
+
+        elif tag == "ol":
+            self.list_stack.append({
+                "kind": "ol",
+                "index": 0
+            })
+
+        elif tag == "li":
+            self._write_list_prefix()
+
+        elif tag == "table":
+            self.in_table = True
+            self.table_rows = []
+            self.current_row = None
+            self.current_cell = None
+            self._write_block_gap()
+
+    def handle_endtag(self, tag):
+        if self.in_table:
+            self._handle_table_end(tag)
+            return
+
+        if tag == "h3":
+            self.ctrl.EndFontSize()
+            self.ctrl.EndBold()
+            self.ctrl.Newline()
+            self.ctrl.Newline()
+
+        elif tag == "p":
+            self.ctrl.Newline()
+            self.ctrl.Newline()
+
+        elif tag == "b":
+            self.ctrl.EndBold()
+
+        elif tag == "code":
+            self.ctrl.EndFont()
+
+        elif tag == "li":
+            self.ctrl.Newline()
+
+        elif tag in ("ul", "ol"):
+            if self.list_stack:
+                self.list_stack.pop()
+            self.ctrl.Newline()
+
+    def handle_data(self, data):
+        text = re.sub(r"\s+", " ", data)
+
+        if not text.strip():
+            return
+
+        if self.in_table and self.current_cell is not None:
+            self.current_cell.append(text)
+        else:
+            self.ctrl.WriteText(text)
+
+    def _write_block_gap(self):
+        if self.ctrl.GetLastPosition() > 0:
+            self.ctrl.Newline()
+
+    def _write_list_prefix(self):
+        depth = max(0, len(self.list_stack) - 1)
+        indent = "    " * depth
+
+        if not self.list_stack:
+            self.ctrl.WriteText("• ")
+            return
+
+        current = self.list_stack[-1]
+        current["index"] += 1
+
+        if current["kind"] == "ol":
+            prefix = f"{current['index']}. "
+        else:
+            prefix = "• "
+
+        self.ctrl.WriteText(indent + prefix)
+
+    def _handle_table_start(self, tag):
+        if tag == "tr":
+            self.current_row = []
+
+        elif tag in ("td", "th"):
+            self.current_cell = []
+
+    def _handle_table_end(self, tag):
+        if tag in ("td", "th"):
+            cell_text = "".join(self.current_cell or []).strip()
+
+            if self.current_row is not None:
+                self.current_row.append(cell_text)
+
+            self.current_cell = None
+
+        elif tag == "tr":
+            if self.current_row:
+                self.table_rows.append(self.current_row)
+
+            self.current_row = None
+
+        elif tag == "table":
+            self.in_table = False
+            self._write_table()
+            self.ctrl.Newline()
+
+    def _write_table(self):
+        if not self.table_rows:
+            return
+
+        column_count = max(len(row) for row in self.table_rows)
+        column_widths = [0] * column_count
+
+        for row in self.table_rows:
+            for index, cell in enumerate(row):
+                column_widths[index] = max(column_widths[index], len(cell))
+
+        for row_index, row in enumerate(self.table_rows):
+            padded_cells = []
+
+            for index in range(column_count):
+                cell = row[index] if index < len(row) else ""
+                padded_cells.append(cell.ljust(column_widths[index]))
+
+            line = "    |    ".join(padded_cells)
+
+            if len(row) == 1:
+                self.ctrl.BeginBold()
+                self.ctrl.WriteText(row[0])
+                self.ctrl.EndBold()
+            elif row_index == 0:
+                self.ctrl.BeginBold()
+                self.ctrl.WriteText(line)
+                self.ctrl.EndBold()
+            else:
+                self.ctrl.WriteText(line)
+
+            self.ctrl.Newline()
