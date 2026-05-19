@@ -2,25 +2,20 @@
 
 **wxReader** is a document reader for **ZIP comics, ZIP manga, PDF**, and more. Built with wxPython, PyMuPDF, OpenGL, libvips, Nuitka, and Python. It is distributed as a compiled portable Windows app (Linux version is unmaintained).
 
-Fora a comfortable reading experience, it provides a mouse shortcut wheel, multi-tab reading, blank-page padding for proper two-page spreads, Dark Mode, and a custom page effect renderer with user-defined and preloaded GLSL fragment shaders.
+Fora a comfortable reading experience, it provides a mouse shortcut wheel, multi-tab reading, blank-page padding for proper two-page spreads, dark mode, password book for zip files with a password, and a custom page effect renderer with user-defined and preloaded GLSL fragment shaders.
 
-**wxReaderVoiceCtrl** is a hands-free external controller app for wxReader, recognizing voice command offline by vosk and pyaudio. GUI is built with wxPython. **wxReaderEyeTrackCtrl** is a hands-free external controller app for wxReader, recognizing eye movement and blinking gesture offline by [EyeTrax](https://doi.org/10.5281/zenodo.17188537) through a webcam. GUI is also built with wxPython.
+**wxReaderVoiceCtrl** is a hands-free external controller app for wxReader, recognizing voice command offline by vosk and pyaudio. GUI is built with wxPython. **wxReaderEyeTrackCtrl** is a hands-free external controller app for wxReader, recognizing eye movement and blinking gesture offline by [EyeTrax](https://doi.org/10.5281/zenodo.17188537) through a webcam.
 
 **-> Download link <-**
 <br>wxReader v1.6.0 for [Windows10+](https://github.com/puff-dayo/wxReader/releases) (>1809)
 <br>wxReader v1.3.9 for [Debian13](https://github.com/puff-dayo/wxReader/releases/download/v1.3.9/wxReader_v1.3.9_debian13_amd64.zip)
 <br>external controllers for [Windows10+_avx2](https://github.com/puff-dayo/wxReader/releases/tag/v1.3.6) (>1809)
 
-Build/run from source: see below ↓
+Build/run from source: see below.
 
-
-<div style="display: flex; justify-content: space-between;">
-
-<img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1.png?raw=true" width="50%">
-
-<img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/2.png?raw=true" width="50%">
-
-</div>
+| Light mode                                                                                                 | Dark mode                                                                                                  |
+|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1.png?raw=true" width="100%"> | <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/2.png?raw=true" width="100%"> |
 
 ---
 
