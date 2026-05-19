@@ -56,6 +56,10 @@ jobs:
 
       - name: Install project dependencies
         shell: cmd
+        env:
+          UV_HTTP_CONNECT_TIMEOUT: "15"
+          UV_HTTP_TIMEOUT: "45"
+          UV_HTTP_RETRIES: "10"
         run: uv --project . sync
 
       - name: Download libvips v8.18.2 (win64 all)
