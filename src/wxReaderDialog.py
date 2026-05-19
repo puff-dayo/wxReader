@@ -797,10 +797,16 @@ class ModernColorDialog(wx.Dialog):
 
 class AboutDialog(wx.Dialog):
     def __init__(self, parent):
-        super().__init__(parent, title=_("About"), style=wx.DEFAULT_DIALOG_STYLE)
+        super().__init__(
+            parent,
+            title=_("About"),
+            style=wx.DEFAULT_DIALOG_STYLE
+        )
 
-        self.SetBackgroundColour(wx.WHITE)
         self.SetFont(get_app_font())
+
+        text_colour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
+        muted_colour = self._get_muted_text_colour()
 
         wrapper = wx.BoxSizer(wx.VERTICAL)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -814,10 +820,14 @@ class AboutDialog(wx.Dialog):
 
         lbl_name = wx.StaticText(self, label=APP_NAME)
         lbl_name.SetFont(get_app_font(4))
+        lbl_name.SetForegroundColour(text_colour)
         main_sizer.Add(lbl_name, 0, wx.CENTER | wx.BOTTOM, 2)
 
-        lbl_ver = wx.StaticText(self, label=_("Version") + f" {APP_VERSION}")
-        lbl_ver.SetForegroundColour(wx.Colour(100, 100, 100))
+        lbl_ver = wx.StaticText(
+            self,
+            label=_("Version") + f" {APP_VERSION}"
+        )
+        lbl_ver.SetForegroundColour(muted_colour)
         main_sizer.Add(lbl_ver, 0, wx.CENTER)
 
         line = wx.StaticLine(self)
@@ -829,26 +839,32 @@ class AboutDialog(wx.Dialog):
             l1 = wx.StaticText(self, label=label)
             l2 = wx.StaticText(self, label=value)
             l3 = wx.StaticText(self, label=license_name)
-            l3.SetForegroundColour(wx.Colour(120, 120, 120))
+
+            l1.SetForegroundColour(text_colour)
+            l2.SetForegroundColour(text_colour)
+            l3.SetForegroundColour(muted_colour)
 
             tech_sizer.Add(l1, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
             tech_sizer.Add(l2, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
             tech_sizer.Add(l3, 0, wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
 
-        _add_tech_row("GUI kit:", f"wxPython (wxWidgets 3.2.8)", "LGPL")
+        _add_tech_row("GUI kit:", "wxPython 4.3-alpha", "wxWindows")
         _add_tech_row("PDF engine:", "PyMuPDF 1.23.8", "AGPL")
         _add_tech_row("Post process:", "OpenGL (PyOpenGL)", "BSD")
         _add_tech_row("Image:", "pyvips (libvips)", "LGPL")
         _add_tech_row("Runtime:", "Python 3.12.9", "PSFL")
 
         main_sizer.Add(tech_sizer, 0, wx.CENTER)
-
         main_sizer.AddSpacer(10)
 
-        link = adv.HyperlinkCtrl(self, label=_("Visit GitHub Repository"), url="https://github.com/puff-dayo/wxReader/")
+        link = adv.HyperlinkCtrl(
+            self,
+            label=_("Visit GitHub Repository"),
+            url="https://github.com/puff-dayo/wxReader/"
+        )
         main_sizer.Add(link, 0, wx.CENTER | wx.BOTTOM, 10)
 
-        btn = wx.Button(self, wx.ID_OK, label="Close")
+        btn = wx.Button(self, wx.ID_OK, label=_("Close"))
         btn.SetDefault()
         main_sizer.Add(btn, 0, wx.CENTER)
 
@@ -857,6 +873,13 @@ class AboutDialog(wx.Dialog):
         self.SetSizerAndFit(wrapper)
         self.CenterOnParent()
 
+    @staticmethod
+    def _get_muted_text_colour():
+        appearance = wx.SystemSettings.GetAppearance()
+
+        if appearance.IsDark():
+            return wx.Colour(170, 170, 170)
+        return wx.Colour(100, 100, 100)
 
 class RecentFilesDialog(wx.Dialog):
     def __init__(self, parent, recent_files):
