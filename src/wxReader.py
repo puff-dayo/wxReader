@@ -78,15 +78,15 @@ class FileDropTarget(wx.FileDropTarget):
         return wx.DragCopy
 
     def OnDragOver(self, x, y, d):
-        return wx.DragCopy if self._accept(getattr(self, "_last_filenames", [""])) else wx.DragNone
+        return wx.DragCopy
 
     def OnDropFiles(self, x, y, filenames):
         if not self._accept(filenames):
             wx.Bell()
             return False
+
         wx.CallAfter(self.frame._load_file, filenames[0])
         return True
-
 
 def get_icon(art_id):
     return wx.ArtProvider.GetBitmapBundle(art_id, wx.ART_BUTTON, wx.Size(16, 16))
@@ -412,6 +412,7 @@ class MainFrame(wx.Frame):
         self.notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
 
         self.SetDropTarget(FileDropTarget(self))
+        self.notebook.SetDropTarget(FileDropTarget(self))
 
         self._update_ui()
         self.Raise()
@@ -426,6 +427,7 @@ class MainFrame(wx.Frame):
 
         view = PDFView(self.notebook)
         view.main_frame = self
+        view.SetDropTarget(FileDropTarget(self))
         view.set_memory_profile_name(self.memory_profile_name)
 
         cfg = load_config()
