@@ -19,9 +19,27 @@ def _(text):
 THUMB_WIDTH = 140
 THUMB_HEIGHT = 200
 PANEL_HEIGHT = THUMB_HEIGHT + 55
-BG_COLOR = wx.Colour(240, 240, 240)
-TEXT_COLOR = wx.Colour(40, 40, 40)
 MAX_WORKERS = max(1, (os.cpu_count() or 2) - 1)
+LIGHT_GALLERY_THEME = {
+    "bg": wx.Colour(240, 240, 240),
+    "card": wx.Colour(240, 240, 240),
+    "card_hover": wx.Colour(154, 200, 138),
+    "border": wx.Colour(210, 210, 210),
+    "text": wx.Colour(40, 40, 40),
+    "placeholder": wx.Colour(220, 220, 220),
+}
+DARK_GALLERY_THEME = {
+    "bg": wx.Colour(32, 32, 32),
+    "card": wx.Colour(42, 42, 42),
+    "card_hover": wx.Colour(76, 122, 92),
+    "border": wx.Colour(78, 78, 78),
+    "text": wx.Colour(230, 230, 230),
+    "placeholder": wx.Colour(68, 68, 68),
+}
+
+
+def get_gallery_theme(dark_mode: bool):
+    return DARK_GALLERY_THEME if dark_mode else LIGHT_GALLERY_THEME
 
 
 def process_cover_with_provider(file_path, thumb_width, thumb_height):
@@ -58,18 +76,19 @@ class VirtualThumbnailCanvas(wx.ScrolledWindow):
     CELL_HEIGHT = PANEL_HEIGHT + 20
     OUTER_MARGIN = 10
 
-    def __init__(self, parent, placeholder_bmp, callback):
+    def __init__(self, parent, placeholder_bmp, callback, theme):
         super().__init__(parent, style=wx.VSCROLL | wx.BORDER_NONE)
 
         self.placeholder_bmp = placeholder_bmp
         self.callback = callback
+        self.theme = theme
 
         self.files = []
         self.bitmap_map = {}
         self.hover_index = -1
         self.columns = 1
 
-        self.SetBackgroundColour(BG_COLOR)
+        self.SetBackgroundColour(self.theme["bg"])
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.SetScrollRate(0, 20)
 
@@ -205,7 +224,7 @@ class VirtualThumbnailCanvas(wx.ScrolledWindow):
         dc = wx.AutoBufferedPaintDC(self)
         self.PrepareDC(dc)
 
-        dc.SetBackground(wx.Brush(BG_COLOR))
+        dc.SetBackground(wx.Brush(self.theme["bg"]))
         dc.Clear()
 
         if not self.files:
@@ -230,12 +249,10 @@ class VirtualThumbnailCanvas(wx.ScrolledWindow):
         file_path = self.files[index]
         rect = self._index_rect(index)
 
-        if index == self.hover_index:
-            dc.SetBrush(wx.Brush(wx.Colour(154, 200, 138)))
-        else:
-            dc.SetBrush(wx.Brush(BG_COLOR))
+        fill = self.theme["card_hover"] if index == self.hover_index else self.theme["card"]
 
-        dc.SetPen(wx.Pen(wx.Colour(210, 210, 210)))
+        dc.SetBrush(wx.Brush(fill))
+        dc.SetPen(wx.Pen(self.theme["border"]))
         dc.DrawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, 2)
 
         bmp = self.bitmap_map.get(file_path, self.placeholder_bmp)
@@ -251,7 +268,7 @@ class VirtualThumbnailCanvas(wx.ScrolledWindow):
         font = dc.GetFont()
         font.SetPointSize(9)
         dc.SetFont(font)
-        dc.SetTextForeground(TEXT_COLOR)
+        dc.SetTextForeground(self.theme["text"])
 
         label_rect = wx.Rect(
             rect.x + 4,
@@ -316,6 +333,93 @@ class VirtualThumbnailCanvas(wx.ScrolledWindow):
         return result + ellipsis if result else ellipsis
 
 
+class GalleryProgressLine(wx.Panel):
+    def __init__(self, parent, theme, range=100):
+        super().__init__(parent, size=(-1, 4), style=wx.BORDER_NONE)
+
+        self.theme = theme
+        self._range = max(1, int(range))
+        self._value = 0
+
+        self._pulsing = False
+        self._pulse_pos = 0
+        self._pulse_timer = wx.Timer(self)
+
+        self.SetMinSize((-1, 4))
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_TIMER, self.on_pulse_timer, self._pulse_timer)
+        self.Bind(wx.EVT_SIZE, lambda evt: (self.Refresh(False), evt.Skip()))
+
+    def SetRange(self, value: int):
+        self._range = max(1, int(value))
+        self._value = min(self._value, self._range)
+        self._stop_pulse()
+        self.Refresh(False)
+
+    def GetRange(self) -> int:
+        return self._range
+
+    def SetValue(self, value: int):
+        self._value = max(0, min(int(value), self._range))
+        self._stop_pulse()
+        self.Refresh(False)
+
+    def GetValue(self) -> int:
+        return self._value
+
+    def Pulse(self):
+        self._pulsing = True
+        self._pulse_pos = 0
+        if not self._pulse_timer.IsRunning():
+            self._pulse_timer.Start(30)
+        self.Refresh(False)
+
+    def _stop_pulse(self):
+        self._pulsing = False
+        if self._pulse_timer.IsRunning():
+            self._pulse_timer.Stop()
+
+    def on_pulse_timer(self, evt):
+        self._pulse_pos = (self._pulse_pos + 10) % 140
+        self.Refresh(False)
+
+    def on_paint(self, evt):
+        dc = wx.BufferedPaintDC(self)
+        w, h = self.GetClientSize()
+
+        dc.SetBackground(wx.Brush(self.theme["bg"]))
+        dc.Clear()
+
+        if w <= 0 or h <= 0:
+            return
+
+        line_h = 3
+        y = max(0, (h - line_h) // 2)
+
+        track_colour = self.theme["border"]
+        fill_colour = self.theme["card_hover"]
+
+        dc.SetPen(wx.TRANSPARENT_PEN)
+
+        dc.SetBrush(wx.Brush(track_colour))
+        dc.DrawRectangle(0, y, w, line_h)
+
+        if self._pulsing:
+            pulse_w = max(40, w // 5)
+            x = int((w + pulse_w) * self._pulse_pos / 140) - pulse_w
+
+            dc.SetBrush(wx.Brush(fill_colour))
+            dc.DrawRectangle(x, y, pulse_w, line_h)
+            return
+
+        fill_w = int(w * self._value / self._range)
+        if fill_w > 0:
+            dc.SetBrush(wx.Brush(fill_colour))
+            dc.DrawRectangle(0, y, fill_w, line_h)
+
+
 class LibraryManagerThread(threading.Thread):
     def __init__(self, files, result_queue):
         super().__init__()
@@ -348,10 +452,12 @@ class LibraryManagerThread(threading.Thread):
 
 
 class LibraryFrame(wx.Frame):
-    def __init__(self, parent, directory, open_callback=None):
+    def __init__(self, parent, directory, open_callback=None, dark_mode=False):
         super().__init__(parent, title=_("wxReader Gallery"), size=(1200, 960))
+
         self.directory = directory
         self.open_callback = open_callback
+        self.theme = get_gallery_theme(dark_mode)
 
         self.manager_thread = None
         self.result_queue = queue.Queue()
@@ -360,7 +466,7 @@ class LibraryFrame(wx.Frame):
         self.file_metadata = {}
         self.files_to_create = []
 
-        self.SetBackgroundColour(BG_COLOR)
+        self.SetBackgroundColour(self.theme["bg"])
 
         app_icon = get_app_icon()
         if app_icon.IsOk():
@@ -370,7 +476,7 @@ class LibraryFrame(wx.Frame):
         self.placeholder_bmp = self._create_placeholder()
 
         top_panel = wx.Panel(self)
-        top_panel.SetBackgroundColour(BG_COLOR)
+        top_panel.SetBackgroundColour(self.theme["bg"])
         top_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.combo_sort = wx.ComboBox(top_panel, choices=[_("Name (A-Z)"), _("Name (Z-A)"),
@@ -379,7 +485,10 @@ class LibraryFrame(wx.Frame):
         self.combo_sort.SetSelection(1)
         self.btn_refresh = wx.Button(top_panel, label=_("Refresh"))
 
-        top_sizer.Add(wx.StaticText(top_panel, label=_("Sort by: ")), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        sort_lbl = wx.StaticText(top_panel, label=_("Sort by: "))
+        sort_lbl.SetForegroundColour(self.theme["text"])
+
+        top_sizer.Add(sort_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         top_sizer.Add(self.combo_sort, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         top_sizer.Add(self.btn_refresh, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
@@ -394,10 +503,11 @@ class LibraryFrame(wx.Frame):
         self.gallery = VirtualThumbnailCanvas(
             self,
             self.placeholder_bmp,
-            self.on_thumb_click
+            self.on_thumb_click,
+            self.theme
         )
 
-        self.gauge = wx.Gauge(self, range=100, size=(-1, 4))
+        self.gauge = GalleryProgressLine(self, self.theme, range=100)
         self.status_lbl = wx.StaticText(self, label=_("Ready"))
 
         main_sizer.Add(top_panel, 0, wx.EXPAND | wx.ALL, 5)
@@ -413,6 +523,10 @@ class LibraryFrame(wx.Frame):
         self.chk_stay_on_top.Bind(wx.EVT_CHECKBOX, self.on_toggle_top)
         self.Bind(wx.EVT_CLOSE, self.on_close)
 
+        self.chk_stay_on_top.SetForegroundColour(self.theme["text"])
+
+        self.status_lbl.SetForegroundColour(self.theme["text"])
+
         self.update_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_update_timer, self.update_timer)
 
@@ -420,7 +534,8 @@ class LibraryFrame(wx.Frame):
 
     def _create_placeholder(self):
         img = wx.Image(THUMB_WIDTH, THUMB_HEIGHT)
-        img.SetRGB(wx.Rect(0, 0, THUMB_WIDTH, THUMB_HEIGHT), 220, 220, 220)
+        c = self.theme["placeholder"]
+        img.SetRGB(wx.Rect(0, 0, THUMB_WIDTH, THUMB_HEIGHT), c.Red(), c.Green(), c.Blue())
         return wx.Bitmap(img)
 
     def load_files(self):

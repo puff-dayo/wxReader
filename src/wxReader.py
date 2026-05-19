@@ -1347,7 +1347,12 @@ class MainFrame(wx.Frame):
             self.Raise()
             self._load_file(path)
 
-        lib_frame = LibraryFrame(self, current_dir, _open_from_lib)
+        lib_frame = LibraryFrame(
+            self,
+            current_dir,
+            _open_from_lib,
+            dark_mode=self.dark_mode
+        )
         msw_set_theme(lib_frame)
         lib_frame.Show()
 
