@@ -121,6 +121,7 @@ jobs:
             --nofollow-import-to=pillow ^
             --windows-console-mode=attach ^
             --windows-icon-from-ico=.\src\icon.png ^
+            --include-module=wx._xml ^
             --include-data-file=.\src\icon.png=icon.png ^
             --include-data-file=.\src\libglib-2.0-0.dll=libglib-2.0-0.dll ^
             --include-data-file=.\src\libgobject-2.0-0.dll=libgobject-2.0-0.dll ^
