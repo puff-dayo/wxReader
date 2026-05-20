@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-wxpython = { url = "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl" }
+wxpython = { path = "wheels/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl" }
 
 [project.optional-dependencies]
 analysis = [

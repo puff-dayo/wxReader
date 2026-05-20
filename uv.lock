@@ -489,9 +489,9 @@ wheels = [
 [[package]]
 name = "wxpython"
 version = "4.3.0a16064+246cff28"
-source = { url = "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl" }
+source = { path = "wheels/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl" }
 wheels = [
-    { url = "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl", hash = "sha256:88199183a968fee579452eb95348a1a2dfc97049c2cd631fb91e22b0fc93dc4d" },
+    { filename = "wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl", hash = "sha256:88199183a968fee579452eb95348a1a2dfc97049c2cd631fb91e22b0fc93dc4d" },
 ]
 
 [package.metadata]
@@ -549,7 +549,7 @@ requires-dist = [
     { name = "pyzipper", specifier = ">=0.4.0" },
     { name = "radon", marker = "extra == 'analysis'", specifier = ">=6.0.1" },
     { name = "viztracer", marker = "extra == 'analysis'", specifier = ">=1.1.1" },
-    { name = "wxpython", url = "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl" },
+    { name = "wxpython", path = "wheels/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl" },
 ]
 provides-extras = ["analysis"]
 
