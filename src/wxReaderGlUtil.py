@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import random
 import time
+from dataclasses import dataclass
 
 import numpy as np
 import wx
@@ -54,12 +55,20 @@ def _compile_program(vs_src: str, fs_src: str) -> int:
     return prog
 
 
+@dataclass
+class EffectStage:
+    name: str
+    strength: float = 0.8
+    enabled: bool = True
+
+
 class GLFilterTool:
     def __init__(self, parent: wx.Window, filters_dir: str):
         self.filters_dir = filters_dir
         self.filters: dict[str, str] = {}  # name -> frag_source
 
         self.strength = 0.8
+        self.effect_chain: list[EffectStage] = []
 
         attribs = [glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER, glcanvas.WX_GL_DEPTH_SIZE, 0]
         self.canvas = glcanvas.GLCanvas(parent, attribList=attribs, size=(1, 1), style=wx.NO_BORDER)
@@ -107,6 +116,37 @@ class GLFilterTool:
             self.canvas.Show(True)
             self.canvas.Update()
         self.canvas.SetCurrent(self.ctx)
+
+    def set_effect_chain(self, stages: list[EffectStage]):
+        self.effect_chain = list(stages)
+
+    def add_effect(self, name: str, strength: float = 0.8):
+        self.effect_chain.append(
+            EffectStage(
+                name=name,
+                strength=max(0.0, min(1.0, float(strength))),
+                enabled=True
+            )
+        )
+
+    def remove_effect(self, index: int):
+        if 0 <= index < len(self.effect_chain):
+            self.effect_chain.pop(index)
+
+    def move_effect(self, old_index: int, new_index: int):
+        if not (0 <= old_index < len(self.effect_chain)):
+            return
+        new_index = max(0, min(new_index, len(self.effect_chain) - 1))
+        stage = self.effect_chain.pop(old_index)
+        self.effect_chain.insert(new_index, stage)
+
+    def set_effect_strength(self, index: int, strength: float):
+        if 0 <= index < len(self.effect_chain):
+            self.effect_chain[index].strength = max(0.0, min(1.0, float(strength)))
+
+    def set_effect_enabled(self, index: int, enabled: bool):
+        if 0 <= index < len(self.effect_chain):
+            self.effect_chain[index].enabled = bool(enabled)
 
     def _init_gl_once(self):
         if self._gl_inited:
@@ -167,7 +207,7 @@ class GLFilterTool:
         self._programs[name] = prog
         return prog
 
-    def apply(self, name: str, rgb_u8: np.ndarray) -> np.ndarray:
+    def _apply_one(self, name: str, rgb_u8: np.ndarray, strength: float) -> np.ndarray:
         if name not in self.filters:
             return rgb_u8
 
@@ -217,7 +257,7 @@ class GLFilterTool:
 
         loc = glGetUniformLocation(prog, b"uStrength")
         if loc >= 0:
-            glUniform1f(loc, self.strength)
+            glUniform1f(loc, float(strength))
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self._in_tex)
@@ -244,4 +284,24 @@ class GLFilterTool:
 
         out = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 3))
         out = np.flipud(out).copy()
+        return out
+
+    def apply(self, name: str, rgb_u8: np.ndarray) -> np.ndarray:
+        return self._apply_one(name, rgb_u8, self.strength)
+
+    def apply_chain(self, rgb_u8: np.ndarray) -> np.ndarray:
+        out = rgb_u8
+
+        for stage in self.effect_chain:
+            if not stage.enabled:
+                continue
+            if stage.name not in self.filters:
+                continue
+
+            out = self._apply_one(
+                stage.name,
+                out,
+                stage.strength
+            )
+
         return out

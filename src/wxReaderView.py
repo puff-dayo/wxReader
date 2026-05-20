@@ -83,7 +83,7 @@ class PDFView(wx.ScrolledWindow):
         super().__init__(parent, style=wx.HSCROLL | wx.VSCROLL | wx.WANTS_CHARS)
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.bgColor = wx.Colour(134, 180, 118)
-        self.custom_filter: str | None = None
+        self.effects_enabled = False
 
         self.main_frame = None
 
@@ -202,12 +202,32 @@ class PDFView(wx.ScrolledWindow):
         self._refresh_layout()
         self.Refresh()
 
-    def set_custom_filter(self, name: str | None):
-        if self.custom_filter != name:
-            self.custom_filter = name
-            self._bmp_cache.clear()
-            self._refresh_layout()
-            self.Refresh()
+    def on_effect_chain_changed(self):
+        self._bmp_cache.clear()
+        self._requested_pages.clear()
+        self._refresh_layout()
+        self.Refresh()
+
+    def _has_active_effects(self) -> bool:
+        if not self.effects_enabled:
+            return False
+
+        if not self.main_frame or not hasattr(self.main_frame, "gl_filters"):
+            return False
+
+        chain = getattr(self.main_frame.gl_filters, "effect_chain", [])
+        return any(stage.enabled for stage in chain)
+
+    def _apply_effect_chain(self, arr: np.ndarray) -> np.ndarray:
+        if not self._has_active_effects():
+            return arr
+
+        try:
+            out = self.main_frame.gl_filters.apply_chain(arr)
+            return out if out is not None else arr
+        except Exception as e:
+            print(f"GL Effect Chain error: {e}")
+            return arr
 
     def set_pad_start(self, pad: bool):
         if self.pad_start != pad:
@@ -324,21 +344,15 @@ class PDFView(wx.ScrolledWindow):
     # Threading Logic
     # --------------------------
     def _process_image_data(self, data: bytes, width: int, height: int) -> bytes:
-        if not self.custom_filter:
+        if not self._has_active_effects():
             return data
 
         try:
-            arr = np.frombuffer(data, dtype=np.uint8).reshape((height, width, 3))
-            arr = arr.copy()
-
-            if self.main_frame and hasattr(self.main_frame, "gl_filters"):
-                out = self.main_frame.gl_filters.apply(self.custom_filter, arr)
-                if out is not None:
-                    arr[:] = out
-
+            arr = np.frombuffer(data, dtype=np.uint8).reshape((height, width, 3)).copy()
+            arr = self._apply_effect_chain(arr)
             return arr.tobytes()
         except Exception as e:
-            print(f"Background processing error: {e}")
+            print(f"Effect chain processing error: {e}")
             return data
 
     def _worker_loop(self):
@@ -391,11 +405,9 @@ class PDFView(wx.ScrolledWindow):
         if cache_key in self._requested_pages:
             self._requested_pages.remove(cache_key)
 
-        if self.custom_filter and self.main_frame and hasattr(self.main_frame, "gl_filters"):
+        if self._has_active_effects():
             try:
-                out = self.main_frame.gl_filters.apply(self.custom_filter, arr)
-                if out is not None:
-                    arr[:] = out
+                arr = self._apply_effect_chain(arr)
             except Exception as e:
                 print(f"GL Filter error on main thread: {e}")
 

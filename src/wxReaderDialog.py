@@ -1118,3 +1118,432 @@ class FilterSettingsDialog(wx.Dialog):
         self.gl_tool.strength = val / 100.0
         if self.on_change:
             self.on_change()
+
+
+class StrengthSlider(wx.Panel):
+    def __init__(self, parent, value=0.8, on_change=None):
+        super().__init__(parent, size=(-1, 34))
+
+        self.SetMinSize((-1, 34))
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+
+        self.value = max(0.0, min(1.0, float(value)))
+        self.on_change = on_change
+        self.dragging = False
+
+        self.track_left = 12
+        self.track_right = 12
+        self.knob_radius = 7
+
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
+        self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
+        self.Bind(wx.EVT_MOTION, self.on_motion)
+        self.Bind(wx.EVT_SIZE, lambda evt: (self.Refresh(), evt.Skip()))
+
+    def SetValue(self, value: float, notify=False):
+        self.value = max(0.0, min(1.0, float(value)))
+        self.Refresh()
+
+        if notify and self.on_change:
+            self.on_change(self.value)
+
+    def GetValue(self) -> float:
+        return self.value
+
+    def _track_bounds(self):
+        w, h = self.GetClientSize()
+        x0 = self.track_left
+        x1 = max(x0 + 1, w - self.track_right)
+        cy = h // 2
+        return x0, x1, cy
+
+    def _value_to_x(self):
+        x0, x1, _ = self._track_bounds()
+        return int(round(x0 + (x1 - x0) * self.value))
+
+    def _x_to_value(self, x):
+        x0, x1, _ = self._track_bounds()
+        if x1 <= x0:
+            return 0.0
+        x = max(x0, min(x, x1))
+        return (x - x0) / float(x1 - x0)
+
+    def on_paint(self, evt):
+        dc = wx.AutoBufferedPaintDC(self)
+        dc.Clear()
+
+        x0, x1, cy = self._track_bounds()
+        knob_x = self._value_to_x()
+
+        track_y = cy
+        line_width = 3
+
+        dc.SetPen(wx.Pen(wx.Colour(88, 88, 88), line_width))
+        dc.DrawLine(x0, track_y, x1, track_y)
+
+        dc.SetPen(wx.Pen(wx.Colour(134, 180, 118), line_width))
+        dc.DrawLine(x0, track_y, knob_x, track_y)
+
+        dc.SetPen(wx.Pen(wx.Colour(90, 120, 80), 1))
+        dc.SetBrush(wx.Brush(wx.Colour(134, 180, 118)))
+        dc.DrawCircle(knob_x, cy, self.knob_radius)
+
+    def on_left_down(self, evt):
+        self.dragging = True
+        if not self.HasCapture():
+            self.CaptureMouse()
+
+        self.SetValue(self._x_to_value(evt.GetX()), notify=True)
+
+    def on_left_up(self, evt):
+        self.dragging = False
+        if self.HasCapture():
+            self.ReleaseMouse()
+
+    def on_motion(self, evt):
+        if not self.dragging:
+            evt.Skip()
+            return
+
+        self.SetValue(self._x_to_value(evt.GetX()), notify=True)
+
+
+class EffectGroupDialog(wx.Dialog):
+    def __init__(self, parent, gl_tool, on_change):
+        super().__init__(
+            parent,
+            title=_("Effect Group"),
+            size=(800, 520),
+            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
+        )
+
+        self.SetFont(get_app_font())
+
+        self.gl_tool = gl_tool
+        self.on_change = on_change
+        self._updating_ui = False
+
+        panel = wx.Panel(self)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        content_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # Left
+        library_box = wx.StaticBox(panel, label=_("Effect Library"))
+        library_sizer = wx.StaticBoxSizer(library_box, wx.VERTICAL)
+
+        self.effect_tree = wx.TreeCtrl(
+            library_box,
+            style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT | wx.BORDER_SUNKEN
+        )
+
+        self.btn_add = wx.Button(library_box, label=_("Add Selected"))
+
+        library_sizer.Add(self.effect_tree, 1, wx.EXPAND | wx.ALL, 8)
+        library_sizer.Add(self.btn_add, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        content_sizer.Add(library_sizer, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 12)
+
+        # Right
+        right_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        group_box = wx.StaticBox(panel, label=_("Current Effect Group"))
+        group_sizer = wx.StaticBoxSizer(group_box, wx.HORIZONTAL)
+
+        self.list_effects = wx.ListCtrl(
+            group_box,
+            style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN
+        )
+        self.list_effects.InsertColumn(0, _("#"), width=48)
+        self.list_effects.InsertColumn(1, _("Enabled"), width=82)
+        self.list_effects.InsertColumn(2, _("Effect"), width=190)
+        self.list_effects.InsertColumn(3, _("uStrength"), width=110)
+
+        action_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.btn_enabled = wx.ToggleButton(group_box, label=_("Enabled"))
+        self.btn_remove = wx.Button(group_box, label=_("Remove"))
+        self.btn_up = wx.Button(group_box, label=_("Move Up"))
+        self.btn_down = wx.Button(group_box, label=_("Move Down"))
+
+        action_sizer.Add(self.btn_enabled, 0, wx.EXPAND | wx.BOTTOM, 8)
+        action_sizer.Add(self.btn_remove, 0, wx.EXPAND | wx.BOTTOM, 8)
+        action_sizer.Add(self.btn_up, 0, wx.EXPAND | wx.BOTTOM, 8)
+        action_sizer.Add(self.btn_down, 0, wx.EXPAND)
+
+        group_sizer.Add(self.list_effects, 1, wx.EXPAND | wx.ALL, 8)
+        group_sizer.Add(action_sizer, 0, wx.EXPAND | wx.TOP | wx.RIGHT | wx.BOTTOM, 8)
+
+        right_sizer.Add(group_sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
+
+        box = wx.StaticBox(panel, label=_("Selected Effect"))
+        selected_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+        strength_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.lbl_strength = wx.StaticText(box, label="uStrength: 0.80")
+        self.slider_strength = StrengthSlider(
+            box,
+            value=0.8,
+            on_change=self.on_strength_slider_changed
+        )
+
+        strength_row.Add(
+            self.lbl_strength,
+            0,
+            wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
+            12
+        )
+        strength_row.Add(
+            self.slider_strength,
+            1,
+            wx.ALIGN_CENTER_VERTICAL
+        )
+
+        selected_sizer.Add(strength_row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        right_sizer.Add(selected_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
+
+        content_sizer.Add(right_sizer, 2, wx.EXPAND | wx.RIGHT | wx.BOTTOM, 12)
+
+        main_sizer.Add(content_sizer, 1, wx.EXPAND)
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        btn_close = wx.Button(panel, wx.ID_CLOSE, label=_("Close"))
+        btn_sizer.AddButton(btn_close)
+        btn_sizer.Realize()
+
+        main_sizer.Add(btn_sizer, 0, wx.ALIGN_RIGHT | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        panel.SetSizer(main_sizer)
+
+        # Bindings
+        self.Bind(wx.EVT_BUTTON, self.on_add_effect, self.btn_add)
+        self.Bind(wx.EVT_BUTTON, self.on_remove_effect, self.btn_remove)
+        self.Bind(wx.EVT_BUTTON, self.on_move_up, self.btn_up)
+        self.Bind(wx.EVT_BUTTON, self.on_move_down, self.btn_down)
+        self.Bind(wx.EVT_BUTTON, lambda evt: self.Close(), btn_close)
+        self.effect_tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_add_effect)
+        self.list_effects.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_effect_selected)
+        self.btn_enabled.Bind(wx.EVT_TOGGLEBUTTON, self.on_toggle_enabled)
+
+        self._populate_list()
+        self._update_editor_state()
+
+        self.CenterOnParent()
+
+        self._populate_effect_tree()
+
+    # Helpers
+    def _notify_change(self):
+        if self.on_change:
+            self.on_change()
+
+    def _get_selected_index(self):
+        idx = self.list_effects.GetFirstSelected()
+        return idx if idx >= 0 else None
+
+    def _get_chain(self):
+        return getattr(self.gl_tool, "effect_chain", [])
+
+    def _populate_effect_tree(self):
+        self.effect_tree.DeleteAllItems()
+        root = self.effect_tree.AddRoot("Root")
+
+        grouped = {}
+
+        filters_dir = getattr(self.gl_tool, "filters_dir", "")
+        loaded_names = set(getattr(self.gl_tool, "filters", {}).keys())
+
+        if filters_dir and os.path.isdir(filters_dir):
+            try:
+                for entry in sorted(os.listdir(filters_dir)):
+                    full_path = os.path.join(filters_dir, entry)
+
+                    if not os.path.isdir(full_path):
+                        continue
+
+                    names = []
+                    try:
+                        for fn in sorted(os.listdir(full_path)):
+                            name, ext = os.path.splitext(fn)
+                            if ext.lower() == ".frag" and name in loaded_names:
+                                names.append(name)
+                    except Exception as e:
+                        print(f"[ERROR] Failed to read effect category '{entry}': {e}")
+
+                    if names:
+                        grouped[entry] = names
+
+            except Exception as e:
+                print(f"[ERROR] Failed to scan filters directory: {e}")
+
+        categorized_names = set()
+
+        for category, names in grouped.items():
+            category_item = self.effect_tree.AppendItem(root, category)
+
+            for name in names:
+                item = self.effect_tree.AppendItem(category_item, name)
+                self.effect_tree.SetItemData(item, name)
+                categorized_names.add(name)
+
+            self.effect_tree.Expand(category_item)
+
+        uncategorized = sorted(loaded_names - categorized_names)
+        if uncategorized:
+            misc_item = self.effect_tree.AppendItem(root, _("Other"))
+
+            for name in uncategorized:
+                item = self.effect_tree.AppendItem(misc_item, name)
+                self.effect_tree.SetItemData(item, name)
+
+            self.effect_tree.Expand(misc_item)
+
+    def _populate_list(self, select_index=None):
+        self.list_effects.DeleteAllItems()
+
+        chain = self._get_chain()
+
+        for i, stage in enumerate(chain):
+            idx = self.list_effects.InsertItem(
+                self.list_effects.GetItemCount(),
+                str(i + 1)
+            )
+            self.list_effects.SetItem(idx, 1, _("On") if stage.enabled else _("Off"))
+            self.list_effects.SetItem(idx, 2, stage.name)
+            self.list_effects.SetItem(idx, 3, f"{stage.strength:.2f}")
+
+        if chain:
+            if select_index is None:
+                select_index = 0
+
+            select_index = max(0, min(select_index, len(chain) - 1))
+            self.list_effects.Select(select_index)
+            self.list_effects.Focus(select_index)
+
+    def _update_editor_state(self):
+        idx = self._get_selected_index()
+        chain = self._get_chain()
+        has_selection = idx is not None and 0 <= idx < len(chain)
+
+        self.btn_remove.Enable(has_selection)
+        self.btn_up.Enable(has_selection and idx > 0)
+        self.btn_down.Enable(has_selection and idx < len(chain) - 1)
+
+        self.btn_enabled.Enable(has_selection)
+        self.slider_strength.Enable(has_selection)
+
+        if not has_selection:
+            self._updating_ui = True
+            self.btn_enabled.SetValue(False)
+            self.slider_strength.SetValue(0.8)
+            self.lbl_strength.SetLabel("uStrength: --")
+            self._updating_ui = False
+            return
+
+        stage = chain[idx]
+
+        self._updating_ui = True
+        self.btn_enabled.SetValue(bool(stage.enabled))
+        self.slider_strength.SetValue(stage.strength)
+        self.lbl_strength.SetLabel(f"uStrength: {stage.strength:.2f}")
+        self._updating_ui = False
+
+    def _refresh_list_row(self, idx):
+        chain = self._get_chain()
+        if not (0 <= idx < len(chain)):
+            return
+
+        stage = chain[idx]
+        self.list_effects.SetItem(idx, 0, str(idx + 1))
+        self.list_effects.SetItem(idx, 1, _("On") if stage.enabled else _("Off"))
+        self.list_effects.SetItem(idx, 2, stage.name)
+        self.list_effects.SetItem(idx, 3, f"{stage.strength:.2f}")
+
+    # Events
+    def on_add_effect(self, evt):
+        item = self.effect_tree.GetSelection()
+        if not item or not item.IsOk():
+            return
+
+        name = self.effect_tree.GetItemData(item)
+        if not name:
+            return
+
+        self.gl_tool.add_effect(name, strength=0.8)
+
+        new_index = len(self._get_chain()) - 1
+        self._populate_list(select_index=new_index)
+        self._update_editor_state()
+        self._notify_change()
+
+    def on_remove_effect(self, evt):
+        idx = self._get_selected_index()
+        if idx is None:
+            return
+
+        self.gl_tool.remove_effect(idx)
+
+        chain_len = len(self._get_chain())
+        next_index = min(idx, chain_len - 1) if chain_len > 0 else None
+
+        self._populate_list(select_index=next_index)
+        self._update_editor_state()
+        self._notify_change()
+
+    def on_move_up(self, evt):
+        idx = self._get_selected_index()
+        if idx is None or idx <= 0:
+            return
+
+        self.gl_tool.move_effect(idx, idx - 1)
+
+        self._populate_list(select_index=idx - 1)
+        self._update_editor_state()
+        self._notify_change()
+
+    def on_move_down(self, evt):
+        idx = self._get_selected_index()
+        chain = self._get_chain()
+
+        if idx is None or idx >= len(chain) - 1:
+            return
+
+        self.gl_tool.move_effect(idx, idx + 1)
+
+        self._populate_list(select_index=idx + 1)
+        self._update_editor_state()
+        self._notify_change()
+
+    def on_effect_selected(self, evt):
+        self._update_editor_state()
+
+    def on_toggle_enabled(self, evt):
+        if self._updating_ui:
+            return
+
+        idx = self._get_selected_index()
+        if idx is None:
+            return
+
+        enabled = self.btn_enabled.GetValue()
+        self.gl_tool.set_effect_enabled(idx, enabled)
+
+        self._refresh_list_row(idx)
+        self._update_editor_state()
+        self._notify_change()
+
+    def on_strength_slider_changed(self, value: float):
+        if self._updating_ui:
+            return
+
+        idx = self._get_selected_index()
+        if idx is None:
+            return
+
+        self.gl_tool.set_effect_strength(idx, value)
+
+        self.lbl_strength.SetLabel(f"uStrength: {value:.2f}")
+        self._refresh_list_row(idx)
+        self._notify_change()

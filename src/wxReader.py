@@ -19,8 +19,8 @@ from wx.lib.agw.aui import tabart
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
-    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog, FilterSettingsDialog
-from wxReaderGlUtil import GLFilterTool
+    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog, FilterSettingsDialog, EffectGroupDialog
+from wxReaderGlUtil import GLFilterTool, EffectStage
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
 from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContentProvider, SevenZipContentProvider
@@ -769,6 +769,10 @@ class MainFrame(wx.Frame):
 
         self._populate_custom_filters_menu = _populate_custom_filters_menu
 
+        m_process.AppendSeparator()
+        self.id_effect_group = wx.NewIdRef()
+        _add_item(m_process, self.id_effect_group, _("Use Effect Group..."))
+
         self.menubar.Append(m_process, _("&Process"))
 
         # --- Help ---
@@ -851,6 +855,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_extract_text, id=self.id_extract_text)
         self.Bind(wx.EVT_MENU, self.on_extract_images, id=self.id_extract_images)
         self.Bind(wx.EVT_MENU, self.on_filter_settings, id=self.id_filter_settings)
+        self.Bind(wx.EVT_MENU, self.on_effect_group, id=self.id_effect_group)
 
         self.Bind(wx.EVT_MENU, self.on_about, m_about)
         self.Bind(wx.EVT_MENU, self.on_check_update, id=self.id_check_update)
@@ -1816,19 +1821,78 @@ class MainFrame(wx.Frame):
 
         show_toast(self, _("Restart is required."))
 
-    def on_filter_settings(self, evt):
+    def on_effect_group(self, evt):
         debounce_timer = wx.Timer(self)
 
         def _do_refresh(timer_evt):
-            if hasattr(self.view, '_bmp_cache'):
-                self.view._bmp_cache.clear()
-            self.view._refresh_layout()
-            self.view.Refresh()
-            self.view.Update()
+            if self.view:
+                chain = getattr(self.gl_filters, "effect_chain", [])
+                self.view.effects_enabled = any(stage.enabled for stage in chain)
+                self.view.on_effect_chain_changed()
+                self.view.Update()
+
+            self._sync_legacy_filter_menu_from_chain()
 
         self.Bind(wx.EVT_TIMER, _do_refresh, debounce_timer)
 
         def _on_change():
+            debounce_timer.Start(120, wx.TIMER_ONE_SHOT)
+
+        dlg = EffectGroupDialog(self, self.gl_filters, _on_change)
+
+        def _on_close_dialog(event):
+            if debounce_timer.IsRunning():
+                debounce_timer.Stop()
+
+            self.Unbind(wx.EVT_TIMER, handler=_do_refresh, source=debounce_timer)
+            event.Skip()
+
+        dlg.Bind(wx.EVT_CLOSE, _on_close_dialog)
+        msw_set_theme(dlg)
+        dlg.Show()
+
+    def _sync_legacy_filter_menu_from_chain(self):
+        chain = getattr(self.gl_filters, "effect_chain", [])
+        enabled_chain = [stage for stage in chain if stage.enabled]
+
+        def _check_id(mid, val):
+            item = self._find_menu_item(mid)
+            if item:
+                item.Check(val)
+
+        if len(enabled_chain) == 0:
+            _check_id(self.id_custom_none, True)
+            for fid in self.filter_menu_map.values():
+                _check_id(fid, False)
+            return
+
+        _check_id(self.id_custom_none, False)
+
+        if len(enabled_chain) == 1:
+            active_name = enabled_chain[0].name
+            for fname, fid in self.filter_menu_map.items():
+                _check_id(fid, fname == active_name)
+            return
+
+        for fid in self.filter_menu_map.values():
+            _check_id(fid, False)
+
+    def on_filter_settings(self, evt):
+        debounce_timer = wx.Timer(self)
+
+        def _do_refresh(timer_evt):
+            if self.view:
+                self.view.on_effect_chain_changed()
+                self.view.Update()
+
+        self.Bind(wx.EVT_TIMER, _do_refresh, debounce_timer)
+
+        def _on_change():
+            chain = getattr(self.gl_filters, "effect_chain", [])
+
+            if len(chain) == 1:
+                chain[0].strength = self.gl_filters.strength
+
             debounce_timer.Start(200, wx.TIMER_ONE_SHOT)
 
         dlg = FilterSettingsDialog(self, self.gl_filters, _on_change)
@@ -1852,13 +1916,32 @@ class MainFrame(wx.Frame):
         self._select_custom_filter(name)
 
     def _select_custom_filter(self, name: str | None):
-        if self.view:
-            self.view.set_custom_filter(name)
+        if name is None:
+            self.gl_filters.set_effect_chain([])
+
+            if self.view:
+                self.view.effects_enabled = False
+                self.view.on_effect_chain_changed()
+        else:
+            strength = float(getattr(self.gl_filters, "strength", 0.8))
+
+            self.gl_filters.set_effect_chain([
+                EffectStage(
+                    name=name,
+                    strength=strength,
+                    enabled=True
+                )
+            ])
+
+            if self.view:
+                self.view.effects_enabled = True
+                self.view.on_effect_chain_changed()
 
         # Update checks on FlatMenuBar
         def _check_id(mid, val):
             item = self._find_menu_item(mid)
-            if item: item.Check(val)
+            if item:
+                item.Check(val)
 
         if name is None:
             _check_id(self.id_custom_none, True)
@@ -1871,6 +1954,7 @@ class MainFrame(wx.Frame):
                 should_check = (fname == name)
                 _check_id(fid, should_check)
 
+        self._sync_legacy_filter_menu_from_chain()
         self._update_ui()
 
     def on_about(self, event):
