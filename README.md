@@ -13,21 +13,6 @@ Fora a comfortable reading experience, it provides a mouse shortcut wheel, multi
 
 Build/run from source: see below.
 
-| Light mode                                                                                                 | Dark mode                                                                                                  |
-|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/1.png?raw=true" width="100%"> | <img src="https://github.com/puff-dayo/wxReader/blob/goshujinsama/screenshot/2.png?raw=true" width="100%"> |
-
----
-
-## Minimum GPU Requirements
-
-Any GPU with OpenGL 2.1 support is compatible. This typically includes:
-
-Intel Graphics: GMA 950 and later<br>
-NVIDIA: GeForce 6000 series and later<br>
-AMD/ATI: Radeon X1000 series and later<br>
-All-in-Wonder: ATI X600 series and later
-
 ## Installation
 
 ### Windows
