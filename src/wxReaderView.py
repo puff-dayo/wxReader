@@ -1178,6 +1178,18 @@ class PDFView(wx.ScrolledWindow):
 
         key = evt.GetKeyCode()
 
+        if key == wx.WXK_HOME:
+            self.go_to_page(0)
+            if self.main_frame:
+                self.main_frame._update_ui()
+            return
+
+        if key == wx.WXK_END:
+            self.go_to_page(self.content_provider.page_count - 1)
+            if self.main_frame:
+                self.main_frame._update_ui()
+            return
+
         if self.mode == self.MODE_FLOW:
             if key in (wx.WXK_UP, wx.WXK_DOWN, wx.WXK_PAGEUP, wx.WXK_PAGEDOWN, wx.WXK_SPACE, wx.WXK_LEFT, wx.WXK_RIGHT):
                 evt.Skip()

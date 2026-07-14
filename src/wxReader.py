@@ -100,6 +100,7 @@ class ReadingProgressBar(wx.Panel):
         super().__init__(parent, style=wx.BORDER_NONE)
         self._range = max(1, range)
         self._value = 0
+        self._reversed = False
 
         self.track_colour = wx.Colour(65, 65, 65)
         self.fill_colour = wx.Colour(134, 180, 118)
@@ -107,6 +108,12 @@ class ReadingProgressBar(wx.Panel):
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_SIZE, lambda evt: (self.Refresh(), evt.Skip()))
+
+    def SetReversed(self, reversed_: bool):
+        reversed_ = bool(reversed_)
+        if self._reversed != reversed_:
+            self._reversed = reversed_
+            self.Refresh()
 
     def SetValue(self, value: int):
         self._value = max(0, min(int(value), self._range))
@@ -141,7 +148,8 @@ class ReadingProgressBar(wx.Panel):
         fill_w = int(w * self._value / self._range)
         if fill_w > 0:
             dc.SetBrush(wx.Brush(self.fill_colour))
-            dc.DrawRectangle(0, y, fill_w, line_h)
+            fill_x = w - fill_w if self._reversed else 0
+            dc.DrawRectangle(fill_x, y, fill_w, line_h)
 
 class MainFrame(wx.Frame):
     @property
@@ -1235,6 +1243,10 @@ class MainFrame(wx.Frame):
             if is_reflowable:
                 status_txt += f" | Font Size: {self.epub_font_size}pt"
             self.status_bar.SetStatusText(status_txt, 0)
+
+            self.reading_progress.SetReversed(
+                self.view.direction == PDFView.DIR_RTL
+            )
             self.reading_progress.SetValue(int(progress_pct))
             self.reading_progress.Show()
         else:
