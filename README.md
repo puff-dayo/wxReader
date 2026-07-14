@@ -6,6 +6,8 @@ Fora a comfortable reading experience, it provides a mouse shortcut wheel, multi
 
 **wxReaderVoiceCtrl** is a hands-free external controller app for wxReader, recognizing voice command offline by vosk and pyaudio. GUI is built with wxPython. **wxReaderEyeTrackCtrl** is a hands-free external controller app for wxReader, recognizing eye movement and blinking gesture offline by [EyeTrax](https://doi.org/10.5281/zenodo.17188537) through a webcam.
 
+Project webpage and screenshots: https://puff-dayo.github.io/wxReader/
+
 **-> Download link <-**
 <br>wxReader v1.6.0 for [Windows10+](https://github.com/puff-dayo/wxReader/releases) (>1809)
 <br>wxReader v1.3.9 for [Debian13](https://github.com/puff-dayo/wxReader/releases/download/v1.3.9/wxReader_v1.3.9_debian13_amd64.zip)
@@ -33,6 +35,9 @@ Build/run from source: see below.
 3. Upgrade from older versions: simply copy the `wxReader.cfg` and `pswd.txt` files containing all user settings to the folder of a new version. You (probably) can also just unzip and overwrite existing files in the old folder.
 
 ### Linux (unmaintained)
+
+<details>
+<summary>Click to expand.</summary>
 
 Tested on platform: Linux-6.12.73+deb13-amd64-x86_64-with-glibc2.41
 
@@ -62,6 +67,11 @@ uv --project . run pyinstaller \
 ```
 
 3. Pre-compiled binary: portable files are provided on the **Releases** page.
+
+</details>
+
+
+
 
 ## Edit translation
 
