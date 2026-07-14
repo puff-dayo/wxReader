@@ -305,6 +305,14 @@ class MainFrame(wx.Frame):
 
         # 3.2 File List
         self.fv_listbox = wx.ListBox(self.fv_panel, style=wx.LB_SINGLE | wx.LB_HSCROLL | wx.LB_NEEDED_SB)
+        self._folder_items = []
+        self._folder_index = {}
+        self._folder_list_loaded_path = None
+        self._folder_list_loaded_sort = None
+        self._folder_list_dirty = True
+        self._file_browser_sync_pending = False
+        self._fv_hover_index = wx.NOT_FOUND
+
         fv_sizer.Add(self.fv_listbox, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
         self.fv_panel.SetSizer(fv_sizer)
@@ -411,13 +419,17 @@ class MainFrame(wx.Frame):
         self.fv_sort_choice.Bind(wx.EVT_CHOICE, self.on_fv_sort)
         self.fv_listbox.Bind(wx.EVT_LISTBOX_DCLICK, self.on_fv_item_activated)
         self.fv_listbox.Bind(wx.EVT_MOTION, self.on_fv_hover)
-        self.Bind(wx.EVT_BUTTON, lambda e: self._populate_folder_view_list(), self.btn_fv_refresh)
+        self.Bind(wx.EVT_BUTTON, lambda e: self._populate_folder_view_list(force=True), self.btn_fv_refresh)
         self.Bind(wx.EVT_BUTTON, self.on_open_library, self.btn_fv_gallery)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
 
         self.notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.on_tab_close)
         self.notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CLOSED, self.on_tab_closed)
         self.notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
+        self.sidebar_nb.Bind(
+            wx.EVT_NOTEBOOK_PAGE_CHANGED,
+            self.on_sidebar_tab_changed
+        )
 
         self.SetDropTarget(FileDropTarget(self))
         self.notebook.SetDropTarget(FileDropTarget(self))
@@ -936,53 +948,156 @@ class MainFrame(wx.Frame):
         else:
             self.sidebar_tree.ExpandAll()
 
-    def _populate_folder_view_list(self):
-        # Ensure we have a valid path
-        if not hasattr(self, 'current_folder_path') or not self.current_folder_path or not os.path.exists(
-                self.current_folder_path):
-            self.fv_listbox.Clear()
+    def _select_current_folder_item(self):
+        if not self.content_provider:
             return
 
+        current_fname = os.path.basename(self.content_provider.path)
+        idx = self._folder_index.get(current_fname, wx.NOT_FOUND)
+
+        if idx == wx.NOT_FOUND:
+            return
+
+        if self.fv_listbox.GetSelection() != idx:
+            self.fv_listbox.SetSelection(idx)
+
+        self.fv_listbox.EnsureVisible(idx)
+
+    # def _populate_folder_view_list(self):
+    #     # Ensure we have a valid path
+    #     if not hasattr(self, 'current_folder_path') or not self.current_folder_path or not os.path.exists(
+    #             self.current_folder_path):
+    #         self.fv_listbox.Clear()
+    #         return
+    #
+    #     try:
+    #         # List files
+    #         all_files = os.listdir(self.current_folder_path)
+    #     except OSError:
+    #         return
+    #
+    #     supported_files = []
+    #     for f in all_files:
+    #         full_path = os.path.join(self.current_folder_path, f)
+    #         if os.path.isfile(full_path):
+    #             ext = os.path.splitext(f)[1].lower()
+    #             if ext in SUPPORTED_EXTENSIONS:
+    #                 supported_files.append(f)
+    #
+    #     # Sort
+    #     sort_mode = self.fv_sort_choice.GetSelection()
+    #
+    #     if sort_mode == 0:  # A-Z
+    #         supported_files.sort(key=str.lower)
+    #     elif sort_mode == 1:  # Z-A
+    #         supported_files.sort(key=str.lower, reverse=True)
+    #     elif sort_mode == 2 or sort_mode == 3:  # Date
+    #         def get_mtime(fname):
+    #             try:
+    #                 return os.path.getmtime(os.path.join(self.current_folder_path, fname))
+    #             except OSError:
+    #                 return 0
+    #
+    #         supported_files.sort(key=get_mtime, reverse=(sort_mode == 2))
+    #
+    #     self.fv_listbox.Set(supported_files)
+    #
+    #     if self.content_provider:
+    #         current_fname = os.path.basename(self.content_provider.path)
+    #         idx = self.fv_listbox.FindString(current_fname)
+    #         if idx != wx.NOT_FOUND:
+    #             self.fv_listbox.SetSelection(idx)
+    #             self.fv_listbox.EnsureVisible(idx)
+
+    def _populate_folder_view_list(self, force=False):
+        folder_path = getattr(self, "current_folder_path", None)
+
+        if not folder_path or not os.path.isdir(folder_path):
+            self.fv_listbox.Clear()
+            self._folder_items = []
+            self._folder_index = {}
+            self._folder_list_loaded_path = None
+            self._folder_list_dirty = False
+            return
+
+        folder_path = os.path.abspath(folder_path)
+        sort_mode = self.fv_sort_choice.GetSelection()
+
+        if (
+                not force
+                and not self._folder_list_dirty
+                and self._folder_list_loaded_path == folder_path
+                and self._folder_list_loaded_sort == sort_mode
+        ):
+            self._select_current_folder_item()
+            return
+
+        rows = []
+
         try:
-            # List files
-            all_files = os.listdir(self.current_folder_path)
+            with os.scandir(folder_path) as entries:
+                for entry in entries:
+                    try:
+                        if not entry.is_file(follow_symlinks=False):
+                            continue
+                    except OSError:
+                        continue
+
+                    ext = os.path.splitext(entry.name)[1].lower()
+                    if ext not in SUPPORTED_EXTENSIONS:
+                        continue
+
+                    mtime = 0.0
+
+                    if sort_mode in (2, 3):
+                        try:
+                            mtime = entry.stat(
+                                follow_symlinks=False
+                            ).st_mtime
+                        except OSError:
+                            pass
+
+                    rows.append((entry.name, mtime))
+
         except OSError:
             return
 
-        supported_files = []
-        for f in all_files:
-            full_path = os.path.join(self.current_folder_path, f)
-            if os.path.isfile(full_path):
-                ext = os.path.splitext(f)[1].lower()
-                if ext in SUPPORTED_EXTENSIONS:
-                    supported_files.append(f)
-
-        # Sort
-        sort_mode = self.fv_sort_choice.GetSelection()
-
         if sort_mode == 0:  # A-Z
-            supported_files.sort(key=str.lower)
+            rows.sort(key=lambda row: row[0].lower())
+
         elif sort_mode == 1:  # Z-A
-            supported_files.sort(key=str.lower, reverse=True)
-        elif sort_mode == 2 or sort_mode == 3:  # Date
-            def get_mtime(fname):
-                try:
-                    return os.path.getmtime(os.path.join(self.current_folder_path, fname))
-                except OSError:
-                    return 0
+            rows.sort(key=lambda row: row[0].lower(), reverse=True)
 
-            supported_files.sort(key=get_mtime, reverse=(sort_mode == 2))
+        elif sort_mode == 2:  # Newest
+            rows.sort(key=lambda row: row[1], reverse=True)
 
-        self.fv_listbox.Set(supported_files)
+        else:  # Oldest
+            rows.sort(key=lambda row: row[1])
 
-        if self.content_provider:
-            current_fname = os.path.basename(self.content_provider.path)
-            idx = self.fv_listbox.FindString(current_fname)
-            if idx != wx.NOT_FOUND:
-                self.fv_listbox.SetSelection(idx)
-                self.fv_listbox.EnsureVisible(idx)
+        new_items = [name for name, _mtime in rows]
+
+        # when unchanged
+        if new_items != self._folder_items:
+            self.fv_listbox.Freeze()
+            try:
+                self.fv_listbox.Set(new_items)
+            finally:
+                self.fv_listbox.Thaw()
+
+            self._folder_items = new_items
+            self._folder_index = {
+                name: index
+                for index, name in enumerate(new_items)
+            }
+
+        self._folder_list_loaded_path = folder_path
+        self._folder_list_loaded_sort = sort_mode
+        self._folder_list_dirty = False
+
+        self._select_current_folder_item()
 
     def on_fv_sort(self, evt):
+        self._folder_list_dirty = True
         self._populate_folder_view_list()
 
     def on_fv_item_activated(self, evt):
@@ -1038,8 +1153,9 @@ class MainFrame(wx.Frame):
             print(Exception)
 
     def on_window_activate(self, evt):
-        is_active = evt.GetActive()
-        self._toggle_tree_tooltips(is_active)
+        # is_active = evt.GetActive()
+        # self._toggle_tree_tooltips(is_active)
+        # This has been a workaround for older version of wxWidgets, which is now not needed
         evt.Skip()
 
     def on_statusbar_resize(self, evt):
@@ -1324,10 +1440,29 @@ class MainFrame(wx.Frame):
         self._update_tabbar_visibility()
         v.SetFocus()
 
-        self.on_nav_current(None)
+        # self.on_nav_current(None)
+        #
+        # self.current_folder_path = os.path.dirname(path)
+        # self._populate_folder_view_list()
 
-        self.current_folder_path = os.path.dirname(path)
-        self._populate_folder_view_list()
+        new_folder_path = os.path.dirname(path)
+
+        old_folder_path = getattr(self, "current_folder_path", None)
+        folder_changed = (
+                not old_folder_path
+                or os.path.normcase(os.path.abspath(old_folder_path))
+                != os.path.normcase(os.path.abspath(new_folder_path))
+        )
+
+        self.current_folder_path = new_folder_path
+
+        self._file_browser_sync_pending = True
+        if folder_changed:
+            self._folder_list_dirty = True
+
+        self._refresh_active_sidebar_page()
+        if not folder_changed and self.sidebar_nb.GetSelection() == 2:
+            self._select_current_folder_item()
 
     def on_close_pdf(self, evt):
         idx = self.notebook.GetSelection()
@@ -1444,26 +1579,62 @@ class MainFrame(wx.Frame):
         if os.path.exists(parent):
             self.dir_ctrl.SetPath(parent)
 
+    # def on_nav_current(self, evt):
+    #     if self.content_provider and self.content_provider.path:
+    #         folder = os.path.dirname(self.content_provider.path)
+    #         if os.path.exists(folder):
+    #             self.dir_ctrl.SetPath(folder)
+    #             self.dir_ctrl.SetPath(self.content_provider.path)
+    #
+    #             tree = self.dir_ctrl.GetTreeCtrl()
+    #
+    #             if tree:
+    #                 def _do_scroll_left():
+    #                     tree.SetScrollPos(wx.HORIZONTAL, 0)
+    #
+    #                 if wx.Platform == '__WXMSW__':
+    #                     import ctypes
+    #                     # WM_HSCROLL = 0x114 (276), SB_LEFT = 6
+    #                     hwnd = tree.GetHandle()
+    #                     ctypes.windll.user32.SendMessageW(hwnd, 276, 6, 0)
+    #
+    #                 wx.CallAfter(_do_scroll_left)
+
     def on_nav_current(self, evt):
-        if self.content_provider and self.content_provider.path:
-            folder = os.path.dirname(self.content_provider.path)
-            if os.path.exists(folder):
-                self.dir_ctrl.SetPath(folder)
-                self.dir_ctrl.SetPath(self.content_provider.path)
+        if not self.content_provider or not self.content_provider.path:
+            return
 
-                tree = self.dir_ctrl.GetTreeCtrl()
+        target_path = os.path.abspath(self.content_provider.path)
+        if not os.path.isfile(target_path):
+            return
 
-                if tree:
-                    def _do_scroll_left():
-                        tree.SetScrollPos(wx.HORIZONTAL, 0)
+        current_path = self.dir_ctrl.GetPath() or ""
 
-                    if wx.Platform == '__WXMSW__':
-                        import ctypes
-                        # WM_HSCROLL = 0x114 (276), SB_LEFT = 6
-                        hwnd = tree.GetHandle()
-                        ctypes.windll.user32.SendMessageW(hwnd, 276, 6, 0)
+        if (current_path and os.path.normcase(os.path.abspath(current_path)) == os.path.normcase(target_path)):
+            self._file_browser_sync_pending = False
+            return
 
-                    wx.CallAfter(_do_scroll_left)
+        self.dir_ctrl.Freeze()
+        try:
+            self.dir_ctrl.SetPath(target_path)
+        finally:
+            self.dir_ctrl.Thaw()
+
+        self._file_browser_sync_pending = False
+
+        tree = self.dir_ctrl.GetTreeCtrl()
+        if not tree:
+            return
+
+        def _do_scroll_left():
+            tree.SetScrollPos(wx.HORIZONTAL, 0)
+
+        if wx.Platform == "__WXMSW__":
+            # WM_HSCROLL = 0x114，SB_LEFT = 6
+            hwnd = tree.GetHandle()
+            ctypes.windll.user32.SendMessageW(hwnd, 0x114, 6, 0)
+
+        wx.CallAfter(_do_scroll_left)
 
     def on_file_browser_activated(self, evt):
         filepath = self.dir_ctrl.GetFilePath()
@@ -1479,6 +1650,27 @@ class MainFrame(wx.Frame):
             current = self.sidebar_nb.GetSelection()
             next_page = (current + 1) % count
             self.sidebar_nb.SetSelection(next_page)
+
+    def _refresh_active_sidebar_page(self):
+        if not self.splitter.IsSplit():
+            return
+
+        selected_page = self.sidebar_nb.GetSelection()
+
+        # 0 = Outline
+        # 1 = File Browser
+        # 2 = Folder List
+        if selected_page == 1:
+            if self._file_browser_sync_pending:
+                self.on_nav_current(None)
+
+        elif selected_page == 2:
+            if self._folder_list_dirty:
+                self._populate_folder_view_list()
+
+    def on_sidebar_tab_changed(self, evt):
+        wx.CallAfter(self._refresh_active_sidebar_page)
+        evt.Skip()
 
     def on_extract_text(self, evt):
         if not self.content_provider:
