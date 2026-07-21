@@ -10,6 +10,7 @@ except Exception:
 import functools
 import io
 import os
+import random
 import threading
 
 import wx
@@ -19,7 +20,8 @@ from wx.lib.agw.aui import tabart
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
 from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
-    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog, FilterSettingsDialog, EffectGroupDialog
+    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog, FilterSettingsDialog, \
+    EffectGroupDialog
 from wxReaderGlUtil import GLFilterTool, EffectStage
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
@@ -37,6 +39,7 @@ def _(text):
 
 GWL_STYLE = -16
 TVS_NOTOOLTIPS = 0x0080
+
 
 class DarkAuiTabArt(tabart.AuiDefaultTabArt):
     def __init__(self):
@@ -88,12 +91,14 @@ class FileDropTarget(wx.FileDropTarget):
         wx.CallAfter(self.frame._load_file, filenames[0])
         return True
 
+
 def get_icon(art_id):
     return wx.ArtProvider.GetBitmapBundle(art_id, wx.ART_BUTTON, wx.Size(16, 16))
 
 
 def get_icon_v2(art_id):
     return wx.ArtProvider.GetBitmapBundle(art_id, wx.ART_OTHER, wx.Size(16, 16))
+
 
 class ReadingProgressBar(wx.Panel):
     def __init__(self, parent, range=100):
@@ -317,17 +322,46 @@ class MainFrame(wx.Frame):
 
         fv_sizer.Add(self.fv_listbox, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
 
+        # 3.3 Search and action buttons
+        fv_search_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
         self.fv_search = wx.SearchCtrl(
             self.fv_panel,
             style=wx.TE_PROCESS_ENTER
         )
         self.fv_search.ShowSearchButton(True)
         self.fv_search.ShowCancelButton(False)
+
+        self.btn_fv_clear = wx.Button(
+            self.fv_panel,
+            label="×",
+            style=wx.BU_EXACTFIT
+        )
+        self.btn_fv_random = wx.Button(
+            self.fv_panel,
+            label="r",
+            style=wx.BU_EXACTFIT
+        )
+
+        self.btn_fv_clear.SetToolTip(_("Clear search"))
+        self.btn_fv_random.SetToolTip(_("Open a random book"))
+
+        search_height = self.fv_search.GetBestSize().height
+        button_size = max(26, search_height)
+        self.btn_fv_clear.SetMinSize((button_size, button_size))
+        self.btn_fv_random.SetMinSize((button_size, button_size))
+        self.btn_fv_clear.Enable(False)
+
         self._fv_search_timer = wx.Timer(self)
+
+        fv_search_sizer.Add(self.fv_search, 1, wx.EXPAND | wx.RIGHT, 4)
+        fv_search_sizer.Add(self.btn_fv_clear, 0, wx.EXPAND | wx.RIGHT, 4)
+        fv_search_sizer.Add(self.btn_fv_random, 0, wx.EXPAND)
+
         fv_sizer.Add(
-            self.fv_search,
+            fv_search_sizer,
             0,
-            wx.EXPAND | wx.ALL,
+            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
             5
         )
 
@@ -442,6 +476,8 @@ class MainFrame(wx.Frame):
             self.on_fv_search_timer,
             self._fv_search_timer
         )
+        self.btn_fv_clear.Bind(wx.EVT_BUTTON, self.on_fv_clear_search)
+        self.btn_fv_random.Bind(wx.EVT_BUTTON, self.on_fv_random_open)
         self.Bind(wx.EVT_BUTTON, lambda e: self._populate_folder_view_list(force=True), self.btn_fv_refresh)
         self.Bind(wx.EVT_BUTTON, self.on_open_library, self.btn_fv_gallery)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
@@ -1137,6 +1173,7 @@ class MainFrame(wx.Frame):
         self._select_current_folder_item()
 
     def on_fv_search_text(self, evt):
+        self.btn_fv_clear.Enable(bool(self.fv_search.GetValue()))
         self._fv_search_timer.StartOnce(256)
         evt.Skip()
 
@@ -1160,6 +1197,37 @@ class MainFrame(wx.Frame):
             full_path = os.path.join(self.current_folder_path, fname)
             if os.path.exists(full_path):
                 self._load_file(full_path)
+
+    def on_fv_clear_search(self, evt):
+        if self._fv_search_timer.IsRunning():
+            self._fv_search_timer.Stop()
+
+        self.fv_search.ChangeValue("")
+        self.btn_fv_clear.Enable(False)
+
+        self._apply_folder_filter()
+        self.fv_search.SetFocus()
+
+    def on_fv_random_open(self, evt):
+        if self._fv_search_timer.IsRunning():
+            self._fv_search_timer.Stop()
+
+        self._apply_folder_filter()
+        if not self._folder_items:
+            wx.Bell()
+            return
+
+        fname = random.choice(self._folder_items)
+        index = self._folder_index.get(fname, wx.NOT_FOUND)
+
+        if index == wx.NOT_FOUND:
+            wx.Bell()
+            return
+
+        self.fv_listbox.SetSelection(index)
+        self.fv_listbox.EnsureVisible(index)
+
+        self.on_fv_item_activated(None)
 
     def on_toggle_server(self, event):
         if self.menu_extctrl.IsChecked():
