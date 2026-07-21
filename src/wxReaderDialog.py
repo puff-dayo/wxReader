@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import colorsys
+import copy
 import os
 
 import wx
 import wx.dataview as dv
 from wx import adv
 
-from wxReaderString import *
+from wxReaderGlUtil import EffectStage
 from wxReaderIcon import get_app_font, msw_set_theme
 from wxReaderKeyBinds import DEFAULT_KEYBINDS
+from wxReaderString import *
 from wxReaderToast import show_toast
 
 
@@ -881,6 +883,7 @@ class AboutDialog(wx.Dialog):
             return wx.Colour(170, 170, 170)
         return wx.Colour(100, 100, 100)
 
+
 class RecentFilesDialog(wx.Dialog):
     def __init__(self, parent, recent_files):
         super().__init__(parent, title=_("Recent Files"), size=(700, 500),
@@ -1210,11 +1213,21 @@ class StrengthSlider(wx.Panel):
 
 
 class EffectGroupDialog(wx.Dialog):
-    def __init__(self, parent, gl_tool, on_change):
+    def __init__(
+            self,
+            parent,
+            gl_tool,
+            on_change,
+            *,
+            presets=None,
+            active_preset=None,
+            restore_on_startup=True,
+            on_presets_changed=None,
+    ):
         super().__init__(
             parent,
-            title=_("Effect Group"),
-            size=(800, 520),
+            title=_("Effect Groups"),
+            size=(920, 600),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
         )
 
@@ -1222,37 +1235,105 @@ class EffectGroupDialog(wx.Dialog):
 
         self.gl_tool = gl_tool
         self.on_change = on_change
+        self.on_presets_changed = on_presets_changed
+        self.presets = self._normalise_presets(copy.deepcopy(presets or {}))
+        self.active_preset = (
+            active_preset if active_preset in self.presets else None
+        )
+        self.restore_on_startup = bool(restore_on_startup)
         self._updating_ui = False
 
         panel = wx.Panel(self)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        preset_box = wx.StaticBox(panel, label=_("Saved Effect Groups"))
+        preset_sizer = wx.StaticBoxSizer(preset_box, wx.VERTICAL)
+
+        preset_row = wx.BoxSizer(wx.HORIZONTAL)
+        preset_row.Add(
+            wx.StaticText(preset_box, label=_("Group:")),
+            0,
+            wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
+            8
+        )
+
+        self.choice_preset = wx.Choice(preset_box)
+        self.btn_load = wx.Button(preset_box, label=_("Load"))
+        self.btn_new = wx.Button(preset_box, label=_("New"))
+        self.btn_save = wx.Button(preset_box, label=_("Save"))
+        self.btn_save_as = wx.Button(preset_box, label=_("Save As..."))
+        self.btn_rename = wx.Button(preset_box, label=_("Rename..."))
+        self.btn_delete = wx.Button(preset_box, label=_("Delete"))
+
+        preset_row.Add(self.choice_preset, 1, wx.EXPAND | wx.RIGHT, 8)
+        for button in (
+                self.btn_load,
+                self.btn_new,
+                self.btn_save,
+                self.btn_save_as,
+                self.btn_rename,
+                self.btn_delete,
+        ):
+            preset_row.Add(button, 0, wx.RIGHT, 6)
+
+        preset_sizer.Add(preset_row, 0, wx.EXPAND | wx.ALL, 8)
+
+        self.chk_restore = wx.CheckBox(
+            preset_box,
+            label=_("Restore the current effect group when wxReader starts")
+        )
+        self.chk_restore.SetValue(self.restore_on_startup)
+        preset_sizer.Add(
+            self.chk_restore,
+            0,
+            wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            8
+        )
+
+        main_sizer.Add(
+            preset_sizer,
+            0,
+            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+            12
+        )
+
         content_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        # Left
+        # Left: shader library
         library_box = wx.StaticBox(panel, label=_("Effect Library"))
         library_sizer = wx.StaticBoxSizer(library_box, wx.VERTICAL)
 
         self.effect_tree = wx.TreeCtrl(
             library_box,
-            style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT | wx.BORDER_SUNKEN
+            style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS |
+                  wx.TR_LINES_AT_ROOT | wx.BORDER_SUNKEN
         )
 
         self.btn_add = wx.Button(library_box, label=_("Add Selected"))
 
         library_sizer.Add(self.effect_tree, 1, wx.EXPAND | wx.ALL, 8)
-        library_sizer.Add(self.btn_add, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        library_sizer.Add(
+            self.btn_add,
+            0,
+            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            8
+        )
 
-        content_sizer.Add(library_sizer, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 12)
+        content_sizer.Add(
+            library_sizer,
+            1,
+            wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM,
+            12
+        )
 
-        # Right
+        # Right: current group
         right_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        group_box = wx.StaticBox(panel, label=_("Current Effect Group"))
-        group_sizer = wx.StaticBoxSizer(group_box, wx.HORIZONTAL)
+        self.group_box = wx.StaticBox(panel, label=_("Current Effect Group"))
+        group_sizer = wx.StaticBoxSizer(self.group_box, wx.HORIZONTAL)
 
         self.list_effects = wx.ListCtrl(
-            group_box,
+            self.group_box,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN
         )
         self.list_effects.InsertColumn(0, _("#"), width=48)
@@ -1262,10 +1343,10 @@ class EffectGroupDialog(wx.Dialog):
 
         action_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.btn_enabled = wx.ToggleButton(group_box, label=_("Enabled"))
-        self.btn_remove = wx.Button(group_box, label=_("Remove"))
-        self.btn_up = wx.Button(group_box, label=_("Move Up"))
-        self.btn_down = wx.Button(group_box, label=_("Move Down"))
+        self.btn_enabled = wx.ToggleButton(self.group_box, label=_("Enabled"))
+        self.btn_remove = wx.Button(self.group_box, label=_("Remove"))
+        self.btn_up = wx.Button(self.group_box, label=_("Move Up"))
+        self.btn_down = wx.Button(self.group_box, label=_("Move Down"))
 
         action_sizer.Add(self.btn_enabled, 0, wx.EXPAND | wx.BOTTOM, 8)
         action_sizer.Add(self.btn_remove, 0, wx.EXPAND | wx.BOTTOM, 8)
@@ -1273,9 +1354,19 @@ class EffectGroupDialog(wx.Dialog):
         action_sizer.Add(self.btn_down, 0, wx.EXPAND)
 
         group_sizer.Add(self.list_effects, 1, wx.EXPAND | wx.ALL, 8)
-        group_sizer.Add(action_sizer, 0, wx.EXPAND | wx.TOP | wx.RIGHT | wx.BOTTOM, 8)
+        group_sizer.Add(
+            action_sizer,
+            0,
+            wx.EXPAND | wx.TOP | wx.RIGHT | wx.BOTTOM,
+            8
+        )
 
-        right_sizer.Add(group_sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
+        right_sizer.Add(
+            group_sizer,
+            1,
+            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+            12
+        )
 
         box = wx.StaticBox(panel, label=_("Selected Effect"))
         selected_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
@@ -1300,11 +1391,26 @@ class EffectGroupDialog(wx.Dialog):
             wx.ALIGN_CENTER_VERTICAL
         )
 
-        selected_sizer.Add(strength_row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        selected_sizer.Add(
+            strength_row,
+            0,
+            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            8
+        )
 
-        right_sizer.Add(selected_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
+        right_sizer.Add(
+            selected_sizer,
+            0,
+            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+            12
+        )
 
-        content_sizer.Add(right_sizer, 2, wx.EXPAND | wx.RIGHT | wx.BOTTOM, 12)
+        content_sizer.Add(
+            right_sizer,
+            2,
+            wx.EXPAND | wx.RIGHT | wx.BOTTOM,
+            12
+        )
 
         main_sizer.Add(content_sizer, 1, wx.EXPAND)
 
@@ -1313,7 +1419,12 @@ class EffectGroupDialog(wx.Dialog):
         btn_sizer.AddButton(btn_close)
         btn_sizer.Realize()
 
-        main_sizer.Add(btn_sizer, 0, wx.ALIGN_RIGHT | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+        main_sizer.Add(
+            btn_sizer,
+            0,
+            wx.ALIGN_RIGHT | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            12
+        )
 
         panel.SetSizer(main_sizer)
 
@@ -1323,21 +1434,225 @@ class EffectGroupDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.on_move_up, self.btn_up)
         self.Bind(wx.EVT_BUTTON, self.on_move_down, self.btn_down)
         self.Bind(wx.EVT_BUTTON, lambda evt: self.Close(), btn_close)
+
+        self.Bind(wx.EVT_BUTTON, self.on_load_preset, self.btn_load)
+        self.Bind(wx.EVT_BUTTON, self.on_new_group, self.btn_new)
+        self.Bind(wx.EVT_BUTTON, self.on_save_preset, self.btn_save)
+        self.Bind(wx.EVT_BUTTON, self.on_save_preset_as, self.btn_save_as)
+        self.Bind(wx.EVT_BUTTON, self.on_rename_preset, self.btn_rename)
+        self.Bind(wx.EVT_BUTTON, self.on_delete_preset, self.btn_delete)
+
         self.effect_tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_add_effect)
         self.list_effects.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_effect_selected)
         self.btn_enabled.Bind(wx.EVT_TOGGLEBUTTON, self.on_toggle_enabled)
+        self.choice_preset.Bind(wx.EVT_CHOICE, lambda evt: self._update_preset_controls())
+        self.chk_restore.Bind(wx.EVT_CHECKBOX, self.on_restore_changed)
 
+        self._populate_preset_choice(self.active_preset)
         self._populate_list()
         self._update_editor_state()
+        self._update_preset_controls()
+        self._populate_effect_tree()
 
         self.CenterOnParent()
 
-        self._populate_effect_tree()
+    @staticmethod
+    def _normalise_stage_record(record):
+        if not isinstance(record, dict):
+            return None
 
-    # Helpers
+        name = str(record.get("name", "")).strip()
+        if not name:
+            return None
+
+        try:
+            strength = float(record.get("strength", 0.8))
+        except (TypeError, ValueError):
+            strength = 0.8
+
+        return {
+            "name": name,
+            "strength": max(0.0, min(1.0, strength)),
+            "enabled": bool(record.get("enabled", True)),
+        }
+
+    @classmethod
+    def _normalise_presets(cls, presets):
+        out = {}
+        if not isinstance(presets, dict):
+            return out
+
+        for raw_name, raw_stages in presets.items():
+            name = str(raw_name).strip()
+            if not name or not isinstance(raw_stages, list):
+                continue
+
+            stages = []
+            for record in raw_stages:
+                normalised = cls._normalise_stage_record(record)
+                if normalised is not None:
+                    stages.append(normalised)
+
+            out[name] = stages
+
+        return out
+
+    def _chain_records(self):
+        return [
+            {
+                "name": stage.name,
+                "strength": max(0.0, min(1.0, float(stage.strength))),
+                "enabled": bool(stage.enabled),
+            }
+            for stage in self._get_chain()
+        ]
+
+    def _is_dirty(self):
+        current = self._chain_records()
+        if self.active_preset in self.presets:
+            return current != self.presets[self.active_preset]
+        return bool(current)
+
+    def _find_preset_casefold(self, name):
+        key = name.casefold()
+        for existing in self.presets:
+            if existing.casefold() == key:
+                return existing
+        return None
+
+    def _selected_preset_name(self):
+        idx = self.choice_preset.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return None
+        return self.choice_preset.GetString(idx)
+
+    def _populate_preset_choice(self, select_name=None):
+        names = sorted(self.presets, key=str.casefold)
+
+        self.choice_preset.Freeze()
+        try:
+            self.choice_preset.Set(names)
+            target = select_name if select_name in self.presets else None
+            if target is None and names:
+                target = names[0]
+
+            if target is not None:
+                self.choice_preset.SetStringSelection(target)
+            else:
+                self.choice_preset.SetSelection(wx.NOT_FOUND)
+        finally:
+            self.choice_preset.Thaw()
+
+    def _update_group_label(self):
+        label = _("Current Effect Group")
+        if self.active_preset:
+            label += f" — {self.active_preset}"
+        if self._is_dirty():
+            label += " *"
+        self.group_box.SetLabel(label)
+
+    def _update_preset_controls(self):
+        selected = self._selected_preset_name()
+        has_selected = selected in self.presets
+        has_active = self.active_preset in self.presets
+
+        self.btn_load.Enable(has_selected)
+        self.btn_save.Enable(has_active or bool(self._get_chain()))
+        self.btn_save_as.Enable(True)
+        self.btn_rename.Enable(has_selected)
+        self.btn_delete.Enable(has_selected)
+
+        self._update_group_label()
+
+    def _notify_presets_changed(self):
+        self.restore_on_startup = self.chk_restore.GetValue()
+        if self.on_presets_changed:
+            self.on_presets_changed(
+                copy.deepcopy(self.presets),
+                self.active_preset,
+                self.restore_on_startup,
+            )
+
+    def _set_chain_from_records(self, records):
+        available = set(getattr(self.gl_tool, "filters", {}).keys())
+        stages = []
+        missing = []
+
+        for record in records:
+            normalised = self._normalise_stage_record(record)
+            if normalised is None:
+                continue
+
+            if normalised["name"] not in available:
+                missing.append(normalised["name"])
+                continue
+
+            stages.append(EffectStage(**normalised))
+
+        self.gl_tool.set_effect_chain(stages)
+
+        if missing:
+            unique_missing = ", ".join(sorted(set(missing), key=str.casefold))
+            show_toast(
+                self,
+                _("Some saved effects are unavailable:") + f" {unique_missing}",
+                True
+            )
+
+    def _ask_preset_name(self, title, initial_value=""):
+        dlg = wx.TextEntryDialog(
+            self,
+            _("Enter an effect-group name:"),
+            title,
+            value=initial_value
+        )
+        msw_set_theme(dlg)
+        try:
+            if dlg.ShowModal() != wx.ID_OK:
+                return None
+
+            name = dlg.GetValue().strip()
+            if not name:
+                show_toast(self, _("The group name cannot be empty."), True)
+                return None
+            if len(name) > 80:
+                show_toast(
+                    self,
+                    _("The group name must be 80 characters or fewer."),
+                    True
+                )
+                return None
+            return name
+        finally:
+            dlg.Destroy()
+
+    def _save_as_name(self, name):
+        existing = self._find_preset_casefold(name)
+        if existing is not None and existing != name:
+            name = existing
+
+        if name in self.presets:
+            answer = wx.MessageBox(
+                _("Replace the existing effect group?"),
+                _("Confirm"),
+                wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+                self
+            )
+            if answer != wx.YES:
+                return False
+
+        self.presets[name] = self._chain_records()
+        self.active_preset = name
+        self._populate_preset_choice(name)
+        self._update_preset_controls()
+        self._notify_presets_changed()
+        show_toast(self, _("Effect group saved."))
+        return True
+
     def _notify_change(self):
         if self.on_change:
             self.on_change()
+        self._update_preset_controls()
 
     def _get_selected_index(self):
         idx = self.list_effects.GetFirstSelected()
@@ -1370,7 +1685,10 @@ class EffectGroupDialog(wx.Dialog):
                             if ext.lower() == ".frag" and name in loaded_names:
                                 names.append(name)
                     except Exception as e:
-                        print(f"[ERROR] Failed to read effect category '{entry}': {e}")
+                        print(
+                            f"[ERROR] Failed to read effect category "
+                            f"'{entry}': {e}"
+                        )
 
                     if names:
                         grouped[entry] = names
@@ -1410,7 +1728,11 @@ class EffectGroupDialog(wx.Dialog):
                 self.list_effects.GetItemCount(),
                 str(i + 1)
             )
-            self.list_effects.SetItem(idx, 1, _("On") if stage.enabled else _("Off"))
+            self.list_effects.SetItem(
+                idx,
+                1,
+                _("On") if stage.enabled else _("Off")
+            )
             self.list_effects.SetItem(idx, 2, stage.name)
             self.list_effects.SetItem(idx, 3, f"{stage.strength:.2f}")
 
@@ -1457,11 +1779,107 @@ class EffectGroupDialog(wx.Dialog):
 
         stage = chain[idx]
         self.list_effects.SetItem(idx, 0, str(idx + 1))
-        self.list_effects.SetItem(idx, 1, _("On") if stage.enabled else _("Off"))
+        self.list_effects.SetItem(
+            idx,
+            1,
+            _("On") if stage.enabled else _("Off")
+        )
         self.list_effects.SetItem(idx, 2, stage.name)
         self.list_effects.SetItem(idx, 3, f"{stage.strength:.2f}")
 
-    # Events
+    def on_load_preset(self, evt):
+        name = self._selected_preset_name()
+        if name not in self.presets:
+            return
+
+        self._set_chain_from_records(self.presets[name])
+        self.active_preset = name
+        self._populate_list()
+        self._update_editor_state()
+        self._update_preset_controls()
+        self._notify_change()
+        self._notify_presets_changed()
+
+    def on_new_group(self, evt):
+        self.gl_tool.set_effect_chain([])
+        self.active_preset = None
+        self._populate_list()
+        self._update_editor_state()
+        self._update_preset_controls()
+        self._notify_change()
+        self._notify_presets_changed()
+
+    def on_save_preset(self, evt):
+        if self.active_preset in self.presets:
+            self.presets[self.active_preset] = self._chain_records()
+            self._populate_preset_choice(self.active_preset)
+            self._update_preset_controls()
+            self._notify_presets_changed()
+            show_toast(self, _("Effect group saved."))
+            return
+
+        self.on_save_preset_as(evt)
+
+    def on_save_preset_as(self, evt):
+        name = self._ask_preset_name(_("Save Effect Group"))
+        if name is not None:
+            self._save_as_name(name)
+
+    def on_rename_preset(self, evt):
+        old_name = self._selected_preset_name()
+        if old_name not in self.presets:
+            return
+
+        new_name = self._ask_preset_name(
+            _("Rename Effect Group"),
+            initial_value=old_name
+        )
+        if new_name is None or new_name == old_name:
+            return
+
+        conflicting = self._find_preset_casefold(new_name)
+        if conflicting is not None and conflicting != old_name:
+            show_toast(
+                self,
+                _("Another effect group already uses that name."),
+                True
+            )
+            return
+
+        self.presets[new_name] = self.presets.pop(old_name)
+        if self.active_preset == old_name:
+            self.active_preset = new_name
+
+        self._populate_preset_choice(new_name)
+        self._update_preset_controls()
+        self._notify_presets_changed()
+
+    def on_delete_preset(self, evt):
+        name = self._selected_preset_name()
+        if name not in self.presets:
+            return
+
+        answer = wx.MessageBox(
+            _("Delete this saved effect group?"),
+            _("Confirm"),
+            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+            self
+        )
+        if answer != wx.YES:
+            return
+
+        del self.presets[name]
+        if self.active_preset == name:
+            self.active_preset = None
+
+        self._populate_preset_choice()
+        self._update_preset_controls()
+        self._notify_presets_changed()
+
+    def on_restore_changed(self, evt):
+        self.restore_on_startup = self.chk_restore.GetValue()
+        self._notify_presets_changed()
+
     def on_add_effect(self, evt):
         item = self.effect_tree.GetSelection()
         if not item or not item.IsOk():

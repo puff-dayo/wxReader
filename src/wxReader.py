@@ -7,6 +7,7 @@ try:
 except Exception:
     print(Exception)
 
+import copy
 import functools
 import io
 import os
@@ -25,7 +26,7 @@ from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageE
 from wxReaderGlUtil import GLFilterTool, EffectStage
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
-from wxReaderProvider import ContentProvider, PdfContentProvider, ArchiveContentProvider, SevenZipContentProvider
+from wxReaderProvider import PdfContentProvider, ArchiveContentProvider, SevenZipContentProvider
 from wxReaderString import *
 from wxReaderKeyBinds import DEFAULT_KEYBINDS, get_menu_label
 from wxReaderView import PDFView, MEMORY_PROFILES
@@ -203,6 +204,162 @@ class MainFrame(wx.Frame):
         if current_view:
             current_view.Update()
 
+    @staticmethod
+    def _normalise_effect_stage_records(records):
+        out = []
+        if not isinstance(records, list):
+            return out
+
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+
+            name = str(record.get("name", "")).strip()
+            if not name:
+                continue
+
+            try:
+                strength = float(record.get("strength", 0.8))
+            except (TypeError, ValueError):
+                strength = 0.8
+
+            out.append({
+                "name": name,
+                "strength": max(0.0, min(1.0, strength)),
+                "enabled": bool(record.get("enabled", True)),
+            })
+
+        return out
+
+    @classmethod
+    def _normalise_effect_presets(cls, presets):
+        out = {}
+        if not isinstance(presets, dict):
+            return out
+
+        for raw_name, raw_records in presets.items():
+            name = str(raw_name).strip()
+            if not name:
+                continue
+            out[name] = cls._normalise_effect_stage_records(raw_records)
+
+        return out
+
+    def _load_effect_group_state(self, cfg):
+        state = cfg.get("effect_group_state", {})
+        if not isinstance(state, dict):
+            state = {}
+
+        self.effect_group_presets = self._normalise_effect_presets(
+            state.get("groups", {})
+        )
+
+        active_name = state.get("active_name")
+        self.active_effect_group_name = (
+            active_name
+            if isinstance(active_name, str)
+               and active_name in self.effect_group_presets
+            else None
+        )
+
+        self.restore_effect_group_on_startup = bool(
+            state.get("restore_on_startup", True)
+        )
+
+        if "current_chain" in state:
+            self._pending_effect_chain_records = (
+                self._normalise_effect_stage_records(state.get("current_chain"))
+            )
+        elif self.active_effect_group_name:
+            self._pending_effect_chain_records = copy.deepcopy(
+                self.effect_group_presets[self.active_effect_group_name]
+            )
+        else:
+            self._pending_effect_chain_records = []
+
+    def _effect_chain_to_records(self):
+        if not hasattr(self, "gl_filters"):
+            return copy.deepcopy(
+                getattr(self, "_pending_effect_chain_records", [])
+            )
+
+        return [
+            {
+                "name": stage.name,
+                "strength": max(
+                    0.0,
+                    min(1.0, float(stage.strength))
+                ),
+                "enabled": bool(stage.enabled),
+            }
+            for stage in self.gl_filters.effect_chain
+        ]
+
+    def _effect_group_state_payload(self):
+        return {
+            "version": 1,
+            "restore_on_startup": bool(
+                self.restore_effect_group_on_startup
+            ),
+            "active_name": self.active_effect_group_name,
+            "groups": copy.deepcopy(self.effect_group_presets),
+            "current_chain": self._effect_chain_to_records(),
+        }
+
+    def _save_effect_group_state(self):
+        cfg = load_config()
+        cfg["effect_group_state"] = self._effect_group_state_payload()
+        ok = save_config(cfg)
+        if not ok:
+            print("[WARN] Failed to save effect-group presets.")
+        return ok
+
+    def _on_effect_group_presets_changed(self, presets, active_name, restore_on_startup):
+        self.effect_group_presets = self._normalise_effect_presets(
+            presets
+        )
+        self.active_effect_group_name = (
+            active_name
+            if active_name in self.effect_group_presets
+            else None
+        )
+        self.restore_effect_group_on_startup = bool(
+            restore_on_startup
+        )
+        self._pending_effect_chain_records = (
+            self._effect_chain_to_records()
+        )
+        self._save_effect_group_state()
+
+    def _restore_saved_effect_chain(self):
+        if not self.restore_effect_group_on_startup:
+            return
+
+        records = copy.deepcopy(
+            getattr(self, "_pending_effect_chain_records", [])
+        )
+        available = set(self.gl_filters.filters)
+        stages = []
+        missing = []
+
+        for record in records:
+            name = record["name"]
+            if name not in available:
+                missing.append(name)
+                continue
+            stages.append(EffectStage(**record))
+
+        self.gl_filters.set_effect_chain(stages)
+
+        if missing:
+            print(
+                "[WARN] Saved effect group references unavailable "
+                f"filters: {', '.join(sorted(set(missing)))}"
+            )
+
+        self._notify_effect_chain_changed()
+        self._sync_legacy_filter_menu_from_chain()
+
     def __init__(self, lang=wx.LANGUAGE_ENGLISH):
         cfg = load_config()
 
@@ -230,7 +387,7 @@ class MainFrame(wx.Frame):
         self.SetFont(wx.GetApp().global_font)
 
         # Initialize state
-        self.quality_preference = 0
+        self.quality_preference = 1
 
         self.memory_profile_name = cfg.get("memory_profile", "default")
         if self.memory_profile_name not in MEMORY_PROFILES:
@@ -427,6 +584,8 @@ class MainFrame(wx.Frame):
 
         filters_dir = os.path.join(os.path.dirname(__file__), "filters")
         self.gl_filters = GLFilterTool(self, filters_dir)
+        self._load_effect_group_state(cfg)
+
         root = wx.BoxSizer(wx.VERTICAL)
         root.Add(self.splitter, 1, wx.EXPAND)
         root.Add(self.gl_filters.canvas, 0)
@@ -995,6 +1154,8 @@ class MainFrame(wx.Frame):
         if hasattr(self, '_populate_custom_filters_menu'):
             self._populate_custom_filters_menu()
             self.menubar.Refresh()
+
+        self._restore_saved_effect_chain()
 
     def _update_tabbar_visibility(self):
         def _do_update():
@@ -2206,7 +2367,15 @@ class MainFrame(wx.Frame):
         def _on_change():
             debounce_timer.Start(120, wx.TIMER_ONE_SHOT)
 
-        dlg = EffectGroupDialog(self, self.gl_filters, _on_change)
+        dlg = EffectGroupDialog(
+            self,
+            self.gl_filters,
+            _on_change,
+            presets=self.effect_group_presets,
+            active_preset=self.active_effect_group_name,
+            restore_on_startup=self.restore_effect_group_on_startup,
+            on_presets_changed=self._on_effect_group_presets_changed,
+        )
 
         def _on_close_dialog(event):
             if debounce_timer.IsRunning():
@@ -2295,6 +2464,11 @@ class MainFrame(wx.Frame):
                 )
             ])
 
+        # A legacy single-filter choice is an ad-hoc chain, not a named preset.
+        self.active_effect_group_name = None
+        self._pending_effect_chain_records = self._effect_chain_to_records()
+        self._save_effect_group_state()
+
         self._notify_effect_chain_changed()
 
         # Update checks on FlatMenuBar
@@ -2379,6 +2553,7 @@ class MainFrame(wx.Frame):
                 "file_progress": self.file_progress,
                 "reopen_last_files": self.reopen_last_files,
                 "memory_profile": self.memory_profile_name,
+                "effect_group_state": self._effect_group_state_payload(),
             }
             cfg.update(current_cfg)
 
