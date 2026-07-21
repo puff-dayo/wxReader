@@ -1484,16 +1484,27 @@ class MainFrame(wx.Frame):
         self.manual_window.Show()
 
     def on_open_library(self, evt):
-        current_dir = os.getcwd()
+        source = evt.GetEventObject() if evt else None
+        path = None
 
-        if hasattr(self, 'dir_ctrl'):
+        if source is self.btn_fv_gallery:
+            path = getattr(self, "current_folder_path", None)
+            if not path:
+                path = getattr(self, "_folder_list_loaded_path", None)
+            if not path and self.content_provider and self.content_provider.path:
+                path = self.content_provider.path
+        elif hasattr(self, "dir_ctrl"):
             path = self.dir_ctrl.GetPath()
-            if path and os.path.isdir(path):
-                current_dir = path
-            elif path and os.path.isfile(path):
-                current_dir = os.path.dirname(path)
-        elif self.content_provider and self.content_provider.path:
-            current_dir = os.path.dirname(self.content_provider.path)
+        if not path and self.content_provider and self.content_provider.path:
+            path = self.content_provider.path
+        if path and os.path.isfile(path):
+            path = os.path.dirname(path)
+
+        current_dir = (
+            os.path.abspath(path)
+            if path and os.path.isdir(path)
+            else os.getcwd()
+        )
 
         def _open_from_lib(path):
             self.Raise()
