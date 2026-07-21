@@ -174,6 +174,13 @@ class MainFrame(wx.Frame):
         v = self.view
         return v.content_provider if v else None
 
+    def apply_shader_effects(self, rgb_u8, previous_rgb=None, next_rgb=None):
+        return self.gl_filters.apply_chain(
+            rgb_u8,
+            prev_rgb=previous_rgb,
+            next_rgb=next_rgb
+        )
+
     def __init__(self, lang=wx.LANGUAGE_ENGLISH):
         cfg = load_config()
 

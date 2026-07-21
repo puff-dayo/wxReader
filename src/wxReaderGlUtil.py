@@ -81,6 +81,8 @@ class GLFilterTool:
         # GL objects
         self._vbo = None
         self._in_tex = None
+        self._prev_tex = None
+        self._next_tex = None
         self._fbo = None
         self._out_tex = None
         self._fbo_w = 0
@@ -167,11 +169,16 @@ class GLFilterTool:
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         self._in_tex = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self._in_tex)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        self._prev_tex = glGenTextures(1)
+        self._next_tex = glGenTextures(1)
+
+        for texture_id in (self._in_tex, self._prev_tex, self._next_tex):
+            glBindTexture(GL_TEXTURE_2D, texture_id)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+
         glBindTexture(GL_TEXTURE_2D, 0)
 
         self._fbo = glGenFramebuffers(1)
@@ -207,12 +214,65 @@ class GLFilterTool:
         self._programs[name] = prog
         return prog
 
-    def _apply_one(self, name: str, rgb_u8: np.ndarray, strength: float) -> np.ndarray:
+    @staticmethod
+    def _validate_rgb(rgb_u8: np.ndarray, argument_name: str):
+        if rgb_u8.dtype != np.uint8 or rgb_u8.ndim != 3 or rgb_u8.shape[2] != 3:
+            raise ValueError(f"{argument_name} must be an (H,W,3) uint8 RGB array.")
+
+    @staticmethod
+    def _upload_texture(texture_id: int, rgb_u8: np.ndarray):
+        h, w, _ = rgb_u8.shape
+        rgb_u8 = np.ascontiguousarray(rgb_u8)
+
+        glBindTexture(GL_TEXTURE_2D, texture_id)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGB,
+            w,
+            h,
+            0,
+            GL_RGB,
+            GL_UNSIGNED_BYTE,
+            rgb_u8
+        )
+        glBindTexture(GL_TEXTURE_2D, 0)
+        return w, h
+
+    @staticmethod
+    def _set_uniform_1i(prog: int, name: bytes, value: int):
+        loc = glGetUniformLocation(prog, name)
+        if loc >= 0:
+            glUniform1i(loc, int(value))
+
+    @staticmethod
+    def _set_uniform_2f(prog: int, name: bytes, x: float, y: float):
+        loc = glGetUniformLocation(prog, name)
+        if loc >= 0:
+            glUniform2f(loc, float(x), float(y))
+
+    def _apply_one(
+            self,
+            name: str,
+            rgb_u8: np.ndarray,
+            strength: float,
+            *,
+            prev_rgb: np.ndarray | None = None,
+            next_rgb: np.ndarray | None = None
+    ) -> np.ndarray:
         if name not in self.filters:
             return rgb_u8
 
-        if rgb_u8.dtype != np.uint8 or rgb_u8.ndim != 3 or rgb_u8.shape[2] != 3:
-            raise ValueError("apply() expects (H,W,3) uint8 RGB.")
+        self._validate_rgb(rgb_u8, "rgb_u8")
+
+        has_prev = prev_rgb is not None
+        has_next = next_rgb is not None
+        prev_source = rgb_u8 if prev_rgb is None else prev_rgb
+        next_source = rgb_u8 if next_rgb is None else next_rgb
+
+        self._validate_rgb(prev_source, "prev_rgb")
+        self._validate_rgb(next_source, "next_rgb")
 
         self._set_current()
         self._init_gl_once()
@@ -221,11 +281,9 @@ class GLFilterTool:
         self._ensure_fbo(w, h)
         prog = self._get_program(name)
 
-        # upload input texture
-        glBindTexture(GL_TEXTURE_2D, self._in_tex)
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, rgb_u8)
-        glBindTexture(GL_TEXTURE_2D, 0)
+        current_w, current_h = self._upload_texture(self._in_tex, rgb_u8)
+        prev_w, prev_h = self._upload_texture(self._prev_tex, prev_source)
+        next_w, next_h = self._upload_texture(self._next_tex, next_source)
 
         # render to FBO
         glBindFramebuffer(GL_FRAMEBUFFER, self._fbo)
@@ -236,13 +294,16 @@ class GLFilterTool:
 
         glUseProgram(prog)
 
-        loc = glGetUniformLocation(prog, b"uResolution")
-        if loc >= 0:
-            glUniform2f(loc, float(w), float(h))
+        self._set_uniform_2f(prog, b"uResolution", current_w, current_h)
+        self._set_uniform_2f(prog, b"uPrevResolution", prev_w, prev_h)
+        self._set_uniform_2f(prog, b"uNextResolution", next_w, next_h)
 
-        loc = glGetUniformLocation(prog, b"uTex")
-        if loc >= 0:
-            glUniform1i(loc, 0)
+        # Existing shaders continue to use uTex on unit 0
+        self._set_uniform_1i(prog, b"uTex", 0)
+        self._set_uniform_1i(prog, b"uPrevTex", 1)
+        self._set_uniform_1i(prog, b"uNextTex", 2)
+        self._set_uniform_1i(prog, b"uHasPrev", has_prev)
+        self._set_uniform_1i(prog, b"uHasNext", has_next)
 
         loc = glGetUniformLocation(prog, b"uTime")
         if loc >= 0:
@@ -261,6 +322,11 @@ class GLFilterTool:
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self._in_tex)
+        glActiveTexture(GL_TEXTURE1)
+        glBindTexture(GL_TEXTURE_2D, self._prev_tex)
+        glActiveTexture(GL_TEXTURE2)
+        glBindTexture(GL_TEXTURE_2D, self._next_tex)
+        glActiveTexture(GL_TEXTURE0)
 
         glBindBuffer(GL_ARRAY_BUFFER, self._vbo)
         stride = 16
@@ -274,7 +340,11 @@ class GLFilterTool:
         glDisableVertexAttribArray(0)
         glDisableVertexAttribArray(1)
         glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindTexture(GL_TEXTURE_2D, 0)
+
+        for texture_unit in (GL_TEXTURE2, GL_TEXTURE1, GL_TEXTURE0):
+            glActiveTexture(texture_unit)
+            glBindTexture(GL_TEXTURE_2D, 0)
+        glActiveTexture(GL_TEXTURE0)
         glUseProgram(0)
 
         # readback
@@ -286,10 +356,29 @@ class GLFilterTool:
         out = np.flipud(out).copy()
         return out
 
-    def apply(self, name: str, rgb_u8: np.ndarray) -> np.ndarray:
-        return self._apply_one(name, rgb_u8, self.strength)
+    def apply(
+            self,
+            name: str,
+            rgb_u8: np.ndarray,
+            *,
+            prev_rgb: np.ndarray | None = None,
+            next_rgb: np.ndarray | None = None
+    ) -> np.ndarray:
+        return self._apply_one(
+            name,
+            rgb_u8,
+            self.strength,
+            prev_rgb=prev_rgb,
+            next_rgb=next_rgb
+        )
 
-    def apply_chain(self, rgb_u8: np.ndarray) -> np.ndarray:
+    def apply_chain(
+            self,
+            rgb_u8: np.ndarray,
+            *,
+            prev_rgb: np.ndarray | None = None,
+            next_rgb: np.ndarray | None = None
+    ) -> np.ndarray:
         out = rgb_u8
 
         for stage in self.effect_chain:
@@ -301,7 +390,9 @@ class GLFilterTool:
             out = self._apply_one(
                 stage.name,
                 out,
-                stage.strength
+                stage.strength,
+                prev_rgb=prev_rgb,
+                next_rgb=next_rgb
             )
 
         return out

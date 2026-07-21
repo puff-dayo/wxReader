@@ -218,12 +218,83 @@ class PDFView(wx.ScrolledWindow):
         chain = getattr(self.main_frame.gl_filters, "effect_chain", [])
         return any(stage.enabled for stage in chain)
 
-    def _apply_effect_chain(self, arr: np.ndarray) -> np.ndarray:
+    @staticmethod
+    def _render_page_array(provider, page_index: int, zoom: float) -> np.ndarray | None:
+        if provider is None or not (0 <= page_index < provider.page_count):
+            return None
+
+        raw_result = provider.render_to_data(page_index, zoom)
+        if not raw_result:
+            return None
+
+        width, height, data = raw_result
+        try:
+            return np.frombuffer(data, dtype=np.uint8).reshape((height, width, 3)).copy()
+        except (TypeError, ValueError):
+            return None
+
+    def _shader_neighbor_arrays(
+            self,
+            page_index: int,
+            zoom: float,
+            current_arr: np.ndarray,
+            provider
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if provider is None or provider.page_count <= 0 or page_index < 0:
+            return current_arr, current_arr
+
+        last_index = provider.page_count - 1
+        current_index = max(0, min(page_index, last_index))
+        previous_index = max(0, current_index - 1)
+        next_index = min(last_index, current_index + 1)
+
+        if previous_index == current_index:
+            previous_arr = current_arr
+        else:
+            previous_arr = self._render_page_array(provider, previous_index, zoom)
+            if previous_arr is None:
+                previous_arr = current_arr
+
+        if next_index == current_index:
+            next_arr = current_arr
+        else:
+            next_arr = self._render_page_array(provider, next_index, zoom)
+            if next_arr is None:
+                next_arr = current_arr
+
+        return previous_arr, next_arr
+
+    def _apply_effect_chain(
+            self,
+            arr: np.ndarray,
+            previous_arr: np.ndarray | None = None,
+            next_arr: np.ndarray | None = None
+    ) -> np.ndarray:
         if not self._has_active_effects():
             return arr
 
+        previous_arr = arr if previous_arr is None else previous_arr
+        next_arr = arr if next_arr is None else next_arr
+
         try:
-            out = self.main_frame.gl_filters.apply_chain(arr)
+            if hasattr(self.main_frame, "apply_shader_effects"):
+                out = self.main_frame.apply_shader_effects(
+                    arr,
+                    previous_rgb=previous_arr,
+                    next_rgb=next_arr
+                )
+            else:
+                try:
+                    out = self.main_frame.gl_filters.apply_chain(
+                        arr,
+                        prev_rgb=previous_arr,
+                        next_rgb=next_arr
+                    )
+                except TypeError as exc:
+                    if "unexpected keyword argument" not in str(exc):
+                        raise
+                    out = self.main_frame.gl_filters.apply_chain(arr)
+
             return out if out is not None else arr
         except Exception as e:
             print(f"GL Effect Chain error: {e}")
@@ -343,13 +414,33 @@ class PDFView(wx.ScrolledWindow):
     # --------------------------
     # Threading Logic
     # --------------------------
-    def _process_image_data(self, data: bytes, width: int, height: int) -> bytes:
+    def _process_image_data(
+            self,
+            data: bytes,
+            width: int,
+            height: int,
+            *,
+            page_index: int | None = None,
+            zoom: float | None = None,
+            provider=None
+    ) -> bytes:
         if not self._has_active_effects():
             return data
 
         try:
             arr = np.frombuffer(data, dtype=np.uint8).reshape((height, width, 3)).copy()
-            arr = self._apply_effect_chain(arr)
+            previous_arr = arr
+            next_arr = arr
+
+            if page_index is not None and zoom is not None:
+                previous_arr, next_arr = self._shader_neighbor_arrays(
+                    page_index,
+                    zoom,
+                    arr,
+                    provider if provider is not None else self.content_provider
+                )
+
+            arr = self._apply_effect_chain(arr, previous_arr, next_arr)
             return arr.tobytes()
         except Exception as e:
             print(f"Effect chain processing error: {e}")
@@ -388,14 +479,44 @@ class PDFView(wx.ScrolledWindow):
                     print(f"Numpy conversion error: {e}")
                     continue
 
-                wx.CallAfter(self._on_worker_result, page_idx, zoom, width, height, arr, provider)
+                previous_arr = None
+                next_arr = None
+                if self._has_active_effects():
+                    previous_arr, next_arr = self._shader_neighbor_arrays(
+                        page_idx,
+                        zoom,
+                        arr,
+                        provider
+                    )
+
+                wx.CallAfter(
+                    self._on_worker_result,
+                    page_idx,
+                    zoom,
+                    width,
+                    height,
+                    arr,
+                    previous_arr,
+                    next_arr,
+                    provider
+                )
 
             except Exception as e:
                 print(f"Worker error: {e}")
             finally:
                 self.render_queue.task_done()
 
-    def _on_worker_result(self, page_idx, zoom, width, height, arr, task_provider):
+    def _on_worker_result(
+            self,
+            page_idx,
+            zoom,
+            width,
+            height,
+            arr,
+            previous_arr,
+            next_arr,
+            task_provider
+    ):
         if task_provider != self.content_provider:
             return
         if self.mode != self.MODE_FLOW and abs(self.zoom - zoom) > 0.01:
@@ -407,7 +528,7 @@ class PDFView(wx.ScrolledWindow):
 
         if self._has_active_effects():
             try:
-                arr = self._apply_effect_chain(arr)
+                arr = self._apply_effect_chain(arr, previous_arr, next_arr)
             except Exception as e:
                 print(f"GL Filter error on main thread: {e}")
 
@@ -499,7 +620,14 @@ class PDFView(wx.ScrolledWindow):
             return wx.NullBitmap
 
         w, h, data = res
-        processed_data = self._process_image_data(data, w, h)
+        processed_data = self._process_image_data(
+            data,
+            w,
+            h,
+            page_index=page_index,
+            zoom=zoom,
+            provider=self.content_provider
+        )
 
         img = wx.Image(w, h, processed_data)
         bmp = wx.Bitmap(img)
