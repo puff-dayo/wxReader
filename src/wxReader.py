@@ -151,6 +151,7 @@ class ReadingProgressBar(wx.Panel):
             fill_x = w - fill_w if self._reversed else 0
             dc.DrawRectangle(fill_x, y, fill_w, line_h)
 
+
 class MainFrame(wx.Frame):
     @property
     def view(self) -> PDFView | None:
@@ -305,6 +306,7 @@ class MainFrame(wx.Frame):
 
         # 3.2 File List
         self.fv_listbox = wx.ListBox(self.fv_panel, style=wx.LB_SINGLE | wx.LB_HSCROLL | wx.LB_NEEDED_SB)
+        self._folder_all_items = []
         self._folder_items = []
         self._folder_index = {}
         self._folder_list_loaded_path = None
@@ -314,6 +316,20 @@ class MainFrame(wx.Frame):
         self._fv_hover_index = wx.NOT_FOUND
 
         fv_sizer.Add(self.fv_listbox, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+
+        self.fv_search = wx.SearchCtrl(
+            self.fv_panel,
+            style=wx.TE_PROCESS_ENTER
+        )
+        self.fv_search.ShowSearchButton(True)
+        self.fv_search.ShowCancelButton(False)
+        self._fv_search_timer = wx.Timer(self)
+        fv_sizer.Add(
+            self.fv_search,
+            0,
+            wx.EXPAND | wx.ALL,
+            5
+        )
 
         self.fv_panel.SetSizer(fv_sizer)
         self.sidebar_nb.AddPage(self.fv_panel, _("Folder List"))
@@ -419,6 +435,13 @@ class MainFrame(wx.Frame):
         self.fv_sort_choice.Bind(wx.EVT_CHOICE, self.on_fv_sort)
         self.fv_listbox.Bind(wx.EVT_LISTBOX_DCLICK, self.on_fv_item_activated)
         self.fv_listbox.Bind(wx.EVT_MOTION, self.on_fv_hover)
+        self.fv_search.Bind(wx.EVT_TEXT, self.on_fv_search_text)
+        self.fv_search.Bind(wx.EVT_TEXT_ENTER, self.on_fv_search_enter)
+        self.Bind(
+            wx.EVT_TIMER,
+            self.on_fv_search_timer,
+            self._fv_search_timer
+        )
         self.Bind(wx.EVT_BUTTON, lambda e: self._populate_folder_view_list(force=True), self.btn_fv_refresh)
         self.Bind(wx.EVT_BUTTON, self.on_open_library, self.btn_fv_gallery)
         self.Bind(wx.EVT_MENU, self.on_switch_sidebar_tab, id=self.id_switch_tab)
@@ -1014,6 +1037,7 @@ class MainFrame(wx.Frame):
 
         if not folder_path or not os.path.isdir(folder_path):
             self.fv_listbox.Clear()
+            self._folder_all_items = []
             self._folder_items = []
             self._folder_index = {}
             self._folder_list_loaded_path = None
@@ -1076,25 +1100,54 @@ class MainFrame(wx.Frame):
 
         new_items = [name for name, _mtime in rows]
 
-        # when unchanged
-        if new_items != self._folder_items:
-            self.fv_listbox.Freeze()
-            try:
-                self.fv_listbox.Set(new_items)
-            finally:
-                self.fv_listbox.Thaw()
-
-            self._folder_items = new_items
-            self._folder_index = {
-                name: index
-                for index, name in enumerate(new_items)
-            }
+        self._folder_all_items = new_items
+        self._apply_folder_filter()
 
         self._folder_list_loaded_path = folder_path
         self._folder_list_loaded_sort = sort_mode
         self._folder_list_dirty = False
 
         self._select_current_folder_item()
+
+    def _apply_folder_filter(self):
+        query = self.fv_search.GetValue().strip().casefold()
+
+        if query:
+            visible_items = [
+                name
+                for name in self._folder_all_items
+                if query in name.casefold()
+            ]
+        else:
+            visible_items = list(self._folder_all_items)
+
+        if visible_items != self._folder_items:
+            self.fv_listbox.Freeze()
+            try:
+                self.fv_listbox.Set(visible_items)
+            finally:
+                self.fv_listbox.Thaw()
+
+            self._folder_items = visible_items
+            self._folder_index = {
+                name: index
+                for index, name in enumerate(visible_items)
+            }
+
+        self._select_current_folder_item()
+
+    def on_fv_search_text(self, evt):
+        self._fv_search_timer.StartOnce(256)
+        evt.Skip()
+
+    def on_fv_search_enter(self, evt):
+        if self._fv_search_timer.IsRunning():
+            self._fv_search_timer.Stop()
+
+        self._apply_folder_filter()
+
+    def on_fv_search_timer(self, evt):
+        self._apply_folder_filter()
 
     def on_fv_sort(self, evt):
         self._folder_list_dirty = True
