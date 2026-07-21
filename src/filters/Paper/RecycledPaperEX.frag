@@ -63,12 +63,11 @@ float blurredNextInk(vec2 uv) {
 
 void main() {
     vec4 src = texture2D(uTex, vTex);
-    float us = uStrength + 0.2;
-    float s = clamp(us, 0.0, 1.0);
+    float s = clamp(uStrength, 0.0, 1.0);
     vec2 uv = vTex;
     vec2 px = uv * uResolution.xy;
 
-    vec3 basePaper = vec3(0.710, 0.705, 0.645);
+    vec3 basePaper = vec3(0.860, 0.855, 0.795);
 
     float pulp =
         noise(uv * 3.5) * 0.45 +
@@ -99,7 +98,7 @@ void main() {
 
     vec3 result = src.rgb;
 
-    result *= mix(vec3(1.0), basePaper, 0.72 * s);
+    result *= mix(vec3(1.0), basePaper, 0.52 * s);
 
     result *= 1.0 + (pulp - 0.5) * 0.105 * s;
     result *= 1.0 + (cloudy - 0.5) * 0.060 * s;
@@ -120,7 +119,7 @@ void main() {
     float nextInk = blurredNextInk(reverseUv);
     float neighborInk = 0.5 * (prevInk + nextInk);
 
-    neighborInk = smoothstep(0.075, 0.42, neighborInk);
+    neighborInk = smoothstep(0.175, 0.52, neighborInk);
 
     float currentLightness = luminance(src.rgb);
     float exposedPaper = smoothstep(0.48, 0.92, currentLightness);
