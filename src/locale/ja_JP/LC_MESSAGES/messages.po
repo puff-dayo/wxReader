@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-21 16:53+0800\n"
-"PO-Revision-Date: 2026-05-21 17:15+0800\n"
+"POT-Creation-Date: 2026-07-21 22:54+0800\n"
+"PO-Revision-Date: 2026-07-21 23:13+0800\n"
 "Last-Translator: setsuna-dayo <no@email.hehe>\n"
 "Language-Team: info\n"
 "Language: ja\n"
@@ -19,642 +19,719 @@ msgstr ""
 "X-Generator: Virtaal 0.7.1\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: wxReader.py:222
+#: wxReader.py:422
 msgid "Search Outline"
 msgstr "アウトラインを検索"
 
-#: wxReader.py:232
+#: wxReader.py:432
 msgid "Outline"
 msgstr "目次"
 
-#: wxReader.py:241
+#: wxReader.py:441
 msgid "Dir Up"
 msgstr "上へ"
 
-#: wxReader.py:244
+#: wxReader.py:444
 msgid "Locate"
 msgstr "場所"
 
-#: wxReader.py:247 wxReader.py:278
+#: wxReader.py:447 wxReader.py:478
 msgid "Gallery"
 msgstr "一覧"
 
-#: wxReader.py:267
+#: wxReader.py:467
 msgid "File Browser"
 msgstr "ブラウザー"
 
-#: wxReader.py:276 wxReaderLibrary.py:486
+#: wxReader.py:476 wxReaderLibrary.py:486
 msgid "Refresh"
 msgstr "更新"
 
-#: wxReader.py:283
+#: wxReader.py:483
 msgid "Newest"
 msgstr "新しい順"
 
-#: wxReader.py:284
+#: wxReader.py:484
 msgid "Oldest"
 msgstr "古い順"
 
-#: wxReader.py:303
+#: wxReader.py:532
+msgid "Clear search"
+msgstr "クリア"
+
+#: wxReader.py:533
+msgid "Open a random book"
+msgstr "ランダムな本を開く"
+
+#: wxReader.py:555
 msgid "Folder List"
 msgstr "フォルダー一覧"
 
-#: wxReader.py:447
+#: wxReader.py:717
 msgid "Blank Tab"
 msgstr "空白タブ"
 
-#: wxReader.py:522
+#: wxReader.py:797
 msgid "&Open..."
 msgstr "開く(&O)..."
 
-#: wxReader.py:523
+#: wxReader.py:798
 msgid "&Close"
 msgstr "閉じる(&C)"
 
-#: wxReader.py:528
+#: wxReader.py:803
 msgid "&Gallery Mode"
 msgstr "ギャラリーモード(&G)"
 
-#: wxReader.py:533
+#: wxReader.py:808
 msgid "Recent Files..."
 msgstr "最近使ったファイル…"
 
-#: wxReader.py:536
+#: wxReader.py:811
 msgid "Reopen Last Files"
 msgstr "最後のファイルを再開"
 
-#: wxReader.py:541
+#: wxReader.py:816
 msgid "Edit pswd.txt"
 msgstr "pswd.txt を編集"
 
-#: wxReader.py:546
+#: wxReader.py:821
 msgid "Dark Mode"
 msgstr "ダークモード"
 
-#: wxReader.py:550
+#: wxReader.py:825
 msgid "Preferences"
 msgstr "設定"
 
-#: wxReader.py:563
+#: wxReader.py:838
 msgid "Languages..."
 msgstr "言語…"
 
-#: wxReader.py:566
+#: wxReader.py:841
 msgid "E&xit"
 msgstr "終了(&X)"
 
-#: wxReader.py:568
+#: wxReader.py:843
 msgid "&File"
 msgstr "ファイル(&F)"
 
-#: wxReader.py:574
+#: wxReader.py:849
 msgid "Show &Sidebar"
 msgstr "サイドバーを表示(&S)"
 
-#: wxReader.py:578
+#: wxReader.py:853
 msgid "Switch Sidebar Tab"
 msgstr "サイドバーのタブを切り替え"
 
-#: wxReader.py:581
+#: wxReader.py:856
 msgid "Show &Tab-bar"
 msgstr "タブバーを表示(&T)"
 
-#: wxReader.py:584
+#: wxReader.py:859
 msgid "Multi-tab Mode"
 msgstr "マルチタブモード"
 
-#: wxReader.py:587
+#: wxReader.py:862
 msgid "Split Top Bar Tabs"
 msgstr "トップバーのタブを分割"
 
-#: wxReader.py:594
+#: wxReader.py:869
 msgid "Single Page View"
 msgstr "単一ページ表示"
 
-#: wxReader.py:595
+#: wxReader.py:870
 msgid "Two Page View"
 msgstr "見開き表示"
 
-#: wxReader.py:596
+#: wxReader.py:871
 msgid "Flow Mode"
 msgstr "連続ページモード"
 
-#: wxReader.py:600
+#: wxReader.py:875
 msgid "Add Blank Page at Start"
 msgstr "先頭に空白ページを追加"
 
-#: wxReader.py:606
+#: wxReader.py:881
 msgid "Left-to-Right"
 msgstr "左から右"
 
-#: wxReader.py:607
+#: wxReader.py:882
 msgid "Right-to-Left"
 msgstr "右から左"
 
-#: wxReader.py:609
+#: wxReader.py:884
 msgid "Page &Direction"
 msgstr "ページ方向(&D)"
 
-#: wxReader.py:619
+#: wxReader.py:894
 msgid "Zoom &In"
 msgstr "拡大(&I)"
 
-#: wxReader.py:620
+#: wxReader.py:895
 msgid "Zoom &Out"
 msgstr "縮小(&O)"
 
-#: wxReader.py:623
+#: wxReader.py:898
 msgid "Fit &Width"
 msgstr "幅に合わせる(&W)"
 
-#: wxReader.py:624
+#: wxReader.py:899
 msgid "Fit &Page"
 msgstr "ページに合わせる(&P)"
 
-#: wxReader.py:625
+#: wxReader.py:900
 msgid "Manual Zoom"
 msgstr "手動ズーム"
 
-#: wxReader.py:629
+#: wxReader.py:904
 msgid "Scroll Lock"
 msgstr "スクロールロック"
 
-#: wxReader.py:633 wxReader.py:1645
+#: wxReader.py:908 wxReader.py:2179
 msgid "Set Margin and Gap"
 msgstr "余白と間隔を設定"
 
-#: wxReader.py:637
+#: wxReader.py:912
 msgid "Background Color…"
 msgstr "背景色…"
 
-#: wxReader.py:642
+#: wxReader.py:917
 msgid "Larger Font"
 msgstr "フォントを大きく"
 
-#: wxReader.py:643
+#: wxReader.py:918
 msgid "Smaller Font"
 msgstr "フォントを小さく"
 
-#: wxReader.py:647
+#: wxReader.py:922
 msgid "Full &Screen"
 msgstr "全画面表示(&S)"
 
-#: wxReader.py:657
+#: wxReader.py:932
 msgid "Bilinear"
 msgstr "バイリニア"
 
-#: wxReader.py:658
+#: wxReader.py:933
 msgid "Lanczos"
 msgstr "ランチョス"
 
-#: wxReader.py:659
+#: wxReader.py:934
 msgid "DeMoiré"
 msgstr "モアレ除去"
 
-#: wxReader.py:665
+#: wxReader.py:940
 msgid "Render Quality"
 msgstr "レンダリング品質"
 
-#: wxReader.py:675
+#: wxReader.py:950
 msgid "Potato"
-msgstr ""
+msgstr "ポテト"
 
-#: wxReader.py:676
+#: wxReader.py:951
 msgid "Low"
-msgstr ""
+msgstr "低"
 
-#: wxReader.py:677
+#: wxReader.py:952
 msgid "Balanced"
-msgstr ""
+msgstr "バランス"
 
-#: wxReader.py:678
+#: wxReader.py:953
 msgid "Default"
-msgstr ""
+msgstr "デフォルト"
 
-#: wxReader.py:679
+#: wxReader.py:954
 msgid "Performance"
-msgstr ""
+msgstr "パフォーマンス"
 
-#: wxReader.py:681
+#: wxReader.py:956
 msgid "Memory Usage"
 msgstr "メモリ使用量"
 
-#: wxReader.py:683
+#: wxReader.py:958
 msgid "&View"
 msgstr "表示(&V)"
 
-#: wxReader.py:692
+#: wxReader.py:967
 msgid "Previous Page"
 msgstr "前のページ"
 
-#: wxReader.py:693
+#: wxReader.py:968
 msgid "Next Page"
 msgstr "次のページ"
 
-#: wxReader.py:694
+#: wxReader.py:969
 msgid "&Go to Page..."
 msgstr "ページへ移動(&G)..."
 
-#: wxReader.py:699
+#: wxReader.py:974
 msgid "External Control"
 msgstr "外部制御"
 
-#: wxReader.py:705
+#: wxReader.py:980
 msgid "&Find..."
 msgstr "検索(&F)..."
 
-#: wxReader.py:708
+#: wxReader.py:983
 msgid "Show TOC Dialog..."
 msgstr "目次を表示..."
 
-#: wxReader.py:710
+#: wxReader.py:985
 msgid "&Navigate"
 msgstr "ナビゲーション(&N)"
 
-#: wxReader.py:716
+#: wxReader.py:991
 msgid "Extract Page Text"
 msgstr "ページのテキストを抽出"
 
-#: wxReader.py:719
+#: wxReader.py:994
 msgid "Extract Page Images"
 msgstr "ページの画像を抽出"
 
-#: wxReader.py:724
+#: wxReader.py:999
 msgid "Shader Settings..."
 msgstr "シェーダー設定…"
 
-#: wxReader.py:729
+#: wxReader.py:1004
 msgid "None / Turn Off"
 msgstr "なし / オフ"
 
-#: wxReader.py:774
+#: wxReader.py:1049
 msgid "Use Effect Group..."
 msgstr "エフェクトグループ..."
 
-#: wxReader.py:776
+#: wxReader.py:1051
 msgid "&Process"
 msgstr "処理(&P)"
 
-#: wxReader.py:780
+#: wxReader.py:1055
 msgid "&About"
 msgstr "このソフトについて(&A)"
 
-#: wxReader.py:781
+#: wxReader.py:1056
 msgid "&Info"
 msgstr "情報(&I)"
 
-#: wxReader.py:784
+#: wxReader.py:1059
 msgid "Check for Updates..."
 msgstr "更新を確認…"
 
-#: wxReader.py:789
+#: wxReader.py:1064
 msgid "&Help Topics"
 msgstr "ヘルプ トピック(&H)"
 
-#: wxReader.py:1144
+#: wxReader.py:1587
 msgid "Need at least 2 tabs to split."
 msgstr "分割するには少なくとも2つのタブが必要です。"
 
-#: wxReader.py:1486 wxReaderDialog.py:487
+#: wxReader.py:2020 wxReaderDialog.py:489
 msgid "Page"
 msgstr "ページ"
 
-#: wxReader.py:1491
+#: wxReader.py:2025
 msgid "<No text found on visible pages.>"
 msgstr "<表示中のページにテキストが見つかりません。>"
 
-#: wxReader.py:1500
+#: wxReader.py:2034
 msgid "Failed to extract text:"
 msgstr "テキストの抽出に失敗しました:"
 
-#: wxReader.py:1532
+#: wxReader.py:2066
 msgid "Error extracting images:"
 msgstr "画像の抽出エラー:"
 
-#: wxReader.py:1539
+#: wxReader.py:2073
 msgid "No images found on the visible page(s)."
 msgstr "表示中のページに画像が見つかりません。"
 
-#: wxReader.py:1592
+#: wxReader.py:2126
 msgid "Enter page number"
 msgstr "ページ番号を入力"
 
-#: wxReader.py:1602
+#: wxReader.py:2136
 msgid "Page number out of range."
 msgstr "ページ番号が範囲外です。"
 
-#: wxReader.py:1604
+#: wxReader.py:2138
 msgid "Invalid number."
 msgstr "無効な番号です。"
 
-#: wxReader.py:1658
+#: wxReader.py:2192
 msgid "Numbers must be between 0 and 999."
 msgstr "数値は 0〜999 の間で入力してください。"
 
-#: wxReader.py:1660
+#: wxReader.py:2194
 msgid "Please enter integers only."
 msgstr "整数のみ入力してください。"
 
-#: wxReader.py:1822 wxReader.py:1967
+#: wxReader.py:2356 wxReader.py:2501
 msgid "Restart is required."
 msgstr "再起動が必要です。"
 
-#: wxReaderDialog.py:22
+#: wxReaderDialog.py:24
 msgid "Press a key..."
 msgstr "キーを押してください…"
 
-#: wxReaderDialog.py:26
+#: wxReaderDialog.py:28
 msgid "Press new key for"
 msgstr "新しいキーを押してください:"
 
-#: wxReaderDialog.py:115
+#: wxReaderDialog.py:117
 msgid "Action"
 msgstr "操作"
 
-#: wxReaderDialog.py:116
+#: wxReaderDialog.py:118
 msgid "Shortcut"
 msgstr "ショートカット"
 
-#: wxReaderDialog.py:123
+#: wxReaderDialog.py:125
 msgid "Edit Key"
 msgstr "編集"
 
-#: wxReaderDialog.py:124
+#: wxReaderDialog.py:126
 msgid "Clear Key"
 msgstr "クリア"
 
-#: wxReaderDialog.py:125
+#: wxReaderDialog.py:127
 msgid "Reset Defaults"
 msgstr "既定に戻す"
 
-#: wxReaderDialog.py:127
+#: wxReaderDialog.py:129 wxReaderDialog.py:1263
 msgid "Save"
 msgstr "保存"
 
-#: wxReaderDialog.py:128 wxReaderView.py:961
+#: wxReaderDialog.py:130 wxReaderView.py:1142
 msgid "Cancel"
 msgstr "キャンセル"
 
-#: wxReaderDialog.py:188
+#: wxReaderDialog.py:190
 msgid "Reset all shortcuts to default?"
 msgstr "すべてのショートカットを既定に戻しますか？"
 
-#: wxReaderDialog.py:188 wxReaderDialog.py:1079
+#: wxReaderDialog.py:190 wxReaderDialog.py:1082 wxReaderDialog.py:1637
+#: wxReaderDialog.py:1864
 msgid "Confirm"
 msgstr "確認"
 
-#: wxReaderDialog.py:198
+#: wxReaderDialog.py:200
 msgid "Table of Contents"
 msgstr "目次"
 
-#: wxReaderDialog.py:215
+#: wxReaderDialog.py:217
 msgid "Filter sections..."
 msgstr "セクションを絞り込み…"
 
-#: wxReaderDialog.py:229
+#: wxReaderDialog.py:231
 msgid "sections"
 msgstr "セクション"
 
-#: wxReaderDialog.py:233 wxReaderDialog.py:322 wxReaderDialog.py:391
-#: wxReaderDialog.py:867 wxReaderDialog.py:920 wxReaderDialog.py:1312
+#: wxReaderDialog.py:235 wxReaderDialog.py:324 wxReaderDialog.py:393
+#: wxReaderDialog.py:869 wxReaderDialog.py:923 wxReaderDialog.py:1418
 msgid "Close"
 msgstr "閉じる"
 
-#: wxReaderDialog.py:306
+#: wxReaderDialog.py:308
 msgid "Extracted Page Text"
 msgstr "抽出したページテキスト"
 
-#: wxReaderDialog.py:321
+#: wxReaderDialog.py:323
 msgid "Copy All"
 msgstr "すべてコピー"
 
-#: wxReaderDialog.py:338
+#: wxReaderDialog.py:340
 msgid "Text copied to clipboard!"
 msgstr "テキストをクリップボードにコピーしました！"
 
-#: wxReaderDialog.py:340 wxReaderDialog.py:436
+#: wxReaderDialog.py:342 wxReaderDialog.py:438
 msgid "Could not open clipboard."
 msgstr "クリップボードを開けませんでした。"
 
-#: wxReaderDialog.py:353
+#: wxReaderDialog.py:355
 msgid "Extract Images"
 msgstr "画像を抽出"
 
-#: wxReaderDialog.py:370
+#: wxReaderDialog.py:372
 msgid "Detected Images:"
 msgstr "検出した画像:"
 
-#: wxReaderDialog.py:384
+#: wxReaderDialog.py:386
 msgid "Preview:"
 msgstr "プレビュー:"
 
-#: wxReaderDialog.py:389
+#: wxReaderDialog.py:391
 msgid "Copy"
 msgstr "コピー"
 
-#: wxReaderDialog.py:390
+#: wxReaderDialog.py:392
 msgid "Save to..."
 msgstr "名前を付けて保存…"
 
-#: wxReaderDialog.py:434
+#: wxReaderDialog.py:436
 msgid "Image copied to clipboard."
 msgstr "画像をクリップボードにコピーしました。"
 
-#: wxReaderDialog.py:447
+#: wxReaderDialog.py:449
 msgid "Save Image"
 msgstr "画像を保存"
 
-#: wxReaderDialog.py:454
+#: wxReaderDialog.py:456
 msgid "Saved to"
 msgstr "保存先:"
 
-#: wxReaderDialog.py:456 wxReaderDialog.py:1074
+#: wxReaderDialog.py:458 wxReaderDialog.py:1077
 msgid "Failed to save file"
 msgstr "ファイルの保存に失敗しました"
 
-#: wxReaderDialog.py:461
+#: wxReaderDialog.py:463
 msgid "Search Document"
 msgstr "文書を検索"
 
-#: wxReaderDialog.py:476
+#: wxReaderDialog.py:478
 msgid "Type text to search..."
 msgstr "検索するテキストを入力…"
 
-#: wxReaderDialog.py:478
+#: wxReaderDialog.py:480
 msgid "Find"
 msgstr "検索"
 
-#: wxReaderDialog.py:488
+#: wxReaderDialog.py:490
 msgid "Context Snippet"
 msgstr "周辺の抜粋"
 
-#: wxReaderDialog.py:493 wxReaderLibrary.py:511
+#: wxReaderDialog.py:495 wxReaderLibrary.py:511
 msgid "Ready"
 msgstr "準備完了"
 
-#: wxReaderDialog.py:513
+#: wxReaderDialog.py:515
 msgid "Searching..."
 msgstr "検索中…"
 
-#: wxReaderDialog.py:560
+#: wxReaderDialog.py:562
 msgid "Search complete. Found:"
 msgstr "検索が完了しました。見つかった件数:"
 
-#: wxReaderDialog.py:582
+#: wxReaderDialog.py:584
 msgid "Margin:"
 msgstr "余白:"
 
-#: wxReaderDialog.py:590
+#: wxReaderDialog.py:592
 msgid "Gap:"
 msgstr "間隔:"
 
-#: wxReaderDialog.py:638
+#: wxReaderDialog.py:640
 msgid "Current"
 msgstr "現在"
 
-#: wxReaderDialog.py:641
+#: wxReaderDialog.py:643 wxReaderDialog.py:1262
 msgid "New"
 msgstr "新規"
 
-#: wxReaderDialog.py:645
+#: wxReaderDialog.py:647
 msgid "Select Color"
 msgstr "色を選択"
 
-#: wxReaderDialog.py:802
+#: wxReaderDialog.py:804
 msgid "About"
 msgstr "このソフトについて"
 
-#: wxReaderDialog.py:828
+#: wxReaderDialog.py:830
 msgid "Version"
 msgstr "バージョン"
 
-#: wxReaderDialog.py:862
+#: wxReaderDialog.py:864
 msgid "Visit GitHub Repository"
 msgstr "GitHub リポジトリを開く"
 
-#: wxReaderDialog.py:886
+#: wxReaderDialog.py:889
 msgid "Recent Files"
 msgstr "最近使ったファイル…"
 
-#: wxReaderDialog.py:902
+#: wxReaderDialog.py:905
 msgid "Search filename or path..."
 msgstr "ファイル名またはパスを検索…"
 
-#: wxReaderDialog.py:910
+#: wxReaderDialog.py:913
 msgid "Filename"
 msgstr "ファイル名"
 
-#: wxReaderDialog.py:911
+#: wxReaderDialog.py:914
 msgid "Location"
 msgstr "場所"
 
-#: wxReaderDialog.py:917
+#: wxReaderDialog.py:920
 msgid "Forget All"
 msgstr "すべて消去"
 
-#: wxReaderDialog.py:918
+#: wxReaderDialog.py:921
 msgid "Forget Item"
 msgstr "この項目を消去"
 
-#: wxReaderDialog.py:919
+#: wxReaderDialog.py:922
 msgid "Open"
 msgstr "開く"
 
-#: wxReaderDialog.py:983
+#: wxReaderDialog.py:986
 msgid "File not found."
 msgstr "ファイルが見つかりません。"
 
-#: wxReaderDialog.py:1001
+#: wxReaderDialog.py:1004
 msgid "Clear all recent files history?"
 msgstr "最近使ったファイルの履歴をすべて消去しますか？"
 
-#: wxReaderDialog.py:1001
+#: wxReaderDialog.py:1004
 msgid "Confirm Clear"
 msgstr "消去の確認"
 
-#: wxReaderDialog.py:1014
+#: wxReaderDialog.py:1017
 msgid "Password Editor"
 msgstr "パスワードエディター"
 
-#: wxReaderDialog.py:1026
+#: wxReaderDialog.py:1029
 msgid "Enter one password per line."
 msgstr "1 行に 1 つのパスワードを入力してください。"
 
-#: wxReaderDialog.py:1027
+#: wxReaderDialog.py:1030
 msgid "WARNING: Passwords are stored in PLAIN TEXT."
 msgstr "警告: パスワードは平文で保存されます。"
 
-#: wxReaderDialog.py:1063
+#: wxReaderDialog.py:1066
 msgid "Failed to load file"
 msgstr "ファイルの読み込みに失敗しました"
 
-#: wxReaderDialog.py:1079
+#: wxReaderDialog.py:1082
 msgid "You have unsaved changes. Exit anyway?"
 msgstr "保存されていない変更があります。それでも終了しますか？"
 
-#: wxReaderDialog.py:1088
+#: wxReaderDialog.py:1091
 msgid "Shader Settings"
 msgstr "シェーダー設定"
 
-#: wxReaderDialog.py:1216
-msgid "Effect Group"
+#: wxReaderDialog.py:1229
+msgid "Effect Groups"
 msgstr "エフェクトグループ"
 
-#: wxReaderDialog.py:1233
+#: wxReaderDialog.py:1249
+msgid "Saved Effect Groups"
+msgstr "保存済みエフェクトグループ"
+
+#: wxReaderDialog.py:1254
+msgid "Group:"
+msgstr "グループ："
+
+#: wxReaderDialog.py:1261
+msgid "Load"
+msgstr "読み込む"
+
+#: wxReaderDialog.py:1264
+msgid "Save As..."
+msgstr "名前を付けて保存…"
+
+#: wxReaderDialog.py:1265
+msgid "Rename..."
+msgstr "名前を変更..."
+
+#: wxReaderDialog.py:1266
+msgid "Delete"
+msgstr "削除"
+
+#: wxReaderDialog.py:1283
+msgid "Restore the current effect group when wxReader starts"
+msgstr "wxReader の起動時に現在のエフェクトグループを復元する"
+
+#: wxReaderDialog.py:1303
 msgid "Effect Library"
 msgstr "エフェクトライブラリ"
 
-#: wxReaderDialog.py:1241
+#: wxReaderDialog.py:1312
 msgid "Add Selected"
 msgstr "選択を追加"
 
-#: wxReaderDialog.py:1251
+#: wxReaderDialog.py:1332 wxReaderDialog.py:1547
 msgid "Current Effect Group"
 msgstr "現在のエフェクトグループ"
 
-#: wxReaderDialog.py:1258
+#: wxReaderDialog.py:1339
 msgid "#"
 msgstr ""
 
-#: wxReaderDialog.py:1259 wxReaderDialog.py:1265
+#: wxReaderDialog.py:1340 wxReaderDialog.py:1346
 msgid "Enabled"
 msgstr "有効"
 
-#: wxReaderDialog.py:1260
+#: wxReaderDialog.py:1341
 msgid "Effect"
 msgstr "エフェクト"
 
-#: wxReaderDialog.py:1261
+#: wxReaderDialog.py:1342
 msgid "uStrength"
 msgstr ""
 
-#: wxReaderDialog.py:1266
+#: wxReaderDialog.py:1347
 msgid "Remove"
 msgstr "削除"
 
-#: wxReaderDialog.py:1267
+#: wxReaderDialog.py:1348
 msgid "Move Up"
 msgstr "上へ移動"
 
-#: wxReaderDialog.py:1268
+#: wxReaderDialog.py:1349
 msgid "Move Down"
 msgstr "下へ移動"
 
-#: wxReaderDialog.py:1280
+#: wxReaderDialog.py:1371
 msgid "Selected Effect"
 msgstr "選択中のエフェクト"
 
-#: wxReaderDialog.py:1395
-msgid "Other"
-msgstr ""
+#: wxReaderDialog.py:1598
+msgid "Some saved effects are unavailable:"
+msgstr "一部の保存済みエフェクトは利用できません："
 
-#: wxReaderDialog.py:1413 wxReaderDialog.py:1460
+#: wxReaderDialog.py:1605
+msgid "Enter an effect-group name:"
+msgstr "エフェクトグループ名を入力してください："
+
+#: wxReaderDialog.py:1616
+msgid "The group name cannot be empty."
+msgstr "グループ名を空にすることはできません。"
+
+#: wxReaderDialog.py:1621
+msgid "The group name must be 80 characters or fewer."
+msgstr "グループ名は 80 文字以内にしてください。"
+
+#: wxReaderDialog.py:1636
+msgid "Replace the existing effect group?"
+msgstr "既存のエフェクトグループを置き換えますか？"
+
+#: wxReaderDialog.py:1649 wxReaderDialog.py:1818
+msgid "Effect group saved."
+msgstr "エフェクトグループを保存しました。"
+
+#: wxReaderDialog.py:1713
+msgid "Other"
+msgstr "その他"
+
+#: wxReaderDialog.py:1734 wxReaderDialog.py:1785
 msgid "On"
 msgstr "オン"
 
-#: wxReaderDialog.py:1413 wxReaderDialog.py:1460
+#: wxReaderDialog.py:1734 wxReaderDialog.py:1785
 msgid "Off"
 msgstr "オフ"
+
+#: wxReaderDialog.py:1824
+msgid "Save Effect Group"
+msgstr "エフェクトグループ..."
+
+#: wxReaderDialog.py:1834
+msgid "Rename Effect Group"
+msgstr "エフェクトグループ名を変更"
+
+#: wxReaderDialog.py:1844
+msgid "Another effect group already uses that name."
+msgstr "別のエフェクトグループでその名前が既に使用されています。"
+
+#: wxReaderDialog.py:1863
+msgid "Delete this saved effect group?"
+msgstr "この保存済みエフェクトグループを削除しますか？"
 
 #: wxReaderLibrary.py:456
 msgid "wxReader Gallery"
