@@ -127,8 +127,8 @@ class PDFView(wx.ScrolledWindow):
         self._radial_hover_index = -1
         self._radial_items = []
 
-        # {(page_index): wx.Bitmap}
-        self._bmp_cache: OrderedDict[tuple[int, int], wx.Bitmap] = OrderedDict()
+        # {(page_index, zoom_key, effect_revision): wx.Bitmap}
+        self._bmp_cache: OrderedDict[tuple[int, int, int], wx.Bitmap] = OrderedDict()
         self._pre_render_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_pre_render_timer, self._pre_render_timer)
 
@@ -202,10 +202,17 @@ class PDFView(wx.ScrolledWindow):
         self._refresh_layout()
         self.Refresh()
 
-    def on_effect_chain_changed(self):
+    def on_effect_chain_changed(self, refresh_layout: bool = True):
+        if self.main_frame and hasattr(self.main_frame, "gl_filters"):
+            filters = self.main_frame.gl_filters
+            if hasattr(filters, "get_revision"):
+                filters.get_revision()
+
         self._bmp_cache.clear()
         self._requested_pages.clear()
-        self._refresh_layout()
+        self._current_bitmaps.clear()
+        if refresh_layout:
+            self._refresh_layout()
         self.Refresh()
 
     def _has_active_effects(self) -> bool:
@@ -217,6 +224,51 @@ class PDFView(wx.ScrolledWindow):
 
         chain = getattr(self.main_frame.gl_filters, "effect_chain", [])
         return any(stage.enabled for stage in chain)
+
+    def _effect_cache_revision(self) -> int:
+        if not self._has_active_effects():
+            return 0
+
+        filters = self.main_frame.gl_filters
+        if hasattr(filters, "get_revision"):
+            try:
+                return int(filters.get_revision())
+            except Exception:
+                pass
+
+        chain = getattr(filters, "effect_chain", [])
+        signature = tuple(
+            (stage.name, float(stage.strength), bool(stage.enabled))
+            for stage in chain
+        )
+        return hash(signature)
+
+    def _make_cache_key(
+            self,
+            page_index: int,
+            zoom: float,
+            effect_revision: int | None = None
+    ) -> tuple[int, int, int]:
+        if effect_revision is None:
+            effect_revision = self._effect_cache_revision()
+        return page_index, int(zoom * 10000), int(effect_revision)
+
+    def _queue_page_render(self, page_index: int, zoom: float, provider=None) -> bool:
+        provider = self.content_provider if provider is None else provider
+        if provider is None:
+            return False
+
+        cache_key = self._make_cache_key(page_index, zoom)
+        if cache_key in self._bmp_cache or cache_key in self._requested_pages:
+            return False
+
+        max_pending = getattr(self, "max_pending_render_tasks", 10)
+        if len(self._requested_pages) >= max_pending:
+            return False
+
+        self._requested_pages.add(cache_key)
+        self.render_queue.put((page_index, zoom, provider, cache_key[2]))
+        return True
 
     @staticmethod
     def _render_page_array(provider, page_index: int, zoom: float) -> np.ndarray | None:
@@ -450,11 +502,14 @@ class PDFView(wx.ScrolledWindow):
         while True:
             task = self.render_queue.get()
             try:
-                page_idx, zoom, provider = task
-
-                cache_key = (page_idx, int(zoom * 10000))
+                page_idx, zoom, provider, task_revision = task
+                cache_key = self._make_cache_key(page_idx, zoom, task_revision)
 
                 if provider != self.content_provider:
+                    wx.CallAfter(self._requested_pages.discard, cache_key)
+                    continue
+
+                if task_revision != self._effect_cache_revision():
                     wx.CallAfter(self._requested_pages.discard, cache_key)
                     continue
 
@@ -469,6 +524,7 @@ class PDFView(wx.ScrolledWindow):
                 raw_result = provider.render_to_data(page_idx, zoom)
                 if not raw_result:
                     print(f"[WARN] render_to_data failed in worker: page={page_idx}, zoom={zoom:.4f}")
+                    wx.CallAfter(self._requested_pages.discard, cache_key)
                     continue
 
                 width, height, data = raw_result
@@ -477,6 +533,7 @@ class PDFView(wx.ScrolledWindow):
                     arr = np.frombuffer(data, dtype=np.uint8).reshape((height, width, 3)).copy()
                 except Exception as e:
                     print(f"Numpy conversion error: {e}")
+                    wx.CallAfter(self._requested_pages.discard, cache_key)
                     continue
 
                 previous_arr = None
@@ -498,7 +555,8 @@ class PDFView(wx.ScrolledWindow):
                     arr,
                     previous_arr,
                     next_arr,
-                    provider
+                    provider,
+                    task_revision
                 )
 
             except Exception as e:
@@ -515,22 +573,28 @@ class PDFView(wx.ScrolledWindow):
             arr,
             previous_arr,
             next_arr,
-            task_provider
+            task_provider,
+            task_revision
     ):
+        cache_key = self._make_cache_key(page_idx, zoom, task_revision)
+        self._requested_pages.discard(cache_key)
+
         if task_provider != self.content_provider:
+            return
+        if task_revision != self._effect_cache_revision():
             return
         if self.mode != self.MODE_FLOW and abs(self.zoom - zoom) > 0.01:
             return
-
-        cache_key = (page_idx, int(zoom * 10000))
-        if cache_key in self._requested_pages:
-            self._requested_pages.remove(cache_key)
 
         if self._has_active_effects():
             try:
                 arr = self._apply_effect_chain(arr, previous_arr, next_arr)
             except Exception as e:
                 print(f"GL Filter error on main thread: {e}")
+
+        # Do not cache a result if the chain changed during GL processing
+        if task_revision != self._effect_cache_revision():
+            return
 
         img = wx.Image(width, height, arr.tobytes())
         bmp = wx.Bitmap(img)
@@ -588,7 +652,7 @@ class PDFView(wx.ScrolledWindow):
             self._last_cache_zoom = self.zoom
 
     def _get_bitmap(self, page_index: int, zoom: float) -> wx.Bitmap:
-        cache_key = (page_index, int(zoom * 10000))
+        cache_key = self._make_cache_key(page_index, zoom)
 
         if cache_key in self._bmp_cache:
             self._bmp_cache.move_to_end(cache_key)
@@ -754,12 +818,7 @@ class PDFView(wx.ScrolledWindow):
             if not (0 <= page_index < self.content_provider.page_count):
                 continue
 
-            cache_key = (page_index, int(self.zoom * 10000))
-            if cache_key in self._bmp_cache or cache_key in self._requested_pages:
-                continue
-
-            self._requested_pages.add(cache_key)
-            self.render_queue.put((page_index, self.zoom, self.content_provider))
+            self._queue_page_render(page_index, self.zoom, self.content_provider)
 
     def _refresh_layout(self):
         if not self.content_provider:
@@ -932,16 +991,13 @@ class PDFView(wx.ScrolledWindow):
         self._current_bitmaps = []
         for i in visible_pages:
             zoom_i = self._flow_page_zooms[i] if i < len(self._flow_page_zooms) else self.zoom
-            cache_key = (i, int(zoom_i * 10000))
+            cache_key = self._make_cache_key(i, zoom_i)
             if cache_key in self._bmp_cache:
                 self._bmp_cache.move_to_end(cache_key)
                 self._current_bitmaps.append((i, self._bmp_cache[cache_key]))
             else:
                 self._current_bitmaps.append((i, wx.NullBitmap))
-                max_pending = getattr(self, "max_pending_render_tasks", 10)
-                if cache_key not in self._requested_pages and len(self._requested_pages) < max_pending:
-                    self._requested_pages.add(cache_key)
-                    self.render_queue.put((i, zoom_i, self.content_provider))
+                self._queue_page_render(i, zoom_i, self.content_provider)
 
         self._trim_bitmap_cache()
 
@@ -951,10 +1007,7 @@ class PDFView(wx.ScrolledWindow):
 
             for i in range(max(0, first_vis - 2), min(self.content_provider.page_count, last_vis + 3)):
                 zoom_i = self._flow_page_zooms[i] if i < len(self._flow_page_zooms) else self.zoom
-                cache_key = (i, int(zoom_i * 10000))
-                if cache_key not in self._bmp_cache and cache_key not in self._requested_pages:
-                    self._requested_pages.add(cache_key)
-                    self.render_queue.put((i, zoom_i, self.content_provider))
+                self._queue_page_render(i, zoom_i, self.content_provider)
 
         if best_page != self.page:
             self.page = best_page

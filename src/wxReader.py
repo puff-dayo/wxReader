@@ -181,6 +181,28 @@ class MainFrame(wx.Frame):
             next_rgb=next_rgb
         )
 
+    def _iter_reader_views(self):
+        if not hasattr(self, "notebook"):
+            return
+        for index in range(self.notebook.GetPageCount()):
+            view = self.notebook.GetPage(index)
+            if isinstance(view, PDFView):
+                yield view
+
+    def _notify_effect_chain_changed(self):
+        chain = getattr(self.gl_filters, "effect_chain", [])
+        effects_enabled = any(stage.enabled for stage in chain)
+        if hasattr(self.gl_filters, "get_revision"):
+            self.gl_filters.get_revision()
+
+        current_view = self.view
+        for view in self._iter_reader_views():
+            view.effects_enabled = effects_enabled
+            view.on_effect_chain_changed(refresh_layout=(view is current_view))
+
+        if current_view:
+            current_view.Update()
+
     def __init__(self, lang=wx.LANGUAGE_ENGLISH):
         cfg = load_config()
 
@@ -513,6 +535,9 @@ class MainFrame(wx.Frame):
 
         view = PDFView(self.notebook)
         view.main_frame = self
+        if hasattr(self, "gl_filters"):
+            chain = getattr(self.gl_filters, "effect_chain", [])
+            view.effects_enabled = any(stage.enabled for stage in chain)
         view.SetDropTarget(FileDropTarget(self))
         view.set_memory_profile_name(self.memory_profile_name)
 
@@ -559,6 +584,11 @@ class MainFrame(wx.Frame):
         self._update_tabbar_visibility()
         self._update_ui()
         if self.view:
+            # Hidden tabs are invalidated lazily when an effect chain changes.
+            # Rebuild their layout only when they become active.
+            if self.view.content_provider:
+                self.view._refresh_layout()
+                self.view.Refresh(eraseBackground=False)
             self.view.SetFocus()
         evt.Skip()
 
@@ -2168,12 +2198,7 @@ class MainFrame(wx.Frame):
         debounce_timer = wx.Timer(self)
 
         def _do_refresh(timer_evt):
-            if self.view:
-                chain = getattr(self.gl_filters, "effect_chain", [])
-                self.view.effects_enabled = any(stage.enabled for stage in chain)
-                self.view.on_effect_chain_changed()
-                self.view.Update()
-
+            self._notify_effect_chain_changed()
             self._sync_legacy_filter_menu_from_chain()
 
         self.Bind(wx.EVT_TIMER, _do_refresh, debounce_timer)
@@ -2224,9 +2249,7 @@ class MainFrame(wx.Frame):
         debounce_timer = wx.Timer(self)
 
         def _do_refresh(timer_evt):
-            if self.view:
-                self.view.on_effect_chain_changed()
-                self.view.Update()
+            self._notify_effect_chain_changed()
 
         self.Bind(wx.EVT_TIMER, _do_refresh, debounce_timer)
 
@@ -2261,10 +2284,6 @@ class MainFrame(wx.Frame):
     def _select_custom_filter(self, name: str | None):
         if name is None:
             self.gl_filters.set_effect_chain([])
-
-            if self.view:
-                self.view.effects_enabled = False
-                self.view.on_effect_chain_changed()
         else:
             strength = float(getattr(self.gl_filters, "strength", 0.8))
 
@@ -2276,9 +2295,7 @@ class MainFrame(wx.Frame):
                 )
             ])
 
-            if self.view:
-                self.view.effects_enabled = True
-                self.view.on_effect_chain_changed()
+        self._notify_effect_chain_changed()
 
         # Update checks on FlatMenuBar
         def _check_id(mid, val):
@@ -2386,6 +2403,12 @@ class MainFrame(wx.Frame):
 
         except Exception as e:
             print(f"Save failed: {e}")
+
+        try:
+            if hasattr(self, "gl_filters"):
+                self.gl_filters.destroy()
+        except Exception as e:
+            print(f"[WARN] GL filter shutdown failed: {e}")
 
         self.server.stop()
 
