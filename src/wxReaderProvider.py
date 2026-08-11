@@ -1,6 +1,7 @@
 import abc
 import io
 import os
+import posixpath
 import threading
 
 import re
@@ -11,6 +12,10 @@ import pyzipper
 import wx
 
 import py7zr
+
+import xml.etree.ElementTree as ET
+from html.parser import HTMLParser
+from urllib.parse import unquote
 
 from wxReaderString import IMAGE_EXTENSIONS
 
@@ -464,6 +469,216 @@ class ArchiveContentProvider(ContentProvider):
         except Exception as e:
             print(f"[ERROR] pyvips failed to get thumbnail for {self.path}: {e}")
             return None
+
+
+class _EpubHtmlImageParser(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.image_refs: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs):
+        local_name = tag.rsplit(":", 1)[-1].lower()
+        attrs_dict = {
+            str(key).lower(): value
+            for key, value in attrs
+            if key and value
+        }
+
+        if local_name == "img":
+            src = attrs_dict.get("src")
+        elif local_name == "image":
+            src = attrs_dict.get("href") or attrs_dict.get("xlink:href")
+        else:
+            src = None
+
+        if src:
+            self.image_refs.append(src)
+
+
+class EpubComicContentProvider(ArchiveContentProvider):
+    _XHTML_MEDIA_TYPES = {
+        "application/xhtml+xml",
+        "text/html",
+    }
+
+    _MARKUP_EXTENSIONS = {
+        ".xhtml",
+        ".html",
+        ".htm",
+        ".xml",
+        ".svg",
+    }
+
+    def __init__(self, path: str):
+        ContentProvider.__init__(self, path)
+
+        self.zip_file = None
+        self.image_list: list[str] = []
+        self._size_cache = {}
+        self._img_cache: dict[int, pyvips.Image] = {}
+        self._img_cache_limit = 32
+        self.high_quality_render = 0
+
+        try:
+            self.zip_file = pyzipper.AESZipFile(self.path, "r")
+            self._zip_names = set(self.zip_file.namelist())
+            self.image_list = self._build_image_list()
+        except Exception as e:
+            print(f"[ERROR] failed to open EPUB comic {self.path}: {e}")
+            if self.zip_file:
+                try:
+                    self.zip_file.close()
+                except Exception:
+                    print(Exception)
+            self.zip_file = None
+            self._zip_names = set()
+            self.image_list = []
+
+    @staticmethod
+    def _local_name(tag: str) -> str:
+        if "}" in tag:
+            tag = tag.rsplit("}", 1)[-1]
+        if ":" in tag:
+            tag = tag.rsplit(":", 1)[-1]
+        return tag.lower()
+
+    @staticmethod
+    def _clean_href(href: str) -> str:
+        href = href.strip().replace("\\", "/")
+        href = href.split("#", 1)[0]
+        href = href.split("?", 1)[0]
+        return unquote(href)
+
+    def _resolve_href(self, owner_path: str, href: str) -> str | None:
+        href = self._clean_href(href)
+        if not href: return None
+
+        lowered = href.lower()
+        if lowered.startswith(("data:", "http://", "https://", "file://")):
+            return None
+
+        if href.startswith("/"):
+            resolved = posixpath.normpath(href.lstrip("/"))
+        else:
+            resolved = posixpath.normpath(posixpath.join(posixpath.dirname(owner_path), href))
+
+        if resolved == ".." or resolved.startswith("../"):
+            return None
+
+        return resolved
+
+    def _read_xml(self, path: str) -> ET.Element:
+        return ET.fromstring(self.zip_file.read(path))
+
+    def _find_opf_path(self) -> str:
+        container_root = self._read_xml("META-INF/container.xml")
+
+        for element in container_root.iter():
+            if self._local_name(element.tag) != "rootfile":
+                continue
+
+            full_path = element.attrib.get("full-path")
+            if not full_path:
+                continue
+
+            full_path = self._clean_href(full_path).lstrip("/")
+            if full_path in self._zip_names:
+                return full_path
+
+        raise ValueError("EPUB container does not contain a valid OPF")
+
+    def _extract_image_refs(self, document_path: str) -> list[str]:
+        data = self.zip_file.read(document_path)
+        image_refs: list[str] = []
+        try:
+            root = ET.fromstring(data)
+            for element in root.iter():
+                local_name = self._local_name(element.tag)
+                if local_name == "img":
+                    src = element.attrib.get("src")
+                elif local_name == "image":
+                    src = (
+                            element.attrib.get("href")
+                            or element.attrib.get("{http://www.w3.org/1999/xlink}href")
+                            or element.attrib.get("xlink:href")
+                    )
+                else:
+                    src = None
+                if src:
+                    image_refs.append(src)
+            return image_refs
+        except ET.ParseError:
+            parser = _EpubHtmlImageParser()
+            parser.feed(data.decode("utf-8-sig", errors="replace"))
+            return parser.image_refs
+
+    def _build_image_list(self) -> list[str]:
+        opf_path = self._find_opf_path()
+        package_root = self._read_xml(opf_path)
+        manifest: dict[str, tuple[str, str]] = {}
+        spine = None
+
+        for element in package_root.iter():
+            local_name = self._local_name(element.tag)
+            if local_name == "item":
+                item_id = element.attrib.get("id")
+                href = element.attrib.get("href")
+                media_type = element.attrib.get("media-type", "")
+                if not item_id or not href:
+                    continue
+                resolved = self._resolve_href(opf_path, href)
+                if resolved:
+                    manifest[item_id] = (
+                        resolved,
+                        media_type.lower(),
+                    )
+            elif local_name == "spine" and spine is None:
+                spine = element
+
+        if spine is None:
+            raise ValueError("EPUB package does not contain a spine")
+
+        image_list: list[str] = []
+
+        for itemref in spine:
+            if self._local_name(itemref.tag) != "itemref":
+                continue
+            idref = itemref.attrib.get("idref")
+            if not idref or idref not in manifest:
+                continue
+            document_path, media_type = manifest[idref]
+            if media_type.startswith("image/") and media_type != "image/svg+xml":
+                if document_path in self._zip_names:
+                    image_list.append(document_path)
+                continue
+            extension = posixpath.splitext(document_path)[1].lower()
+            is_markup = (
+                    media_type in self._XHTML_MEDIA_TYPES
+                    or media_type == "image/svg+xml"
+                    or extension in self._MARKUP_EXTENSIONS
+            )
+            if not is_markup or document_path not in self._zip_names:
+                continue
+            for image_ref in self._extract_image_refs(document_path):
+                image_path = self._resolve_href(
+                    document_path,
+                    image_ref,
+                )
+                if not image_path:
+                    continue
+                if image_path not in self._zip_names:
+                    print(f"[WARN] EPUB comic image not found: {image_ref} -> {image_path}")
+                    continue
+                if posixpath.splitext(image_path)[1].lower() not in IMAGE_EXTENSIONS:
+                    continue
+                image_list.append(image_path)
+        if not image_list:
+            raise ValueError("no comic page images found in EPUB spine")
+        return image_list
+
+    @property
+    def is_valid(self) -> bool:
+        return self.zip_file is not None and bool(self.image_list)
 
 
 class SevenZipContentProvider(ContentProvider):

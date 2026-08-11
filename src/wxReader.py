@@ -20,13 +20,14 @@ from wx.lib.agw.aui import tabart
 
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
 from wxReaderConfigUtil import load_config, save_config, update_recent
-from wxReaderDialog import TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog, \
-    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog, FilterSettingsDialog, \
-    EffectGroupDialog
+from wxReaderDialog import (TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog,
+    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog, FilterSettingsDialog,
+    EffectGroupDialog)
 from wxReaderGlUtil import GLFilterTool, EffectStage
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
-from wxReaderProvider import PdfContentProvider, ArchiveContentProvider, SevenZipContentProvider
+from wxReaderProvider import (PdfContentProvider, ArchiveContentProvider,
+                              SevenZipContentProvider, EpubComicContentProvider)
 from wxReaderString import *
 from wxReaderKeyBinds import DEFAULT_KEYBINDS, get_menu_label
 from wxReaderView import PDFView, MEMORY_PROFILES
@@ -394,6 +395,10 @@ class MainFrame(wx.Frame):
             self.memory_profile_name = "default"
 
         self.epub_font_size = 12
+
+        self.epub_comic_mode = bool(
+            cfg.get("epub_comic_mode", True)
+        )
 
         self.show_tabbar = bool(cfg.get("show_tabbar", True))
         self.multi_tab_mode = bool(cfg.get("multi_tab_mode", True))
@@ -845,6 +850,11 @@ class MainFrame(wx.Frame):
         # --- View ---
         m_view = wx.Menu()
 
+        self.id_epub_comic_mode = wx.NewIdRef()
+        _add_item(m_view, self.id_epub_comic_mode, _("EPUB Comic Mode"), kind=wx.ITEM_CHECK)
+
+        m_view.AppendSeparator()
+
         self.id_sidebar_toggle = wx.NewIdRef()
         _add_item(m_view, self.id_sidebar_toggle, get_menu_label(_("Show &Sidebar"), "toggle_sidebar"),
                   kind=wx.ITEM_CHECK)
@@ -932,10 +942,6 @@ class MainFrame(wx.Frame):
         m_quality.AppendRadioItem(self.id_quality_lq, _("Bilinear"))
         m_quality.AppendRadioItem(self.id_quality_mq, _("Lanczos"))
         m_quality.AppendRadioItem(self.id_quality_hq, _("DeMoiré"))
-
-        item_lq = _find_item(self.id_quality_lq)
-        if item_lq:
-            item_lq.Check(True)
 
         _add_item(m_view, wx.ID_ANY, _("Render Quality"), subMenu=m_quality)
 
@@ -1084,6 +1090,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_lang_change, id=self.id_lang_zhtw)
 
         # View
+        self.Bind(wx.EVT_MENU, self.on_toggle_epub_comic_mode, id=self.id_epub_comic_mode)
         self.Bind(wx.EVT_MENU, self.on_toggle_sidebar, id=self.id_sidebar_toggle)
         self.Bind(wx.EVT_MENU, self.on_toggle_tabbar, id=self.id_show_tabbar)
         self.Bind(wx.EVT_MENU, self.on_toggle_multi_tab_mode, id=self.id_multi_tab_mode)
@@ -1613,6 +1620,7 @@ class MainFrame(wx.Frame):
         _set_check(self.id_dark_mode, getattr(self, "dark_mode", False))
         _set_check(self.id_show_tabbar, getattr(self, "show_tabbar", True))
         _set_check(self.id_multi_tab_mode, getattr(self, "multi_tab_mode", True))
+        _set_check(self.id_epub_comic_mode, self.epub_comic_mode)
         _set_enable(self.id_split_tabs, getattr(self, "multi_tab_mode", True) and self.notebook.GetPageCount() >= 2)
 
         memory_item_map = {
@@ -1627,6 +1635,14 @@ class MainFrame(wx.Frame):
         memory_item = self._find_menu_item(memory_item_id)
         if memory_item:
             memory_item.Check(True)
+
+        _set_check(
+            {
+                0: self.id_quality_lq,
+                1: self.id_quality_mq,
+                2: self.id_quality_hq,
+            }.get(self.quality_preference, self.id_quality_mq), True
+        )
 
         _set_enable(self.id_font_increase, is_reflowable)
         _set_enable(self.id_font_decrease, is_reflowable)
@@ -1697,6 +1713,31 @@ class MainFrame(wx.Frame):
             if dlg.ShowModal() == wx.ID_OK:
                 self._load_file(dlg.GetPath())
 
+    def _create_content_provider(self, path):
+        ext = os.path.splitext(path)[1].lower()
+        if ext == ".epub":
+            if self.epub_comic_mode:
+                comic_provider = None
+                try:
+                    comic_provider = EpubComicContentProvider(path)
+                    if comic_provider.is_valid and comic_provider.page_count > 0:
+                        return comic_provider
+                    print(f"[WARN] EPUB comic provider found no pages: {path}")
+                except Exception as e:
+                    print(f"[WARN] EPUB comic provider failed: {path}: {e}")
+                if comic_provider is not None:
+                    try:
+                        comic_provider.close()
+                    except Exception:
+                        print(Exception)
+                return PdfContentProvider(path)
+            return PdfContentProvider(path)
+        if ext in {".pdf", ".mobi", ".fb2", ".txt"}:
+            return PdfContentProvider(path)
+        if ext in {".zip", ".cbz"}:
+            return ArchiveContentProvider(path)
+        return SevenZipContentProvider(path)
+
     def _load_file(self, path):
         v = self.view
 
@@ -1718,14 +1759,8 @@ class MainFrame(wx.Frame):
         ext = os.path.splitext(path)[1].lower()
 
         try:
-            if ext in {".pdf", ".epub", ".mobi", ".fb2", ".txt"}:
-                provider = PdfContentProvider(path)
-                self._restore_epub_font()
-            elif ext in {".zip", ".cbz"}:
-                provider = ArchiveContentProvider(path)
-            else:
-                provider = SevenZipContentProvider(path)
-
+            provider = self._create_content_provider(path)
+            provider.set_render_quality(self.quality_preference)
         except Exception as e:
             show_toast(self, f"Error opening file: {e}", True)
             if v and not v.content_provider:
@@ -1735,6 +1770,8 @@ class MainFrame(wx.Frame):
             return
 
         v.set_content_provider(provider)
+        if isinstance(provider, PdfContentProvider) and provider.is_reflowable:
+            self._restore_epub_font()
 
         idx = self.notebook.GetPageIndex(v)
         if idx != wx.NOT_FOUND:
@@ -1940,7 +1977,7 @@ class MainFrame(wx.Frame):
 
         current_path = self.dir_ctrl.GetPath() or ""
 
-        if (current_path and os.path.normcase(os.path.abspath(current_path)) == os.path.normcase(target_path)):
+        if current_path and os.path.normcase(os.path.abspath(current_path)) == os.path.normcase(target_path):
             self._file_browser_sync_pending = False
             return
 
@@ -1970,6 +2007,52 @@ class MainFrame(wx.Frame):
         filepath = self.dir_ctrl.GetFilePath()
         if filepath and os.path.isfile(filepath):
             self._load_file(filepath)
+
+    def _reload_current_epub(self):
+        v = self.view
+        if not v or not v.content_provider: return
+        old_provider = v.content_provider
+        path = old_provider.path
+        if os.path.splitext(path)[1].lower() != ".epub": return
+        current_page = v.page
+        try:
+            new_provider = self._create_content_provider(path)
+        except Exception as e:
+            show_toast(self, f"Error reopening EPUB: {e}", True)
+            return
+
+        v.set_content_provider(new_provider)
+
+        if isinstance(new_provider, PdfContentProvider) and new_provider.is_reflowable:
+            self._restore_epub_font()
+
+        if new_provider.page_count > 0:
+            v.go_to_page(min(current_page, new_provider.page_count - 1))
+
+        try:
+            old_provider.close()
+        except Exception:
+            print(Exception)
+
+        self._populate_sidebar()
+        self._update_ui()
+        v.SetFocus()
+
+    def on_toggle_epub_comic_mode(self, evt):
+        self.epub_comic_mode = bool(evt.IsChecked())
+
+        cfg = load_config()
+        cfg["epub_comic_mode"] = self.epub_comic_mode
+        save_config(cfg)
+
+        v = self.view
+        if v and v.content_provider:
+            path = v.content_provider.path
+
+            if os.path.splitext(path)[1].lower() == ".epub":
+                self._reload_current_epub()
+
+        self._update_ui()
 
     def on_switch_sidebar_tab(self, evt):
         if not self.splitter.IsSplit():
@@ -2257,7 +2340,7 @@ class MainFrame(wx.Frame):
             self.id_quality_mq: 1,
             self.id_quality_lq: 0
         }
-        self.quality_preference = quality_map.get(event_id, 0)
+        self.quality_preference = quality_map.get(event_id, 1)
 
         if not self.content_provider:
             return
@@ -2554,6 +2637,7 @@ class MainFrame(wx.Frame):
                 "reopen_last_files": self.reopen_last_files,
                 "memory_profile": self.memory_profile_name,
                 "effect_group_state": self._effect_group_state_payload(),
+                "epub_comic_mode": self.epub_comic_mode,
             }
             cfg.update(current_cfg)
 
