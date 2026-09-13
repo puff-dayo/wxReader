@@ -505,6 +505,8 @@ class MainFrame(wx.Frame):
         self._folder_all_items = []
         self._folder_items = []
         self._folder_index = {}
+        self._fv_shuffle_items = ()
+        self._fv_shuffle_queue = []
         self._folder_list_loaded_path = None
         self._folder_list_loaded_sort = None
         self._folder_list_dirty = True
@@ -1422,7 +1424,14 @@ class MainFrame(wx.Frame):
             wx.Bell()
             return
 
-        fname = random.choice(self._folder_items)
+        items = tuple(self._folder_items)
+
+        if self._fv_shuffle_items != items or not self._fv_shuffle_queue:
+            self._fv_shuffle_items = items
+            self._fv_shuffle_queue = list(items)
+            random.shuffle(self._fv_shuffle_queue)
+
+        fname = self._fv_shuffle_queue.pop()
         index = self._folder_index.get(fname, wx.NOT_FOUND)
 
         if index == wx.NOT_FOUND:
@@ -1850,7 +1859,7 @@ class MainFrame(wx.Frame):
             if not path and self.content_provider and self.content_provider.path:
                 path = self.content_provider.path
         elif hasattr(self, "dir_ctrl"):
-            path = self.dir_ctrl.GetPath()
+            path = self.current_folder_path if self._file_browser_sync_pending else self.dir_ctrl.GetPath()
         if not path and self.content_provider and self.content_provider.path:
             path = self.content_provider.path
         if path and os.path.isfile(path):
