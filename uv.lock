@@ -104,15 +104,15 @@ wheels = [
 
 [[package]]
 name = "imageio"
-version = "2.37.3"
+version = "2.37.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "pillow" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/84/93bcd1300216ea50811cee96873b84a1bebf8d0489ffaf7f2a3756bab866/imageio-2.37.3.tar.gz", hash = "sha256:bbb37efbfc4c400fcd534b367b91fcd66d5da639aaa138034431a1c5e0a41451", size = 389673 }
+sdist = { url = "https://files.pythonhosted.org/packages/48/62/aa770a9307508d2a2a2c62d536a49347bffe9e55322db27838d3c93d0b07/imageio-2.37.4.tar.gz", hash = "sha256:e45cbc5e83502047fb138f7f585f7f105a136a57eea5f4b3cfc6ce1b52720bd3", size = 390173 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/fa/391e437a34e55095173dca5f24070d89cbc233ff85bf1c29c93248c6588d/imageio-2.37.3-py3-none-any.whl", hash = "sha256:46f5bb8522cd421c0f5ae104d8268f569d856b29eb1a13b92829d1970f32c9f0", size = 317646 },
+    { url = "https://files.pythonhosted.org/packages/3e/2d/ca050652104bab2cf55e569db2a178b1b61cb041fef28307f2db383f6d9f/imageio-2.37.4-py3-none-any.whl", hash = "sha256:1ab2e22c8debf700f24c3ac43e8f95f3b3a8110c83b93411e97b4b0b2cd1c7e6", size = 318000 },
 ]
 
 [[package]]
@@ -200,9 +200,9 @@ wheels = [
 
 [[package]]
 name = "nuitka"
-version = "4.1.3"
+version = "4.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3f/d8/bdb7febea4b4fe5d3d6fe2610f946771f03e792e05a5e8ec00b62c00b265/nuitka-4.1.3.tar.gz", hash = "sha256:838ff8899dc2f0b652d4fcf6c5d7466cb7ad5abcb005668ac622d1e40f4d8a8d", size = 4565475 }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/ce/38409fc853cc26d86ab71ccd53f7dfddbc7a84d4821b9b54db428b35779b/nuitka-4.2.1.tar.gz", hash = "sha256:815c6e571a7a6424af384fe9d95d4ba38f1634d39a5515e8094d7fbfa090cbcb", size = 4632551 }
 
 [[package]]
 name = "numpy"
@@ -486,16 +486,15 @@ wheels = [
 
 [[package]]
 name = "wxpython"
-version = "4.3.0a16064+246cff28"
-source = { path = "wheels/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl" }
+version = "4.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/dd/026f6286f8beefcdd9551ad2e05b4e3edb45e638cdc067db211c53c950ce/wxpython-4.3.1.tar.gz", hash = "sha256:4e3a95b63175be8e10f0662de506a36d8cc6cb86ecc5b30ae880c8dafb34a0cd", size = 64071924 }
 wheels = [
-    { filename = "wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl", hash = "sha256:88199183a968fee579452eb95348a1a2dfc97049c2cd631fb91e22b0fc93dc4d" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "numpy", marker = "python_full_version >= '3.0' and python_full_version < '3.12'" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { url = "https://files.pythonhosted.org/packages/61/37/7c3e41fea1b66f42a26f8558ffc5fb3f7e250a0d48fca311a360fbe7b6ee/wxpython-4.3.1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:61aee1518a8aa5c5392696a869c91f2a82eb022f1f2e3bf099be4a251c16ba50", size = 20018963 },
+    { url = "https://files.pythonhosted.org/packages/ad/77/1823238ee2f0eee6778ceac2b92c82aa09d14a1398a1fe73490cea924591/wxpython-4.3.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:a0fd78747c3583a726f496c13ab9caa225d3f59ce39c1b8b026a5151deaf5bf1", size = 18816842 },
+    { url = "https://files.pythonhosted.org/packages/1d/ef/1d5d25c535ca79ed61719884c406b2296ec40a9af44dde68fb455ca38ff7/wxpython-4.3.1-cp312-cp312-win32.whl", hash = "sha256:b2a845542d54baada50216dc5dca3af02095d98338c9788cb4cd865adf3b05c8", size = 16276235 },
+    { url = "https://files.pythonhosted.org/packages/8a/70/c03bdacc6496b52ea5cfcf1f0a0c3030d56b6ca72efcbd4dab63a41f0e03/wxpython-4.3.1-cp312-cp312-win_amd64.whl", hash = "sha256:d2829bdca91280d85e66ec87b0be9635da919960a1b383a9a3f6332bc286c2d4", size = 18526411 },
+    { url = "https://files.pythonhosted.org/packages/30/c5/548195ef606bb906541a70f20b97fd09c8f485e7725bebe31c46c7d9a326/wxpython-4.3.1-cp312-cp312-win_arm64.whl", hash = "sha256:bfa93c1317d875bdc9ec19fbbfa960de405108d3acc342be38fe55a0c5d6857f", size = 16324618 },
 ]
 
 [[package]]
@@ -533,21 +532,21 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "babel", specifier = "==2.18.0" },
-    { name = "imageio", specifier = "==2.37.3" },
+    { name = "imageio", specifier = ">=2.37.4" },
     { name = "jinja2", marker = "extra == 'analysis'", specifier = ">=3.1.6" },
     { name = "lizard", marker = "extra == 'analysis'", specifier = ">=1.19.0" },
-    { name = "nuitka", specifier = "==4.1.3" },
+    { name = "nuitka", specifier = ">=4.2.1" },
     { name = "numpy", specifier = ">=2.5.1" },
     { name = "pillow", specifier = ">=12.3.0" },
     { name = "py7zr", specifier = ">=1.1.3" },
     { name = "pymupdf", specifier = "==1.23.8" },
     { name = "pyopengl", specifier = ">=3.1.10" },
-    { name = "pyvips", specifier = ">=3.1.1" },
+    { name = "pyvips", specifier = "==3.1.1" },
     { name = "pywinstyles", specifier = ">=1.8" },
     { name = "pyzipper", specifier = ">=0.4.0" },
     { name = "radon", marker = "extra == 'analysis'", specifier = ">=6.0.1" },
     { name = "viztracer", marker = "extra == 'analysis'", specifier = ">=1.1.1" },
-    { name = "wxpython", path = "wheels/wxpython-4.3.0a16064+246cff28-cp312-cp312-win_amd64.whl" },
+    { name = "wxpython", specifier = ">=4.3.1" },
 ]
 provides-extras = ["analysis"]
 
