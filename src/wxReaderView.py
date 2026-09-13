@@ -116,6 +116,7 @@ class PDFView(wx.ScrolledWindow):
         self._radial_deadzone = 18
         self._radial_outer_radius = 182
         self._radial_inner_radius = 45
+        self._radial_cancel_margin = 256
 
         self._radial_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_radial_timer, self._radial_timer)
@@ -1180,7 +1181,7 @@ class PDFView(wx.ScrolledWindow):
             self._radial_hover_index = -1
             return
 
-        if dist > self._radial_outer_radius + 24:
+        if dist > self._radial_outer_radius + self._radial_cancel_margin:
             self._radial_hover_index = -1
             return
 
