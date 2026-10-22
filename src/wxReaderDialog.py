@@ -13,6 +13,7 @@ from wxReaderIcon import get_app_font, msw_set_theme
 from wxReaderKeyBinds import DEFAULT_KEYBINDS
 from wxReaderString import *
 from wxReaderToast import show_toast
+from wxReaderConfigUtil import app_dir
 
 
 def _(text):
@@ -1016,7 +1017,7 @@ class PswdManagerDialog(wx.Dialog):
     def __init__(self, parent=None):
         super().__init__(parent, title=_("Password Editor"), size=(500, 600))
 
-        self.file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pswd.txt')
+        self.file_path = os.path.join(app_dir(), 'pswd.txt')
 
         self.InitUI()
         self.LoadPasswords()

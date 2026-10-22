@@ -5,10 +5,12 @@ from functools import lru_cache
 import pywinstyles
 import wx
 
+from src.wxReaderConfigUtil import app_dir
+
 
 @lru_cache(maxsize=1)
 def get_app_icon():
-    icon_path = 'icon.png'
+    icon_path = os.path.join(app_dir(), "icon.png")
 
     if not os.path.exists(icon_path):
         print(f"Error: {icon_path} not found.")

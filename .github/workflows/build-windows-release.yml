@@ -106,38 +106,37 @@ jobs:
             Write-Host "OK: $f ($('{0:N0}' -f (Get-Item $f).Length) bytes)"
           }
 
-      - name: Build with Nuitka
+      - name: Build with PyInstaller
         shell: cmd
-        env:
-          NUITKA_ALLOW_DOWNLOADS: "1"
         run: |
-          uv --project . run python -m nuitka ^
-            --mode=standalone ^
-            --lto=yes ^
-            --assume-yes-for-downloads ^
-            --output-dir=build ^
-            --follow-imports ^
-            --nofollow-import-to=tkinter ^
-            --nofollow-import-to=pillow ^
-            --windows-console-mode=attach ^
-            --windows-icon-from-ico=.\src\icon.png ^
-            --include-module=wx._xml ^
-            --include-data-file=.\src\icon.png=icon.png ^
-            --include-data-file=.\src\libglib-2.0-0.dll=libglib-2.0-0.dll ^
-            --include-data-file=.\src\libgobject-2.0-0.dll=libgobject-2.0-0.dll ^
-            --include-data-file=.\src\libvips-42.dll=libvips-42.dll ^
-            --include-data-file=.\src\libvips-cpp-42.dll=libvips-cpp-42.dll ^
-            --include-data-dir=.\src\filters=filters ^
-            --include-data-dir=.\src\locale=locale ^
-            .\src\wxReader.py
+          uv --project . run python -m PyInstaller ^
+            --onedir ^
+            --contents-directory . ^
+            --name wxReader ^
+            --distpath build ^
+            --workpath build\pyinstaller-temp ^
+            --console ^
+            --hide-console hide-early ^
+            --icon ".\src\icon.png" ^
+            --hidden-import wx._xml ^
+            --collect-data pymupdf ^
+            --exclude-module onnxruntime ^
+            --add-data ".\src\icon.png:." ^
+            --add-data ".\src\filters:filters" ^
+            --add-data ".\src\locale:locale" ^
+            --add-binary ".\src\libglib-2.0-0.dll:." ^
+            --add-binary ".\src\libgobject-2.0-0.dll:." ^
+            --add-binary ".\src\libvips-42.dll:." ^
+            --add-binary ".\src\libvips-cpp-42.dll:." ^
+            ".\src\wxReader.py"
 
       - name: Package release ZIP
         shell: pwsh
         run: |
           $tag      = "${{ steps.tag.outputs.TAG }}"
           $zipName  = "wxReader_${tag}_msvc_x64.zip"
-          # Nuitka puts the dist folder at build\wxReader.dist
-          Compress-Archive -Path "build\wxReader.dist\*" -DestinationPath $zipName
+          # PyInstaller --onedir output
+          Compress-Archive -Path "build\wxReader\*" -DestinationPath $zipName
           Write-Host "Created: $zipName ($('{0:N0}' -f (Get-Item $zipName).Length) bytes)"
           echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
 

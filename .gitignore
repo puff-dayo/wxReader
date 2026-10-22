@@ -22,3 +22,4 @@ src/result.json
 build_ext2.bat
 src/dev_tool_editor.py
 docs/.vscode/settings.json
+*.spec

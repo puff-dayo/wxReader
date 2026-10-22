@@ -1,15 +1,19 @@
+import os
+
 import wx
 import json
 import urllib.request
 import webbrowser
 import threading
 
+from src.wxReaderConfigUtil import app_dir
 from wxReaderToast import show_toast
 from wxReaderString import APP_VERSION, GITHUB_REPO_OWNER, GITHUB_REPO_NAME
 from wxReaderIcon import get_app_font, msw_set_theme, get_app_icon
 
 import gettext
-t = gettext.translation('messages', localedir='locale', fallback=True)
+locale_dir = os.path.join(app_dir(), 'locale')
+t = gettext.translation('messages', localedir=locale_dir, fallback=True)
 _ = t.gettext
 
 

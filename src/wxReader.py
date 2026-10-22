@@ -19,10 +19,11 @@ import wx.lib.agw.aui as aui
 from wx.lib.agw.aui import tabart
 
 from wxReaderIcon import msw_set_theme, get_app_icon, get_app_font
-from wxReaderConfigUtil import load_config, save_config, update_recent
+from wxReaderConfigUtil import load_config, save_config, update_recent, app_dir
 from wxReaderDialog import (TOCDialog, TextExtractionDialog, SearchDialog, ImageExtractionDialog, SetMarginGapDialog,
-    ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog, FilterSettingsDialog,
-    EffectGroupDialog)
+                            ModernColorDialog, AboutDialog, RecentFilesDialog, PswdManagerDialog, KeymapDialog,
+                            FilterSettingsDialog,
+                            EffectGroupDialog)
 from wxReaderGlUtil import GLFilterTool, EffectStage
 from wxReaderLibrary import LibraryFrame
 from wxReaderManual import ManualDialog
@@ -589,7 +590,7 @@ class MainFrame(wx.Frame):
 
         # self._add_new_tab()
 
-        filters_dir = os.path.join(os.path.dirname(__file__), "filters")
+        filters_dir = os.path.join(app_dir(), "filters")
         self.gl_filters = GLFilterTool(self, filters_dir)
         self._load_effect_group_state(cfg)
 
@@ -1015,7 +1016,7 @@ class MainFrame(wx.Frame):
         self.filter_menu_map = {}
 
         def _populate_custom_filters_menu():
-            filters_dir = os.path.join(os.path.dirname(__file__), "filters")
+            filters_dir = os.path.join(app_dir(), "filters")
             if not os.path.exists(filters_dir):
                 return
 
@@ -2707,8 +2708,7 @@ class WxPDFReaderApp(wx.App):
         if bool(cfg.get("dark_mode", False)):
             self.MSWEnableDarkMode(flags=1)
 
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        locale_dir = os.path.join(base_path, 'locale')
+        locale_dir = os.path.join(app_dir(), 'locale')
         self.locale = wx.Locale(lang)
         self.locale.AddCatalogLookupPathPrefix(locale_dir)
         self.locale.AddCatalog('messages')

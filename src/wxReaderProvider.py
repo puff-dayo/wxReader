@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from urllib.parse import unquote
 
+from src.wxReaderConfigUtil import app_dir
 from wxReaderString import IMAGE_EXTENSIONS
 
 
@@ -249,9 +250,10 @@ class ArchiveContentProvider(ContentProvider):
             except (RuntimeError, pyzipper.BadZipFile):
                 if ArchiveContentProvider._cached_passwords is None:
                     ArchiveContentProvider._cached_passwords = []
-                    if os.path.exists('./pswd.txt'):
+                    password_file = os.path.join(app_dir(), 'pswd.txt')
+                    if os.path.exists(password_file):
                         try:
-                            with open('./pswd.txt', 'r', encoding='utf-8') as f:
+                            with password_file.open('r', encoding='utf-8') as f:
                                 for line in f:
                                     pwd = line.strip().encode('utf-8')
                                     if pwd:
@@ -729,9 +731,12 @@ class SevenZipContentProvider(ContentProvider):
 
                 if SevenZipContentProvider._cached_passwords is None:
                     SevenZipContentProvider._cached_passwords = []
-                    if os.path.exists('./pswd.txt'):
+
+
+                    password_file = os.path.join(app_dir(), 'pswd.txt')
+                    if os.path.exists(password_file):
                         try:
-                            with open('./pswd.txt', 'r', encoding='utf-8') as f:
+                            with password_file.open('r', encoding='utf-8') as f:
                                 for line in f:
                                     pwd = line.strip()
                                     if pwd:
