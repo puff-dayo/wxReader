@@ -4,6 +4,7 @@ const repo = "wxReader";
 async function loadLatestRelease() {
   const versionEl = document.getElementById("release-version");
   const dateEl = document.getElementById("release-date");
+  const downloadsEl = document.getElementById("release-downloads");
   const linksEl = document.getElementById("download-links");
 
   try {
@@ -26,7 +27,15 @@ async function loadLatestRelease() {
       day: "numeric"
     });
 
-    if (!release.assets || release.assets.length === 0) {
+    const assets = release.assets || [];
+    const totalDownloads = assets.reduce(
+      (total, asset) => total + (asset.download_count || 0),
+      0
+    );
+
+    downloadsEl.textContent = totalDownloads.toLocaleString();
+
+    if (assets.length === 0) {
       linksEl.innerHTML = `
         <a class="button" href="${release.html_url}">
           Open release page
@@ -35,7 +44,7 @@ async function loadLatestRelease() {
       return;
     }
 
-    linksEl.innerHTML = release.assets
+    linksEl.innerHTML = assets
       .map(asset => {
         return `
           <a class="button" href="${asset.browser_download_url}">
@@ -47,6 +56,7 @@ async function loadLatestRelease() {
   } catch (error) {
     versionEl.textContent = "Unavailable";
     dateEl.textContent = "Unavailable";
+    downloadsEl.textContent = "Unavailable";
     linksEl.innerHTML = `
       <a class="button" href="https://github.com/${owner}/${repo}/releases">
         View releases on GitHub
