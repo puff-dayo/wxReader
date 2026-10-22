@@ -34,6 +34,7 @@ from wxReaderKeyBinds import DEFAULT_KEYBINDS, get_menu_label
 from wxReaderView import PDFView, MEMORY_PROFILES
 from wxReaderToast import show_toast
 from wxReaderExtCtrl import ControlServer
+from wxReaderShellMenu import show_shell_context_menu
 
 
 def _(text):
@@ -665,6 +666,8 @@ class MainFrame(wx.Frame):
         self.fv_sort_choice.Bind(wx.EVT_CHOICE, self.on_fv_sort)
         self.fv_listbox.Bind(wx.EVT_LISTBOX_DCLICK, self.on_fv_item_activated)
         self.fv_listbox.Bind(wx.EVT_MOTION, self.on_fv_hover)
+        self.dir_tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_dir_tree_context_menu)
+        self.fv_listbox.Bind(wx.EVT_RIGHT_UP, self.on_fv_context_menu)
         self.fv_search.Bind(wx.EVT_TEXT, self.on_fv_search_text)
         self.fv_search.Bind(wx.EVT_TEXT_ENTER, self.on_fv_search_enter)
         self.Bind(
@@ -2017,6 +2020,87 @@ class MainFrame(wx.Frame):
         filepath = self.dir_ctrl.GetFilePath()
         if filepath and os.path.isfile(filepath):
             self._load_file(filepath)
+
+    def on_dir_tree_context_menu(self, evt):
+        item = evt.GetItem()
+        if not item or not item.IsOk():
+            return
+        self.dir_tree.SelectItem(item)
+        path = self.dir_ctrl.GetFilePath() or self.dir_ctrl.GetPath()
+        if not path or not os.path.exists(path):
+            return
+        pos = wx.GetMousePosition()
+        try:
+            show_shell_context_menu(self.GetHandle(), path, pos.x, pos.y)
+        except Exception as eee:
+            show_toast(self, f"Explorer context menu failed: {eee}", is_error=True)
+
+    def on_fv_context_menu(self, evt):
+        index = self.fv_listbox.HitTest(evt.GetPosition())
+        if index == wx.NOT_FOUND or not (0 <= index < self.fv_listbox.GetCount()):
+            return
+
+        self.fv_listbox.SetSelection(index)
+        name = self.fv_listbox.GetString(index)
+        path = os.path.abspath(os.path.join(self.current_folder_path, name))
+        if not os.path.isfile(path):
+            return
+
+        menu = wx.Menu()
+        copy_name = menu.Append(wx.ID_ANY, _("Copy filename"))
+        copy_path = menu.Append(wx.ID_ANY, _("Copy path"))
+        menu.AppendSeparator()
+        properties = menu.Append(wx.ID_ANY, _("Properties"))
+
+        def copy_text(value):
+            if not wx.TheClipboard.Open():
+                show_toast(self, _("Unable to open clipboard"), is_error=True)
+                return
+            try:
+                wx.TheClipboard.SetData(wx.TextDataObject(value))
+                wx.TheClipboard.Flush()
+            finally:
+                wx.TheClipboard.Close()
+
+        def show_properties():
+            if os.name != 'nt':
+                return
+
+            import ctypes
+            from ctypes import wintypes
+
+            SHOP_FILEPATH = 0x00000002
+            shell32 = ctypes.WinDLL("shell32", use_last_error=True)
+            shell32.SHObjectProperties.argtypes = [
+                wintypes.HWND,
+                wintypes.DWORD,
+                wintypes.LPCWSTR,
+                wintypes.LPCWSTR
+            ]
+            shell32.SHObjectProperties.restype = wintypes.BOOL
+            ctypes.set_last_error(0)
+            result = shell32.SHObjectProperties(
+                self.GetHandle(),
+                SHOP_FILEPATH,
+                path,
+                None
+            )
+            if not result:
+                error_code = ctypes.get_last_error()
+                print(f"[ERROR] SHObjectProperties failed: {error_code}, path={path}")
+                show_toast(self, _("Unable to open properties"), is_error=True)
+
+        self.Bind(wx.EVT_MENU, lambda e: copy_text(name), id=copy_name.GetId())
+        self.Bind(wx.EVT_MENU, lambda e: copy_text(path), id=copy_path.GetId())
+        self.Bind(wx.EVT_MENU, lambda e: show_properties(), id=properties.GetId())
+
+        try:
+            self.fv_listbox.PopupMenu(menu)
+        finally:
+            self.Unbind(wx.EVT_MENU, id=copy_name.GetId())
+            self.Unbind(wx.EVT_MENU, id=copy_path.GetId())
+            self.Unbind(wx.EVT_MENU, id=properties.GetId())
+            menu.Destroy()
 
     def _reload_current_epub(self):
         v = self.view
